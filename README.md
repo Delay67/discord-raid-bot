@@ -22,6 +22,10 @@ A Discord bot for looking up which fixed Lost Ark raid groups a player is includ
    DISCORD_TOKEN=your-bot-token
    DISCORD_CHANNEL_ID=your-bot-channel-id
    CLEANUP_DELAY_MS=300000
+   REDDIT_CLIENT_ID=your-reddit-client-id
+   REDDIT_CLIENT_SECRET=your-reddit-client-secret
+   REDDIT_USERNAME=your-reddit-username
+   REDDIT_PASSWORD=your-reddit-password
    ```
 
 3. Register slash commands:

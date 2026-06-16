@@ -1,10 +1,23 @@
 const { SlashCommandBuilder } = require("discord.js");
+const { reddit } = require("../config");
 
 const redditUrls = [
-  "https://www.reddit.com/r/redpandas/top.json?t=all&limit=100&raw_json=1",
-  "https://www.reddit.com/r/redpandas/hot.json?limit=100&raw_json=1",
-  "https://www.reddit.com/r/redpandas/new.json?limit=100&raw_json=1"
+  "https://oauth.reddit.com/r/redpandas/top?t=all&limit=100&raw_json=1",
+  "https://oauth.reddit.com/r/redpandas/hot?limit=100&raw_json=1",
+  "https://oauth.reddit.com/r/redpandas/new?limit=100&raw_json=1"
 ];
+
+let cachedToken = null;
+let cachedTokenExpiresAt = 0;
+
+function hasRedditConfig() {
+  return Boolean(
+    reddit.clientId &&
+      reddit.clientSecret &&
+      reddit.username &&
+      reddit.password
+  );
+}
 
 function isAllowedMediaUrl(url) {
   const cleanedUrl = url.toLowerCase().split("?")[0];
@@ -51,8 +64,15 @@ function extractRedditMediaUrls(payload) {
 }
 
 async function fetchJson(url) {
+  const accessToken = await getAccessToken();
+
+  if (!accessToken) {
+    return null;
+  }
+
   const response = await fetch(url, {
     headers: {
+      Authorization: `Bearer ${accessToken}`,
       "User-Agent": "discord-raid-bot/1.0 red panda command"
     }
   });
@@ -68,6 +88,47 @@ async function fetchJson(url) {
   }
 
   return response.json();
+}
+
+async function getAccessToken() {
+  if (cachedToken && Date.now() < cachedTokenExpiresAt) {
+    return cachedToken;
+  }
+
+  const credentials = Buffer.from(
+    `${reddit.clientId}:${reddit.clientSecret}`,
+    "utf8"
+  ).toString("base64");
+
+  const body = new URLSearchParams({
+    grant_type: "password",
+    password: reddit.password,
+    username: reddit.username
+  });
+
+  const response = await fetch("https://www.reddit.com/api/v1/access_token", {
+    method: "POST",
+    body,
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": "discord-raid-bot/1.0 red panda command"
+    }
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok || !payload?.access_token) {
+    console.warn(
+      `Reddit token fetch failed: ${response.status} ${JSON.stringify(payload)}`
+    );
+    return null;
+  }
+
+  cachedToken = payload.access_token;
+  cachedTokenExpiresAt = Date.now() + Math.max(0, payload.expires_in - 60) * 1000;
+
+  return cachedToken;
 }
 
 async function getRedditMediaUrls() {
@@ -101,6 +162,11 @@ module.exports = {
 
   async execute(interaction) {
     await interaction.deferReply();
+
+    if (!hasRedditConfig()) {
+      await interaction.editReply("Reddit is not configured for this bot yet.");
+      return;
+    }
 
     const mediaUrls = await getRedditMediaUrls();
 

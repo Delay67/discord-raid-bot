@@ -26,6 +26,12 @@ function validateEnvironment() {
 module.exports = {
   cleanupDelayMs: getCleanupDelayMs(),
   channelId: process.env.DISCORD_CHANNEL_ID,
+  reddit: {
+    clientId: process.env.REDDIT_CLIENT_ID,
+    clientSecret: process.env.REDDIT_CLIENT_SECRET,
+    password: process.env.REDDIT_PASSWORD,
+    username: process.env.REDDIT_USERNAME
+  },
   token: process.env.DISCORD_TOKEN,
   validateEnvironment
 };
