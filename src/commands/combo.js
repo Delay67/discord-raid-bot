@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { formatGroupedRaidResults } = require("../services/raidFormatter");
-const { findComboRaids } = require("../services/raidStore");
+const { findComboRaids, normalizePlayerName } = require("../services/raidStore");
 
 function parseNames(value) {
   return value
@@ -9,8 +9,40 @@ function parseNames(value) {
     .filter(Boolean);
 }
 
-function formatComboResult(raid) {
-  return `${raid.color} ${raid.name}`;
+function groupComboResults(raids, playerName) {
+  const normalizedPlayerName = normalizePlayerName(playerName);
+  const grouped = new Map();
+
+  for (const raid of raids) {
+    const key = `${raid.color.toLowerCase()}|${raid.name.toLowerCase()}`;
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        color: raid.color,
+        name: raid.name,
+        roleCounts: {}
+      });
+    }
+
+    const group = grouped.get(key);
+    const matchingMembers = raid.members.filter(
+      (member) => member.lookupName === normalizedPlayerName
+    );
+
+    for (const member of matchingMembers) {
+      group.roleCounts[member.role] = (group.roleCounts[member.role] || 0) + 1;
+    }
+  }
+
+  return [...grouped.values()];
+}
+
+function formatComboResult(result) {
+  const roleText = Object.entries(result.roleCounts)
+    .map(([role, count]) => `x${count} ${role}`)
+    .join(", ");
+
+  return `${result.color} ${result.name} ${roleText}`;
 }
 
 module.exports = {
@@ -41,6 +73,8 @@ module.exports = {
       return;
     }
 
-    await interaction.reply(formatGroupedRaidResults(results, formatComboResult));
+    await interaction.reply(
+      formatGroupedRaidResults(groupComboResults(results, name), formatComboResult)
+    );
   }
 };
