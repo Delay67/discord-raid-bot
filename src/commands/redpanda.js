@@ -57,7 +57,13 @@ async function fetchJson(url) {
     }
   });
 
-  if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (!response.ok || !contentType.includes("application/json")) {
+    const body = await response.text();
+    console.warn(
+      `Red panda Reddit fetch failed: ${response.status} ${contentType} ${url} ${body.slice(0, 120)}`
+    );
     return null;
   }
 
@@ -75,6 +81,9 @@ async function getRedditMediaUrls() {
     }
 
     const mediaUrls = extractRedditMediaUrls(payload);
+    const postCount = payload.data?.children?.length || 0;
+
+    console.log(`Red panda Reddit fetch: ${url} posts=${postCount} media=${mediaUrls.length}`);
 
     if (mediaUrls.length > 0) {
       return mediaUrls;
