@@ -51,6 +51,7 @@ The bot needs `Manage Messages` in that channel to delete other users' messages.
 /lookup name:Ghonty
 /schedule-set image:<upload>
 /schedule
+/commands
 ```
 
 Member names are matched by the text before the first hyphen, so `Ghonty-Downogeri` and `Ghonty-Catpounce` both match `/lookup Ghonty`.
@@ -59,8 +60,10 @@ Lookup responses are formatted like:
 
 ```text
 Red Serca x2 DPS
-Red Cathedral x1 DPS
-Orange Serca x1 Support
+Red Cathedral x2 DPS
+
+Orange Serca x2 DPS
+Orange Cathedral x1 DPS
 ```
 
 ## Image Import

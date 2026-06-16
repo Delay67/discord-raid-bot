@@ -1,7 +1,7 @@
 [
   {
-    "id": "1781592733932",
-    "color": "Yellow",
+    "id": "1781593253338",
+    "color": "Light Yellow",
     "name": "Serca",
     "difficulty": "Nightmare",
     "members": [
@@ -27,11 +27,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733933",
-    "color": "Yellow",
+    "id": "1781593253339",
+    "color": "Light Yellow",
     "name": "Cathedral",
     "difficulty": "3",
     "members": [
@@ -57,10 +57,10 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733934",
+    "id": "1781593253340",
     "color": "Cyan",
     "name": "Serca",
     "difficulty": "Hard",
@@ -87,11 +87,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733935",
-    "color": "Orange",
+    "id": "1781593253341",
+    "color": "Amber",
     "name": "Cathedral",
     "difficulty": "3",
     "members": [
@@ -112,11 +112,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733936",
-    "color": "Yellow",
+    "id": "1781593253342",
+    "color": "Light Yellow",
     "name": "Serca",
     "difficulty": "Hard",
     "members": [
@@ -142,11 +142,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733937",
-    "color": "Yellow",
+    "id": "1781593253343",
+    "color": "Light Yellow",
     "name": "Cathedral",
     "difficulty": "3",
     "members": [
@@ -172,10 +172,10 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733938",
+    "id": "1781593253344",
     "color": "Brown",
     "name": "Serca",
     "difficulty": "Hard",
@@ -202,11 +202,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733939",
-    "color": "Yellow",
+    "id": "1781593253345",
+    "color": "Amber",
     "name": "Cathedral",
     "difficulty": "3",
     "members": [
@@ -227,10 +227,10 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733940",
+    "id": "1781593253346",
     "color": "Red",
     "name": "Serca",
     "difficulty": "Nightmare",
@@ -257,10 +257,10 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733941",
+    "id": "1781593253347",
     "color": "Red",
     "name": "Cathedral",
     "difficulty": "3",
@@ -287,10 +287,10 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733942",
+    "id": "1781593253348",
     "color": "Gray",
     "name": "Serca",
     "difficulty": "Normal",
@@ -312,10 +312,10 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733943",
+    "id": "1781593253349",
     "color": "Green",
     "name": "Cathedral",
     "difficulty": "3",
@@ -342,10 +342,10 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733944",
+    "id": "1781593253350",
     "color": "Red",
     "name": "Serca",
     "difficulty": "Hard",
@@ -372,10 +372,10 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733945",
+    "id": "1781593253351",
     "color": "Red",
     "name": "Cathedral",
     "difficulty": "3",
@@ -402,11 +402,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733946",
-    "color": "Blue",
+    "id": "1781593253352",
+    "color": "Pink",
     "name": "Cathedral",
     "difficulty": "3",
     "members": [
@@ -432,11 +432,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733947",
-    "color": "Blue",
+    "id": "1781593253353",
+    "color": "Light Blue",
     "name": "Serca",
     "difficulty": "Hard",
     "members": [
@@ -462,11 +462,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733948",
-    "color": "Blue",
+    "id": "1781593253354",
+    "color": "Light Blue",
     "name": "Cathedral",
     "difficulty": "3",
     "members": [
@@ -492,10 +492,10 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733949",
+    "id": "1781593253355",
     "color": "Purple",
     "name": "Cathedral",
     "difficulty": "2",
@@ -517,11 +517,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733950",
-    "color": "Blue",
+    "id": "1781593253356",
+    "color": "Light Blue",
     "name": "Serca",
     "difficulty": "Hard",
     "members": [
@@ -547,11 +547,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733951",
-    "color": "Blue",
+    "id": "1781593253357",
+    "color": "Light Blue",
     "name": "Cathedral",
     "difficulty": "3",
     "members": [
@@ -577,10 +577,10 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733952",
+    "id": "1781593253358",
     "color": "Purple",
     "name": "Cathedral",
     "difficulty": "2",
@@ -602,11 +602,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733953",
-    "color": "Gray",
+    "id": "1781593253359",
+    "color": "Light Green",
     "name": "Serca",
     "difficulty": "Nightmare",
     "members": [
@@ -632,11 +632,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733954",
-    "color": "Gray",
+    "id": "1781593253360",
+    "color": "Light Green",
     "name": "Cathedral",
     "difficulty": "3",
     "members": [
@@ -662,11 +662,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733955",
-    "color": "Green",
+    "id": "1781593253361",
+    "color": "Lime",
     "name": "Cathedral",
     "difficulty": "2",
     "members": [
@@ -687,11 +687,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733956",
-    "color": "Gray",
+    "id": "1781593253362",
+    "color": "Light Green",
     "name": "Serca",
     "difficulty": "Hard",
     "members": [
@@ -717,11 +717,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733957",
-    "color": "Pink",
+    "id": "1781593253363",
+    "color": "Magenta",
     "name": "Serca",
     "difficulty": "Nightmare",
     "members": [
@@ -747,11 +747,11 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733958",
-    "color": "Pink",
+    "id": "1781593253364",
+    "color": "Magenta",
     "name": "Cathedral",
     "difficulty": "3",
     "members": [
@@ -777,10 +777,10 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733959",
+    "id": "1781593253365",
     "color": "Orange",
     "name": "Serca",
     "difficulty": "Nightmare",
@@ -807,10 +807,10 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   },
   {
-    "id": "1781592733960",
+    "id": "1781593253366",
     "color": "Orange",
     "name": "Serca",
     "difficulty": "Hard",
@@ -837,6 +837,6 @@
       }
     ],
     "createdBy": "xlsx-import",
-    "createdAt": "2026-06-16T06:52:13Z"
+    "createdAt": "2026-06-16T07:00:53Z"
   }
 ]

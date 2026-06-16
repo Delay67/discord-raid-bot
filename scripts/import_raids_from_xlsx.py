@@ -19,15 +19,38 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RAIDS_PATH = ROOT / "data" / "raids.json"
 DEFAULT_SHEET_NAME = "Serca+Cath"
 
+EXACT_COLOR_NAMES = {
+    (0, 255, 255): "Cyan",
+    (52, 168, 83): "Green",
+    (103, 78, 167): "Purple",
+    (133, 32, 12): "Brown",
+    (147, 196, 125): "Light Green",
+    (153, 153, 153): "Gray",
+    (163, 232, 85): "Lime",
+    (201, 218, 248): "Light Blue",
+    (224, 102, 102): "Red",
+    (244, 199, 195): "Pink",
+    (247, 203, 77): "Gold",
+    (251, 188, 4): "Amber",
+    (255, 0, 255): "Magenta",
+    (255, 153, 0): "Orange",
+    (255, 229, 153): "Light Yellow",
+}
+
 COLOR_PALETTE = {
     "Red": (224, 92, 96),
     "Orange": (255, 153, 0),
-    "Yellow": (255, 204, 64),
+    "Amber": (251, 188, 4),
+    "Gold": (247, 203, 77),
+    "Light Yellow": (255, 229, 153),
+    "Lime": (163, 232, 85),
     "Green": (100, 180, 90),
+    "Light Green": (147, 196, 125),
     "Cyan": (0, 210, 220),
-    "Blue": (150, 180, 220),
+    "Light Blue": (201, 218, 248),
     "Purple": (120, 80, 170),
     "Pink": (238, 90, 185),
+    "Magenta": (255, 0, 255),
     "Brown": (140, 50, 25),
     "Gray": (150, 150, 150),
 }
@@ -99,6 +122,9 @@ def load_theme_rgbs(workbook):
 def nearest_color_name(rgb):
     if rgb is None:
         return "Unknown"
+
+    if rgb in EXACT_COLOR_NAMES:
+        return EXACT_COLOR_NAMES[rgb]
 
     best_name = "Unknown"
     best_distance = math.inf

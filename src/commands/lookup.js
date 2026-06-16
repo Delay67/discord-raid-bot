@@ -1,6 +1,31 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { lookupRaids } = require("../services/raidStore");
 
+const colorOrder = [
+  "Red",
+  "Orange",
+  "Amber",
+  "Gold",
+  "Light Yellow",
+  "Lime",
+  "Green",
+  "Light Green",
+  "Cyan",
+  "Light Blue",
+  "Purple",
+  "Pink",
+  "Magenta",
+  "Brown",
+  "Gray"
+];
+
+const raidOrder = ["Serca", "Cathedral"];
+
+function getOrderIndex(order, value) {
+  const index = order.findIndex((item) => item.toLowerCase() === value.toLowerCase());
+  return index === -1 ? order.length : index;
+}
+
 function groupLookupResults(results) {
   const grouped = new Map();
 
@@ -25,12 +50,49 @@ function groupLookupResults(results) {
   return [...grouped.values()];
 }
 
+function sortLookupResults(results) {
+  return [...results].sort((left, right) => {
+    const colorComparison =
+      getOrderIndex(colorOrder, left.color) - getOrderIndex(colorOrder, right.color);
+
+    if (colorComparison !== 0) {
+      return colorComparison;
+    }
+
+    const raidComparison =
+      getOrderIndex(raidOrder, left.name) - getOrderIndex(raidOrder, right.name);
+
+    if (raidComparison !== 0) {
+      return raidComparison;
+    }
+
+    return left.name.localeCompare(right.name);
+  });
+}
+
 function formatLookupResult(result) {
   const roleText = Object.entries(result.roleCounts)
     .map(([role, count]) => `x${count} ${role}`)
     .join(", ");
 
   return `${result.color} ${result.name} ${roleText}`;
+}
+
+function formatLookupResults(results) {
+  const sortedResults = sortLookupResults(groupLookupResults(results));
+  const lines = [];
+  let previousColor = null;
+
+  for (const result of sortedResults) {
+    if (previousColor && previousColor !== result.color) {
+      lines.push("");
+    }
+
+    lines.push(formatLookupResult(result));
+    previousColor = result.color;
+  }
+
+  return lines.join("\n");
 }
 
 module.exports = {
@@ -53,8 +115,6 @@ module.exports = {
       return;
     }
 
-    await interaction.reply(
-      groupLookupResults(results).map(formatLookupResult).join("\n")
-    );
+    await interaction.reply(formatLookupResults(results));
   }
 };
