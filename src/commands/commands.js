@@ -19,6 +19,9 @@ module.exports = {
         "`/schedule`",
         "Shows the current raid schedule image.",
         "",
+        "`/redpanda`",
+        "Shows a random red panda image or gif.",
+        "",
         "`/commands`",
         "Shows this command list."
       ].join("\n"),

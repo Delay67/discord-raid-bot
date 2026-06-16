@@ -9,19 +9,19 @@ module.exports = {
       return;
     }
 
-    if (interaction.channelId !== channelId) {
-      await interaction.reply({
-        content: `Please use bot commands in <#${channelId}>.`,
-        ephemeral: true
-      });
-      return;
-    }
-
     const command = client.commands.get(interaction.commandName);
 
     if (!command) {
       await interaction.reply({
         content: "I do not know how to handle that command yet.",
+        ephemeral: true
+      });
+      return;
+    }
+
+    if (!command.allowAnyChannel && interaction.channelId !== channelId) {
+      await interaction.reply({
+        content: `Please use bot commands in <#${channelId}>.`,
         ephemeral: true
       });
       return;

@@ -52,6 +52,7 @@ The bot needs `Manage Messages` in that channel to delete other users' messages.
 /combo name:Ghonty with:Vierazy Phil
 /schedule-set image:<upload>
 /schedule
+/redpanda
 /commands
 ```
 
