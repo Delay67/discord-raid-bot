@@ -1,19 +1,6 @@
 const { Events } = require("discord.js");
-const { channelId, cleanupDelayMs } = require("../config");
-
-function scheduleReplyCleanup(interaction) {
-  const timeout = setTimeout(async () => {
-    try {
-      await interaction.deleteReply();
-    } catch (error) {
-      if (error.code !== 10008 && error.code !== 10062) {
-        console.error(error);
-      }
-    }
-  }, cleanupDelayMs);
-
-  timeout.unref?.();
-}
+const { channelId } = require("../config");
+const { scheduleInteractionCleanup } = require("../services/cleanup");
 
 module.exports = {
   name: Events.InteractionCreate,
@@ -44,7 +31,7 @@ module.exports = {
       await command.execute(interaction);
 
       if (interaction.replied || interaction.deferred) {
-        scheduleReplyCleanup(interaction);
+        scheduleInteractionCleanup(interaction);
       }
     } catch (error) {
       console.error(error);

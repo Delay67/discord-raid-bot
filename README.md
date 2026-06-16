@@ -21,6 +21,7 @@ A Discord bot for looking up which fixed Lost Ark raid groups a player is includ
    ```env
    DISCORD_TOKEN=your-bot-token
    DISCORD_CHANNEL_ID=your-bot-channel-id
+   CLEANUP_DELAY_MS=300000
    ```
 
 3. Register slash commands:
@@ -39,7 +40,9 @@ A Discord bot for looking up which fixed Lost Ark raid groups a player is includ
 
 Admin-only commands require the Discord `Manage Server` permission.
 Commands only work in the channel configured as `DISCORD_CHANNEL_ID`.
-Bot replies in that channel are deleted after 10 minutes.
+Bot replies in that channel are deleted after `CLEANUP_DELAY_MS`.
+Regular user messages in that channel are deleted immediately.
+The bot needs `Manage Messages` in that channel to delete other users' messages.
 
 ```text
 /raid-add color:Red raid:Serca difficulty:Nightmare dps:Ghonty-Glavier,Phil supports:Nonna-Artist
