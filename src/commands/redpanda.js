@@ -3,8 +3,8 @@ const { reddit } = require("../config");
 
 const redditUrls = [
   "https://oauth.reddit.com/r/redpandas/top?t=all&limit=100&raw_json=1",
-  "https://oauth.reddit.com/r/redpandas/hot?limit=100&raw_json=1",
-  "https://oauth.reddit.com/r/redpandas/new?limit=100&raw_json=1"
+  "https://oauth.reddit.com/r/redpandas/hot?limit=10&raw_json=1",
+  "https://oauth.reddit.com/r/redpandas/month?t=all&limit=20&raw_json=1"
 ];
 
 let cachedToken = null;

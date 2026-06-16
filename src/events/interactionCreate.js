@@ -30,7 +30,10 @@ module.exports = {
     try {
       await command.execute(interaction);
 
-      if (interaction.replied || interaction.deferred) {
+      if (
+        interaction.channelId === channelId &&
+        (interaction.replied || interaction.deferred)
+      ) {
         scheduleInteractionCleanup(interaction);
       }
     } catch (error) {
