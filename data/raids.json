@@ -1,1 +1,62 @@
-[]
+[
+  {
+    "id": "1781588802844",
+    "color": "Red",
+    "name": "Serca",
+    "difficulty": "Nightmare",
+    "members": [
+      {
+        "name": "Ghonty",
+        "lookupName": "ghonty",
+        "role": "DPS"
+      },
+      {
+        "name": "Phil",
+        "lookupName": "phil",
+        "role": "DPS"
+      },
+      {
+        "name": "Mawino",
+        "lookupName": "mawino",
+        "role": "DPS"
+      },
+      {
+        "name": "Vierazy",
+        "lookupName": "vierazy",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "113003688607395840",
+    "createdAt": "2026-06-16T05:46:42.844Z"
+  },
+  {
+    "id": "1781588869758",
+    "color": "Red",
+    "name": "Serca",
+    "difficulty": "Hard",
+    "members": [
+      {
+        "name": "Ghonty",
+        "lookupName": "ghonty",
+        "role": "DPS"
+      },
+      {
+        "name": "Phil",
+        "lookupName": "phil",
+        "role": "DPS"
+      },
+      {
+        "name": "Mawino",
+        "lookupName": "mawino",
+        "role": "DPS"
+      },
+      {
+        "name": "Vierazy",
+        "lookupName": "vierazy",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "113003688607395840",
+    "createdAt": "2026-06-16T05:47:49.758Z"
+  }
+]

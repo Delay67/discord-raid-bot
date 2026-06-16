@@ -43,6 +43,8 @@ Admin-only commands require the Discord `Manage Server` permission.
 /raid-list
 /raid-clear
 /lookup name:Ghonty
+/schedule-set image:<upload>
+/schedule
 ```
 
 Member names are matched by the text before the first hyphen, so `Ghonty-Downogeri` and `Ghonty-Catpounce` both match `/lookup Ghonty`.
@@ -50,7 +52,7 @@ Member names are matched by the text before the first hyphen, so `Ghonty-Downoge
 Lookup responses are formatted like:
 
 ```text
-Red Serca Nightmare x1 DPS
-Red Cathedral 3 x1 DPS
-Orange Serca Hard x1 Support
+Red Serca x2 DPS
+Red Cathedral x1 DPS
+Orange Serca x1 Support
 ```
