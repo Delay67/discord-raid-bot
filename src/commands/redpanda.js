@@ -6,25 +6,6 @@ const redditUrls = [
   "https://www.reddit.com/r/redpandas/new.json?limit=100&raw_json=1"
 ];
 
-const commonsUrl =
-  "https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=red%20panda&gsrnamespace=6&gsrlimit=100&prop=imageinfo&iiprop=url|mime&format=json&origin=*";
-
-const allowedMimeTypes = new Set([
-  "image/gif",
-  "image/jpeg",
-  "image/png",
-  "image/webp"
-]);
-
-function getCommonsMediaUrls(payload) {
-  const pages = Object.values(payload.query?.pages || {});
-
-  return pages
-    .map((page) => page.imageinfo?.[0])
-    .filter((imageInfo) => imageInfo?.url && allowedMimeTypes.has(imageInfo.mime))
-    .map((imageInfo) => imageInfo.url);
-}
-
 function isAllowedMediaUrl(url) {
   const cleanedUrl = url.toLowerCase().split("?")[0];
   return [".gif", ".jpg", ".jpeg", ".png", ".webp"].some((extension) =>
@@ -103,11 +84,6 @@ async function getRedditMediaUrls() {
   return [];
 }
 
-async function getFallbackMediaUrls() {
-  const payload = await fetchJson(commonsUrl);
-  return payload ? getCommonsMediaUrls(payload) : [];
-}
-
 module.exports = {
   allowAnyChannel: true,
   data: new SlashCommandBuilder()
@@ -117,13 +93,10 @@ module.exports = {
   async execute(interaction) {
     await interaction.deferReply();
 
-    const mediaUrls = [
-      ...(await getRedditMediaUrls()),
-      ...(await getFallbackMediaUrls())
-    ];
+    const mediaUrls = await getRedditMediaUrls();
 
     if (mediaUrls.length === 0) {
-      await interaction.editReply("I could not find a red panda image right now.");
+      await interaction.editReply("I could not find a Reddit red panda right now.");
       return;
     }
 
