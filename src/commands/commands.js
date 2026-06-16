@@ -6,8 +6,8 @@ module.exports = {
     .setDescription("Show public bot commands and how to use them."),
 
   async execute(interaction) {
-    await interaction.reply(
-      [
+    await interaction.reply({
+      content: [
         "**Available commands**",
         "",
         "`/lookup name:Ghonty`",
@@ -18,7 +18,8 @@ module.exports = {
         "",
         "`/commands`",
         "Shows this command list."
-      ].join("\n")
-    );
+      ].join("\n"),
+      ephemeral: true
+    });
   }
 };
