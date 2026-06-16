@@ -1,0 +1,22 @@
+{
+  "name": "discord-raid-bot",
+  "version": "0.1.0",
+  "description": "A Discord bot for looking up fixed Lost Ark raid groups.",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "commands:register": "node scripts/register-commands.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "lost-ark",
+    "raids"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.15.3",
+    "dotenv": "^16.4.5"
+  }
+}

@@ -1,1 +1,56 @@
 # discord-raid-bot
+
+A Discord bot for looking up which fixed Lost Ark raid groups a player is included in for the week.
+
+## Requirements
+
+- Node.js 20 or newer
+- A Discord application with a bot token
+- A Discord server where you can install the bot
+
+## Setup
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Make sure `.env` contains your bot token:
+
+   ```env
+   DISCORD_TOKEN=your-bot-token
+   ```
+
+3. Register slash commands:
+
+   ```bash
+   npm run commands:register
+   ```
+
+4. Start the bot:
+
+   ```bash
+   npm start
+   ```
+
+## Raid Commands
+
+Admin-only commands require the Discord `Manage Server` permission.
+
+```text
+/raid-add color:Red raid:Serca difficulty:Nightmare dps:Ghonty-Glavier,Phil supports:Nonna-Artist
+/raid-list
+/raid-clear
+/lookup name:Ghonty
+```
+
+Member names are matched by the text before the first hyphen, so `Ghonty-Downogeri` and `Ghonty-Catpounce` both match `/lookup Ghonty`.
+
+Lookup responses are formatted like:
+
+```text
+Red Serca Nightmare x1 DPS
+Red Cathedral 3 x1 DPS
+Orange Serca Hard x1 Support
+```
