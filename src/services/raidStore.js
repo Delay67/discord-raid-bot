@@ -98,9 +98,20 @@ function lookupRaids(playerName) {
     .filter(Boolean);
 }
 
+function findComboRaids(playerNames) {
+  const normalizedNames = playerNames.map(normalizePlayerName);
+  const raids = readRaids();
+
+  return raids.filter((raid) => {
+    const raidMemberNames = new Set(raid.members.map((member) => member.lookupName));
+    return normalizedNames.every((name) => raidMemberNames.has(name));
+  });
+}
+
 module.exports = {
   addRaid,
   clearRaids,
+  findComboRaids,
   lookupRaids,
   normalizePlayerName,
   readRaids

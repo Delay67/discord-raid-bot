@@ -49,6 +49,7 @@ The bot needs `Manage Messages` in that channel to delete other users' messages.
 /raid-list
 /raid-clear
 /lookup name:Ghonty
+/combo name:Ghonty with:Vierazy Phil
 /schedule-set image:<upload>
 /schedule
 /commands
