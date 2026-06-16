@@ -62,3 +62,25 @@ Red Serca x2 DPS
 Red Cathedral x1 DPS
 Orange Serca x1 Support
 ```
+
+## Image Import
+
+Install the Python OCR dependencies:
+
+```bash
+python -m pip install -r scripts/requirements.txt
+```
+
+The importer also needs the Tesseract OCR app installed. On Windows:
+
+```bash
+winget install UB-Mannheim.TesseractOCR
+```
+
+Import raids from a schedule screenshot:
+
+```bash
+python scripts/import_raids_from_image.py path\to\schedule.png
+```
+
+The script previews what it parsed first. It only wipes and replaces `data/raids.json` if you type `YES`.
