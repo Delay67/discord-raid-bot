@@ -65,13 +65,23 @@ Orange Serca x1 Support
 
 ## Image Import
 
-Install the Python OCR dependencies:
+An `.xlsx` import is preferred because it can read values and fill colors directly from the workbook.
+
+Install the Python import dependencies:
 
 ```bash
 python -m pip install -r scripts/requirements.txt
 ```
 
-The importer also needs the Tesseract OCR app installed. On Windows:
+Import raids from the `Serca+Cath` sheet:
+
+```bash
+python scripts/import_raids_from_xlsx.py path\to\schedule.xlsx
+```
+
+The script previews what it parsed first. It only wipes and replaces `data/raids.json` if you type `YES`.
+
+The screenshot importer is available as a fallback, but it is less reliable because it uses OCR. It also needs the Tesseract OCR app installed. On Windows:
 
 ```bash
 winget install UB-Mannheim.TesseractOCR
@@ -82,5 +92,3 @@ Import raids from a schedule screenshot:
 ```bash
 python scripts/import_raids_from_image.py path\to\schedule.png
 ```
-
-The script previews what it parsed first. It only wipes and replaces `data/raids.json` if you type `YES`.

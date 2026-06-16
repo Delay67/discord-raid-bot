@@ -1,6 +1,236 @@
 [
   {
-    "id": "1781588802844",
+    "id": "1781592733932",
+    "color": "Yellow",
+    "name": "Serca",
+    "difficulty": "Nightmare",
+    "members": [
+      {
+        "name": "Delay",
+        "lookupName": "delay",
+        "role": "DPS"
+      },
+      {
+        "name": "Marcel",
+        "lookupName": "marcel",
+        "role": "DPS"
+      },
+      {
+        "name": "Wish",
+        "lookupName": "wish",
+        "role": "DPS"
+      },
+      {
+        "name": "Nonna",
+        "lookupName": "nonna",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733933",
+    "color": "Yellow",
+    "name": "Cathedral",
+    "difficulty": "3",
+    "members": [
+      {
+        "name": "Delay",
+        "lookupName": "delay",
+        "role": "DPS"
+      },
+      {
+        "name": "Marcel",
+        "lookupName": "marcel",
+        "role": "DPS"
+      },
+      {
+        "name": "Wish",
+        "lookupName": "wish",
+        "role": "DPS"
+      },
+      {
+        "name": "Nonna",
+        "lookupName": "nonna",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733934",
+    "color": "Cyan",
+    "name": "Serca",
+    "difficulty": "Hard",
+    "members": [
+      {
+        "name": "Nonna",
+        "lookupName": "nonna",
+        "role": "DPS"
+      },
+      {
+        "name": "Ghonty",
+        "lookupName": "ghonty",
+        "role": "DPS"
+      },
+      {
+        "name": "Mawino",
+        "lookupName": "mawino",
+        "role": "DPS"
+      },
+      {
+        "name": "Delay",
+        "lookupName": "delay",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733935",
+    "color": "Orange",
+    "name": "Cathedral",
+    "difficulty": "3",
+    "members": [
+      {
+        "name": "Delay",
+        "lookupName": "delay",
+        "role": "DPS"
+      },
+      {
+        "name": "Ghonty",
+        "lookupName": "ghonty",
+        "role": "DPS"
+      },
+      {
+        "name": "Vierazy",
+        "lookupName": "vierazy",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733936",
+    "color": "Yellow",
+    "name": "Serca",
+    "difficulty": "Hard",
+    "members": [
+      {
+        "name": "Delay",
+        "lookupName": "delay",
+        "role": "DPS"
+      },
+      {
+        "name": "Marcel",
+        "lookupName": "marcel",
+        "role": "DPS"
+      },
+      {
+        "name": "Wish",
+        "lookupName": "wish",
+        "role": "DPS"
+      },
+      {
+        "name": "Nonna",
+        "lookupName": "nonna",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733937",
+    "color": "Yellow",
+    "name": "Cathedral",
+    "difficulty": "3",
+    "members": [
+      {
+        "name": "Delay",
+        "lookupName": "delay",
+        "role": "DPS"
+      },
+      {
+        "name": "Marcel",
+        "lookupName": "marcel",
+        "role": "DPS"
+      },
+      {
+        "name": "Wish",
+        "lookupName": "wish",
+        "role": "DPS"
+      },
+      {
+        "name": "Nonna",
+        "lookupName": "nonna",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733938",
+    "color": "Brown",
+    "name": "Serca",
+    "difficulty": "Hard",
+    "members": [
+      {
+        "name": "Phil",
+        "lookupName": "phil",
+        "role": "DPS"
+      },
+      {
+        "name": "Delay",
+        "lookupName": "delay",
+        "role": "DPS"
+      },
+      {
+        "name": "Ghonty",
+        "lookupName": "ghonty",
+        "role": "DPS"
+      },
+      {
+        "name": "Vierazy",
+        "lookupName": "vierazy",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733939",
+    "color": "Yellow",
+    "name": "Cathedral",
+    "difficulty": "3",
+    "members": [
+      {
+        "name": "Delay",
+        "lookupName": "delay",
+        "role": "DPS"
+      },
+      {
+        "name": "Ghonty",
+        "lookupName": "ghonty",
+        "role": "DPS"
+      },
+      {
+        "name": "Vierazy",
+        "lookupName": "vierazy",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733940",
     "color": "Red",
     "name": "Serca",
     "difficulty": "Nightmare",
@@ -11,13 +241,13 @@
         "role": "DPS"
       },
       {
-        "name": "Phil",
-        "lookupName": "phil",
+        "name": "Mawino",
+        "lookupName": "mawino",
         "role": "DPS"
       },
       {
-        "name": "Mawino",
-        "lookupName": "mawino",
+        "name": "Phil",
+        "lookupName": "phil",
         "role": "DPS"
       },
       {
@@ -26,11 +256,96 @@
         "role": "Support"
       }
     ],
-    "createdBy": "113003688607395840",
-    "createdAt": "2026-06-16T05:46:42.844Z"
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
   },
   {
-    "id": "1781588869758",
+    "id": "1781592733941",
+    "color": "Red",
+    "name": "Cathedral",
+    "difficulty": "3",
+    "members": [
+      {
+        "name": "Ghonty",
+        "lookupName": "ghonty",
+        "role": "DPS"
+      },
+      {
+        "name": "Mawino",
+        "lookupName": "mawino",
+        "role": "DPS"
+      },
+      {
+        "name": "Phil",
+        "lookupName": "phil",
+        "role": "DPS"
+      },
+      {
+        "name": "Vierazy",
+        "lookupName": "vierazy",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733942",
+    "color": "Gray",
+    "name": "Serca",
+    "difficulty": "Normal",
+    "members": [
+      {
+        "name": "Nonna",
+        "lookupName": "nonna",
+        "role": "DPS"
+      },
+      {
+        "name": "Delay",
+        "lookupName": "delay",
+        "role": "DPS"
+      },
+      {
+        "name": "Ghonty",
+        "lookupName": "ghonty",
+        "role": "DPS"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733943",
+    "color": "Green",
+    "name": "Cathedral",
+    "difficulty": "3",
+    "members": [
+      {
+        "name": "Marcel",
+        "lookupName": "marcel",
+        "role": "DPS"
+      },
+      {
+        "name": "Ghonty",
+        "lookupName": "ghonty",
+        "role": "DPS"
+      },
+      {
+        "name": "Kolax",
+        "lookupName": "kolax",
+        "role": "DPS"
+      },
+      {
+        "name": "Delay",
+        "lookupName": "delay",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733944",
     "color": "Red",
     "name": "Serca",
     "difficulty": "Hard",
@@ -41,8 +356,33 @@
         "role": "DPS"
       },
       {
+        "name": "Mawino",
+        "lookupName": "mawino",
+        "role": "DPS"
+      },
+      {
+        "name": "Vierazy",
+        "lookupName": "vierazy",
+        "role": "DPS"
+      },
+      {
         "name": "Phil",
         "lookupName": "phil",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733945",
+    "color": "Red",
+    "name": "Cathedral",
+    "difficulty": "3",
+    "members": [
+      {
+        "name": "Ghonty",
+        "lookupName": "ghonty",
         "role": "DPS"
       },
       {
@@ -53,10 +393,450 @@
       {
         "name": "Vierazy",
         "lookupName": "vierazy",
+        "role": "DPS"
+      },
+      {
+        "name": "Phil",
+        "lookupName": "phil",
         "role": "Support"
       }
     ],
-    "createdBy": "113003688607395840",
-    "createdAt": "2026-06-16T05:47:49.758Z"
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733946",
+    "color": "Blue",
+    "name": "Cathedral",
+    "difficulty": "3",
+    "members": [
+      {
+        "name": "Marcel",
+        "lookupName": "marcel",
+        "role": "DPS"
+      },
+      {
+        "name": "Wish",
+        "lookupName": "wish",
+        "role": "DPS"
+      },
+      {
+        "name": "Ghonty",
+        "lookupName": "ghonty",
+        "role": "DPS"
+      },
+      {
+        "name": "Kolax",
+        "lookupName": "kolax",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733947",
+    "color": "Blue",
+    "name": "Serca",
+    "difficulty": "Hard",
+    "members": [
+      {
+        "name": "Itelin",
+        "lookupName": "itelin",
+        "role": "DPS"
+      },
+      {
+        "name": "Marcel",
+        "lookupName": "marcel",
+        "role": "DPS"
+      },
+      {
+        "name": "Faal",
+        "lookupName": "faal",
+        "role": "DPS"
+      },
+      {
+        "name": "Wish",
+        "lookupName": "wish",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733948",
+    "color": "Blue",
+    "name": "Cathedral",
+    "difficulty": "3",
+    "members": [
+      {
+        "name": "Itelin",
+        "lookupName": "itelin",
+        "role": "DPS"
+      },
+      {
+        "name": "Marcel",
+        "lookupName": "marcel",
+        "role": "DPS"
+      },
+      {
+        "name": "Faal",
+        "lookupName": "faal",
+        "role": "DPS"
+      },
+      {
+        "name": "Wish",
+        "lookupName": "wish",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733949",
+    "color": "Purple",
+    "name": "Cathedral",
+    "difficulty": "2",
+    "members": [
+      {
+        "name": "Phil",
+        "lookupName": "phil",
+        "role": "DPS"
+      },
+      {
+        "name": "Mawino",
+        "lookupName": "mawino",
+        "role": "DPS"
+      },
+      {
+        "name": "Nonna",
+        "lookupName": "nonna",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733950",
+    "color": "Blue",
+    "name": "Serca",
+    "difficulty": "Hard",
+    "members": [
+      {
+        "name": "Itelin",
+        "lookupName": "itelin",
+        "role": "DPS"
+      },
+      {
+        "name": "Wish",
+        "lookupName": "wish",
+        "role": "DPS"
+      },
+      {
+        "name": "Faal",
+        "lookupName": "faal",
+        "role": "DPS"
+      },
+      {
+        "name": "Marcel",
+        "lookupName": "marcel",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733951",
+    "color": "Blue",
+    "name": "Cathedral",
+    "difficulty": "3",
+    "members": [
+      {
+        "name": "Itelin",
+        "lookupName": "itelin",
+        "role": "DPS"
+      },
+      {
+        "name": "Wish",
+        "lookupName": "wish",
+        "role": "DPS"
+      },
+      {
+        "name": "Faal",
+        "lookupName": "faal",
+        "role": "DPS"
+      },
+      {
+        "name": "Marcel",
+        "lookupName": "marcel",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733952",
+    "color": "Purple",
+    "name": "Cathedral",
+    "difficulty": "2",
+    "members": [
+      {
+        "name": "Phil",
+        "lookupName": "phil",
+        "role": "DPS"
+      },
+      {
+        "name": "Nonna",
+        "lookupName": "nonna",
+        "role": "DPS"
+      },
+      {
+        "name": "Mawino",
+        "lookupName": "mawino",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733953",
+    "color": "Gray",
+    "name": "Serca",
+    "difficulty": "Nightmare",
+    "members": [
+      {
+        "name": "Phil",
+        "lookupName": "phil",
+        "role": "DPS"
+      },
+      {
+        "name": "Mawino",
+        "lookupName": "mawino",
+        "role": "DPS"
+      },
+      {
+        "name": "Wish",
+        "lookupName": "wish",
+        "role": "DPS"
+      },
+      {
+        "name": "Vierazy",
+        "lookupName": "vierazy",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733954",
+    "color": "Gray",
+    "name": "Cathedral",
+    "difficulty": "3",
+    "members": [
+      {
+        "name": "Phil",
+        "lookupName": "phil",
+        "role": "DPS"
+      },
+      {
+        "name": "Vierazy",
+        "lookupName": "vierazy",
+        "role": "DPS"
+      },
+      {
+        "name": "Wish",
+        "lookupName": "wish",
+        "role": "DPS"
+      },
+      {
+        "name": "Mawino",
+        "lookupName": "mawino",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733955",
+    "color": "Green",
+    "name": "Cathedral",
+    "difficulty": "2",
+    "members": [
+      {
+        "name": "Delay",
+        "lookupName": "delay",
+        "role": "DPS"
+      },
+      {
+        "name": "Mawino",
+        "lookupName": "mawino",
+        "role": "DPS"
+      },
+      {
+        "name": "Nonna",
+        "lookupName": "nonna",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733956",
+    "color": "Gray",
+    "name": "Serca",
+    "difficulty": "Hard",
+    "members": [
+      {
+        "name": "Phil",
+        "lookupName": "phil",
+        "role": "DPS"
+      },
+      {
+        "name": "Vierazy",
+        "lookupName": "vierazy",
+        "role": "DPS"
+      },
+      {
+        "name": "Wish",
+        "lookupName": "wish",
+        "role": "DPS"
+      },
+      {
+        "name": "Mawino",
+        "lookupName": "mawino",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733957",
+    "color": "Pink",
+    "name": "Serca",
+    "difficulty": "Nightmare",
+    "members": [
+      {
+        "name": "Delay",
+        "lookupName": "delay",
+        "role": "DPS"
+      },
+      {
+        "name": "Ghonty",
+        "lookupName": "ghonty",
+        "role": "DPS"
+      },
+      {
+        "name": "Faal",
+        "lookupName": "faal",
+        "role": "DPS"
+      },
+      {
+        "name": "Marcel",
+        "lookupName": "marcel",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733958",
+    "color": "Pink",
+    "name": "Cathedral",
+    "difficulty": "3",
+    "members": [
+      {
+        "name": "Delay",
+        "lookupName": "delay",
+        "role": "DPS"
+      },
+      {
+        "name": "Ghonty",
+        "lookupName": "ghonty",
+        "role": "DPS"
+      },
+      {
+        "name": "Faal",
+        "lookupName": "faal",
+        "role": "DPS"
+      },
+      {
+        "name": "Marcel",
+        "lookupName": "marcel",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733959",
+    "color": "Orange",
+    "name": "Serca",
+    "difficulty": "Nightmare",
+    "members": [
+      {
+        "name": "Delay",
+        "lookupName": "delay",
+        "role": "DPS"
+      },
+      {
+        "name": "Marcel",
+        "lookupName": "marcel",
+        "role": "DPS"
+      },
+      {
+        "name": "Ghonty",
+        "lookupName": "ghonty",
+        "role": "DPS"
+      },
+      {
+        "name": "Nonna",
+        "lookupName": "nonna",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
+  },
+  {
+    "id": "1781592733960",
+    "color": "Orange",
+    "name": "Serca",
+    "difficulty": "Hard",
+    "members": [
+      {
+        "name": "Delay",
+        "lookupName": "delay",
+        "role": "DPS"
+      },
+      {
+        "name": "Marcel",
+        "lookupName": "marcel",
+        "role": "DPS"
+      },
+      {
+        "name": "Ghonty",
+        "lookupName": "ghonty",
+        "role": "DPS"
+      },
+      {
+        "name": "Nonna",
+        "lookupName": "nonna",
+        "role": "Support"
+      }
+    ],
+    "createdBy": "xlsx-import",
+    "createdAt": "2026-06-16T06:52:13Z"
   }
 ]

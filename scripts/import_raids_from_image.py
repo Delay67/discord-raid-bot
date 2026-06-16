@@ -197,15 +197,30 @@ def parse_member_name(text):
     return None
 
 
-def parse_component(image, box):
+def expand_to_raid_block(image, box):
+    x1, y1, x2, y2 = box
+    block_height = y2 - y1
+    label_width = min(130, max(80, round((x2 - x1) * 0.2)))
+    return (
+        max(0, x1 - label_width),
+        max(0, y1 - round(block_height * 0.6)),
+        x2,
+        y2,
+    )
+
+
+def parse_component(image, box, debug=False):
+    box = expand_to_raid_block(image, box)
     crop = image.crop(box)
     width, height = crop.size
-    label_width = max(70, min(105, round(width * 0.17)))
+    label_width = max(90, min(130, round(width * 0.18)))
     label_crop = crop.crop((0, 0, label_width, height))
     label_text = ocr_text(label_crop, psm=6)
     raid_name, difficulty = parse_raid_label(label_text)
 
     if not raid_name or not difficulty:
+        if debug:
+            print(f"Skipped {box}: could not parse raid label from OCR text: {label_text!r}")
         return None
 
     color = nearest_color_name(average_color(label_crop))
@@ -221,6 +236,8 @@ def parse_component(image, box):
         member_name = parse_member_name(ocr_text(header_crop, psm=7))
 
         if not member_name:
+            if debug:
+                print(f"Skipped member slot {index + 1} in {box}: OCR text was {ocr_text(header_crop, psm=7)!r}")
             continue
 
         members.append(
@@ -232,6 +249,8 @@ def parse_component(image, box):
         )
 
     if not members:
+        if debug:
+            print(f"Skipped {box}: no member names parsed")
         return None
 
     return {
@@ -245,12 +264,17 @@ def parse_component(image, box):
     }
 
 
-def parse_image(image_path):
+def parse_image(image_path, debug=False):
     image = Image.open(image_path).convert("RGB")
     raids = []
+    boxes = find_components(image)
 
-    for box in find_components(image):
-        raid = parse_component(image, box)
+    if debug:
+        print(f"Image size: {image.size[0]}x{image.size[1]}")
+        print(f"Detected {len(boxes)} candidate raid member block(s)")
+
+    for box in boxes:
+        raid = parse_component(image, box, debug=debug)
         if raid:
             raids.append(raid)
 
@@ -291,6 +315,7 @@ def main():
         "--tesseract-command",
         help="Optional full path to tesseract.exe if it is not on PATH",
     )
+    parser.add_argument("--debug", action="store_true", help="Print parser diagnostics")
     args = parser.parse_args()
 
     if args.tesseract_command:
@@ -301,10 +326,11 @@ def main():
         print(f"Image not found: {args.image}")
         sys.exit(1)
 
-    raids = parse_image(args.image)
+    raids = parse_image(args.image, debug=args.debug)
 
     if not raids:
         print("No raids were parsed. Nothing was changed.")
+        print("Run again with --debug to see detected blocks and OCR text.")
         sys.exit(1)
 
     preview_raids(raids)
