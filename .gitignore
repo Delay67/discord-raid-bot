@@ -8,3 +8,4 @@ __pycache__/
 *.pyc
 discordbotdelayssh
 discordbotdelayssh.pub
+data/staticsheet.xlsx
