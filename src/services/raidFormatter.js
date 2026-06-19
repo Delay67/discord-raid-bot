@@ -12,7 +12,7 @@ const colorOrder = [
   "Purple",
   "Pink",
   "Magenta",
-  "Brown",
+  "Brick Red",
   "Gray"
 ];
 

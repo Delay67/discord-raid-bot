@@ -52,6 +52,7 @@ The bot needs `Manage Messages` in that channel to delete other users' messages.
 /raid-add color:Red raid:Serca difficulty:Nightmare dps:Ghonty-Glavier,Phil supports:Nonna-Artist
 /raid-list
 /raid-clear
+/raids-upload file:<upload>
 /lookup name:Ghonty
 /combo name:Ghonty with:Vierazy Phil
 /schedule-set image:<upload>
@@ -89,6 +90,8 @@ python scripts/import_raids_from_xlsx.py path\to\schedule.xlsx
 ```
 
 The script previews what it parsed first. It only wipes and replaces `data/raids.json` if you type `YES`.
+Admins can also upload the workbook directly in Discord with `/raids-upload`.
+The bot previews the parsed raids and only replaces `data/staticsheet.xlsx` and `data/raids.json` after the admin clicks `Confirm Import`.
 
 The screenshot importer is available as a fallback, but it is less reliable because it uses OCR. It also needs the Tesseract OCR app installed. On Windows:
 

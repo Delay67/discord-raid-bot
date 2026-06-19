@@ -23,7 +23,7 @@ EXACT_COLOR_NAMES = {
     (0, 255, 255): "Cyan",
     (52, 168, 83): "Green",
     (103, 78, 167): "Purple",
-    (133, 32, 12): "Brown",
+    (133, 32, 12): "Brick Red",
     (147, 196, 125): "Light Green",
     (153, 153, 153): "Gray",
     (163, 232, 85): "Lime",
@@ -291,6 +291,8 @@ def main():
     parser.add_argument("--sheet", default=DEFAULT_SHEET_NAME, help="Sheet to import")
     parser.add_argument("--output", type=Path, default=DEFAULT_RAIDS_PATH, help="Path to raids.json")
     parser.add_argument("--debug", action="store_true", help="Print parser diagnostics")
+    parser.add_argument("--json", action="store_true", help="Print parsed raids as JSON and exit")
+    parser.add_argument("--yes", action="store_true", help="Replace raids without an interactive confirmation")
     args = parser.parse_args()
 
     if not args.workbook.exists():
@@ -304,7 +306,17 @@ def main():
         print("Make sure the workbook has a sheet named Serca+Cath and visible raid labels like Serca Hard.")
         sys.exit(1)
 
+    if args.json:
+        print(json.dumps(raids))
+        return
+
     preview_raids(raids)
+
+    if args.yes:
+        write_raids(args.output, raids)
+        print(f"Imported {len(raids)} raid(s) into {args.output}.")
+        return
+
     try:
         approval = input(f"Replace all raids in {args.output} with these results? Type YES to continue: ")
     except EOFError:
