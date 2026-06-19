@@ -18,7 +18,7 @@ function formatRaidPreview(raids) {
       .map((member) => `${member.name} (${member.role})`)
       .join(", ");
 
-    return `${index + 1}. ${raid.color} ${raid.name} ${raid.difficulty} - ${members}`;
+    return `${index + 1}. [${raid.status || "TODO"}] ${raid.color} ${raid.name} ${raid.difficulty} - ${members}`;
   }).join("\n");
 }
 
@@ -26,7 +26,7 @@ function formatRaidSummary(raids) {
   const grouped = new Map();
 
   for (const raid of raids) {
-    const key = raid.color;
+    const key = `${raid.status || "TODO"} ${raid.color}`;
     grouped.set(key, (grouped.get(key) || 0) + 1);
   }
 

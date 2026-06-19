@@ -1,17 +1,19 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { lookupRaids } = require("../services/raidStore");
-const { formatGroupedRaidResults } = require("../services/raidFormatter");
+const { formatStatusGroupedRaidResults } = require("../services/raidFormatter");
 
 function groupLookupResults(results) {
   const grouped = new Map();
 
   for (const { raid, roleCounts } of results) {
-    const key = `${raid.color.toLowerCase()}|${raid.name.toLowerCase()}`;
+    const status = raid.status || "TODO";
+    const key = `${status.toLowerCase()}|${raid.color.toLowerCase()}|${raid.name.toLowerCase()}`;
 
     if (!grouped.has(key)) {
       grouped.set(key, {
         color: raid.color,
         name: raid.name,
+        status,
         roleCounts: {}
       });
     }
@@ -35,7 +37,7 @@ function formatLookupResult(result) {
 }
 
 function formatLookupResults(results) {
-  return formatGroupedRaidResults(groupLookupResults(results), formatLookupResult);
+  return formatStatusGroupedRaidResults(groupLookupResults(results), formatLookupResult);
 }
 
 module.exports = {

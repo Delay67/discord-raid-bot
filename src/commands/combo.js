@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require("discord.js");
-const { formatGroupedRaidResults } = require("../services/raidFormatter");
+const { formatStatusGroupedRaidResults } = require("../services/raidFormatter");
 const { findComboRaids, normalizePlayerName } = require("../services/raidStore");
 
 function parseNames(value) {
@@ -14,12 +14,14 @@ function groupComboResults(raids, playerName) {
   const grouped = new Map();
 
   for (const raid of raids) {
-    const key = `${raid.color.toLowerCase()}|${raid.name.toLowerCase()}`;
+    const status = raid.status || "TODO";
+    const key = `${status.toLowerCase()}|${raid.color.toLowerCase()}|${raid.name.toLowerCase()}`;
 
     if (!grouped.has(key)) {
       grouped.set(key, {
         color: raid.color,
         name: raid.name,
+        status,
         roleCounts: {}
       });
     }
@@ -74,7 +76,7 @@ module.exports = {
     }
 
     await interaction.reply(
-      formatGroupedRaidResults(groupComboResults(results, name), formatComboResult)
+      formatStatusGroupedRaidResults(groupComboResults(results, name), formatComboResult)
     );
   }
 };

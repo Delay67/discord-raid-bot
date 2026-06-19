@@ -177,6 +177,19 @@ def parse_member_name(value):
     return text.split("-")[0].strip()
 
 
+def parse_raid_status(sheet, row, col):
+    status_cells = [
+        sheet.cell(row=row + offset, column=col).value
+        for offset in range(1, 4)
+        if row + offset <= sheet.max_row
+    ]
+
+    if any(clean_text(value).upper() == "DONE" for value in status_cells):
+        return "DONE"
+
+    return "TODO"
+
+
 def parse_raid_block(sheet, row, col):
     raid_name, difficulty = parse_raid_label(sheet.cell(row=row, column=col).value)
 
@@ -217,6 +230,7 @@ def parse_raid_block(sheet, row, col):
         "color": nearest_color_name(rgb_from_cell(sheet.cell(row=row, column=col))),
         "name": raid_name,
         "difficulty": difficulty,
+        "status": parse_raid_status(sheet, row, col),
         "members": members,
         "createdBy": "xlsx-import",
         "createdAt": "",
@@ -273,7 +287,7 @@ def preview_raids(raids):
 
     for index, raid in enumerate(raids, start=1):
         members = ", ".join(f"{member['name']} ({member['role']})" for member in raid["members"])
-        print(f"{index:>2}. {raid['color']} {raid['name']} {raid['difficulty']} - {members}")
+        print(f"{index:>2}. [{raid['status']}] {raid['color']} {raid['name']} {raid['difficulty']} - {members}")
 
     print()
 

@@ -62,15 +62,20 @@ The bot needs `Manage Messages` in that channel to delete other users' messages.
 ```
 
 Member names are matched by the text before the first hyphen, so `Ghonty-Downogeri` and `Ghonty-Catpounce` both match `/lookup Ghonty`.
+If a raid block in the workbook has `DONE` in its status box, that raid is imported as done. `/lookup` and `/combo` show TODO raids first and DONE raids after.
 
 Lookup responses are formatted like:
 
 ```text
+TODO
 Red Serca x2 DPS
 Red Cathedral x2 DPS
 
 Orange Serca x2 DPS
 Orange Cathedral x1 DPS
+
+DONE
+Light Blue Serca x1 DPS
 ```
 
 ## Image Import

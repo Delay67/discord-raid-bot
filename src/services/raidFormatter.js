@@ -17,6 +17,7 @@ const colorOrder = [
 ];
 
 const raidOrder = ["Serca", "Cathedral"];
+const statusOrder = ["TODO", "DONE"];
 
 function getOrderIndex(order, value) {
   const index = order.findIndex((item) => item.toLowerCase() === value.toLowerCase());
@@ -25,6 +26,14 @@ function getOrderIndex(order, value) {
 
 function sortRaidResults(results) {
   return [...results].sort((left, right) => {
+    const statusComparison =
+      getOrderIndex(statusOrder, left.status || "TODO") -
+      getOrderIndex(statusOrder, right.status || "TODO");
+
+    if (statusComparison !== 0) {
+      return statusComparison;
+    }
+
     const colorComparison =
       getOrderIndex(colorOrder, left.color) - getOrderIndex(colorOrder, right.color);
 
@@ -43,24 +52,42 @@ function sortRaidResults(results) {
   });
 }
 
-function formatGroupedRaidResults(results, getLine) {
+function formatGroupedRaidResults(results, getLine, options = {}) {
   const sortedResults = sortRaidResults(results);
   const lines = [];
   let previousColor = null;
+  let previousStatus = null;
 
   for (const result of sortedResults) {
+    const status = result.status || "TODO";
+
+    if (options.showStatusHeaders && previousStatus !== status) {
+      if (lines.length > 0) {
+        lines.push("");
+      }
+
+      lines.push(`**${status}**`);
+      previousColor = null;
+    }
+
     if (previousColor && previousColor !== result.color) {
       lines.push("");
     }
 
     lines.push(getLine(result));
     previousColor = result.color;
+    previousStatus = status;
   }
 
   return lines.join("\n");
 }
 
+function formatStatusGroupedRaidResults(results, getLine) {
+  return formatGroupedRaidResults(results, getLine, { showStatusHeaders: true });
+}
+
 module.exports = {
   formatGroupedRaidResults,
+  formatStatusGroupedRaidResults,
   sortRaidResults
 };
