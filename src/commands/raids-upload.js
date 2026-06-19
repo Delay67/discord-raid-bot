@@ -1,5 +1,6 @@
 const {
   ActionRowBuilder,
+  AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
   PermissionFlagsBits,
@@ -12,34 +13,44 @@ function isWorkbookAttachment(attachment) {
 }
 
 function formatRaidPreview(raids) {
-  const lines = raids.map((raid, index) => {
+  return raids.map((raid, index) => {
     const members = raid.members
       .map((member) => `${member.name} (${member.role})`)
       .join(", ");
 
     return `${index + 1}. ${raid.color} ${raid.name} ${raid.difficulty} - ${members}`;
+  }).join("\n");
+}
+
+function formatRaidSummary(raids) {
+  const grouped = new Map();
+
+  for (const raid of raids) {
+    const key = raid.color;
+    grouped.set(key, (grouped.get(key) || 0) + 1);
+  }
+
+  return [...grouped.entries()]
+    .map(([color, count]) => `${color}: ${count}`)
+    .join("\n");
+}
+
+function createPreviewAttachment(preview) {
+  return new AttachmentBuilder(Buffer.from(preview, "utf8"), {
+    name: "raid-import-preview.txt"
   });
+}
 
-  const preview = lines.join("\n");
-
-  if (preview.length <= 1600) {
-    return preview;
-  }
-
-  const truncatedLines = [];
-  let length = 0;
-
-  for (const line of lines) {
-    if (length + line.length + 1 > 1500) {
-      break;
-    }
-
-    truncatedLines.push(line);
-    length += line.length + 1;
-  }
-
-  truncatedLines.push(`...and ${lines.length - truncatedLines.length} more.`);
-  return truncatedLines.join("\n");
+function formatPreviewMessage({ attachmentName, raids, summary }) {
+  return [
+    `Parsed ${raids.length} raid(s) from \`${attachmentName}\`.`,
+    "",
+    "Summary by color:",
+    "```text",
+    summary,
+    "```",
+    "Open `raid-import-preview.txt` for the full parsed preview, then confirm or cancel."
+  ].join("\n");
 }
 
 function createConfirmationButtons(importId) {
@@ -84,17 +95,15 @@ module.exports = {
     try {
       const pendingImport = await createPendingImport(attachment, interaction.user.id);
       const preview = formatRaidPreview(pendingImport.raids);
+      const summary = formatRaidSummary(pendingImport.raids);
 
       await interaction.editReply({
-        content: [
-          `Parsed ${pendingImport.raids.length} raid(s) from \`${attachment.name}\`.`,
-          "",
-          "Review the preview, then confirm or cancel:",
-          "",
-          "```text",
-          preview,
-          "```"
-        ].join("\n"),
+        content: formatPreviewMessage({
+          attachmentName: attachment.name,
+          raids: pendingImport.raids,
+          summary
+        }),
+        files: [createPreviewAttachment(preview)],
         components: [createConfirmationButtons(pendingImport.importId)]
       });
     } catch (error) {
