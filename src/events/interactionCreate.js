@@ -32,14 +32,70 @@ async function handleRaidUploadButton(interaction) {
   });
 }
 
+function getCommandOptions(interaction) {
+  return interaction.options.data.map((option) => ({
+    name: option.name,
+    type: option.type,
+    value: option.attachment ? option.attachment.name : option.value
+  }));
+}
+
+function getUserLabel(user) {
+  return `${user.tag || user.username} (${user.id})`;
+}
+
+function logCommandUsage(interaction, status, details = {}) {
+  const payload = {
+    channelId: interaction.channelId,
+    command: interaction.commandName,
+    durationMs: details.durationMs,
+    guildId: interaction.guildId,
+    options: getCommandOptions(interaction),
+    status,
+    user: getUserLabel(interaction.user)
+  };
+
+  if (details.reason) {
+    payload.reason = details.reason;
+  }
+
+  console.log(`Command usage: ${JSON.stringify(payload)}`);
+}
+
+function logButtonUsage(interaction, status, details = {}) {
+  const payload = {
+    channelId: interaction.channelId,
+    customId: interaction.customId,
+    durationMs: details.durationMs,
+    guildId: interaction.guildId,
+    status,
+    user: getUserLabel(interaction.user)
+  };
+
+  if (details.reason) {
+    payload.reason = details.reason;
+  }
+
+  console.log(`Button usage: ${JSON.stringify(payload)}`);
+}
+
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction, client) {
     if (interaction.isButton() && interaction.customId.startsWith("raids-upload:")) {
+      const startedAt = Date.now();
+
       try {
         await handleRaidUploadButton(interaction);
+        logButtonUsage(interaction, "success", {
+          durationMs: Date.now() - startedAt
+        });
       } catch (error) {
         console.error(error);
+        logButtonUsage(interaction, "error", {
+          durationMs: Date.now() - startedAt,
+          reason: error.message
+        });
 
         if (!interaction.replied && !interaction.deferred) {
           await interaction.reply({
@@ -58,6 +114,7 @@ module.exports = {
     const command = client.commands.get(interaction.commandName);
 
     if (!command) {
+      logCommandUsage(interaction, "unknown-command");
       await interaction.reply({
         content: "I do not know how to handle that command yet.",
         ephemeral: true
@@ -66,6 +123,9 @@ module.exports = {
     }
 
     if (!command.allowAnyChannel && interaction.channelId !== channelId) {
+      logCommandUsage(interaction, "blocked-channel", {
+        reason: `Expected ${channelId}`
+      });
       await interaction.reply({
         content: `Please use bot commands in <#${channelId}>.`,
         ephemeral: true
@@ -73,8 +133,13 @@ module.exports = {
       return;
     }
 
+    const startedAt = Date.now();
+
     try {
       await command.execute(interaction);
+      logCommandUsage(interaction, "success", {
+        durationMs: Date.now() - startedAt
+      });
 
       if (
         !command.skipCleanup &&
@@ -85,6 +150,10 @@ module.exports = {
       }
     } catch (error) {
       console.error(error);
+      logCommandUsage(interaction, "error", {
+        durationMs: Date.now() - startedAt,
+        reason: error.message
+      });
 
       const response = {
         content: "Something went wrong while running that command.",
