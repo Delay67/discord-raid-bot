@@ -71,6 +71,49 @@ function clearRaids() {
   writeRaids([]);
 }
 
+function completeRaids({ color, raidName, completedBy }) {
+  const normalizedColor = color.trim().toLowerCase();
+  const normalizedRaidName = raidName?.trim().toLowerCase();
+  const raids = readRaids();
+  let matchedCount = 0;
+  let completedCount = 0;
+  const completedAt = new Date().toISOString();
+
+  const updatedRaids = raids.map((raid) => {
+    const matchesColor = raid.color.toLowerCase() === normalizedColor;
+    const matchesRaidName =
+      !normalizedRaidName || raid.name.toLowerCase() === normalizedRaidName;
+
+    if (!matchesColor || !matchesRaidName) {
+      return raid;
+    }
+
+    matchedCount += 1;
+
+    if ((raid.status || "TODO") === "DONE") {
+      return raid;
+    }
+
+    completedCount += 1;
+
+    return {
+      ...raid,
+      status: "DONE",
+      completedBy,
+      completedAt
+    };
+  });
+
+  if (completedCount > 0) {
+    writeRaids(updatedRaids);
+  }
+
+  return {
+    completedCount,
+    matchedCount
+  };
+}
+
 function lookupRaids(playerName) {
   const normalizedName = normalizePlayerName(playerName);
   const raids = readRaids();
@@ -111,6 +154,7 @@ function findComboRaids(playerNames) {
 module.exports = {
   addRaid,
   clearRaids,
+  completeRaids,
   findComboRaids,
   lookupRaids,
   normalizePlayerName,
