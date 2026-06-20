@@ -1,5 +1,21 @@
 const { SlashCommandBuilder } = require("discord.js");
-const { reddit } = require("../config");
+const fs = require("node:fs/promises");
+const path = require("node:path");
+const { redPandaMediaDirectory, reddit } = require("../config");
+
+const defaultMediaDirectory = path.join(__dirname, "..", "..", "data", "redpandas");
+const localMediaDirectory = redPandaMediaDirectory || defaultMediaDirectory;
+const localMediaExtensions = new Set([
+  ".gif",
+  ".jpg",
+  ".jpeg",
+  ".m4v",
+  ".mov",
+  ".mp4",
+  ".png",
+  ".webm",
+  ".webp"
+]);
 
 const redditUrls = [
   "https://oauth.reddit.com/r/redpandas/top?t=all&limit=100&raw_json=1",
@@ -9,6 +25,45 @@ const redditUrls = [
 
 let cachedToken = null;
 let cachedTokenExpiresAt = 0;
+
+async function getLocalMediaFiles(directory) {
+  const entries = await fs.readdir(directory, { withFileTypes: true });
+  const files = await Promise.all(
+    entries.map(async (entry) => {
+      const fullPath = path.join(directory, entry.name);
+
+      if (entry.isDirectory()) {
+        return getLocalMediaFiles(fullPath);
+      }
+
+      if (!entry.isFile() || !localMediaExtensions.has(path.extname(entry.name).toLowerCase())) {
+        return [];
+      }
+
+      return [fullPath];
+    })
+  );
+
+  return files.flat();
+}
+
+async function getRandomLocalMediaFile() {
+  try {
+    const files = await getLocalMediaFiles(localMediaDirectory);
+
+    if (files.length === 0) {
+      return null;
+    }
+
+    return files[Math.floor(Math.random() * files.length)];
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      console.warn(`Could not read red panda media directory: ${error.message}`);
+    }
+
+    return null;
+  }
+}
 
 function hasRedditConfig() {
   return Boolean(
@@ -163,8 +218,17 @@ module.exports = {
   async execute(interaction) {
     await interaction.deferReply();
 
+    const localMediaFile = await getRandomLocalMediaFile();
+
+    if (localMediaFile) {
+      await interaction.editReply({
+        files: [localMediaFile]
+      });
+      return;
+    }
+
     if (!hasRedditConfig()) {
-      await interaction.editReply("Reddit is not configured for this bot yet.");
+      await interaction.editReply("No local red panda media found, and Reddit is not configured.");
       return;
     }
 

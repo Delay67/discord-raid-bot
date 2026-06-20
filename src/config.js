@@ -26,6 +26,7 @@ function validateEnvironment() {
 module.exports = {
   cleanupDelayMs: getCleanupDelayMs(),
   channelId: process.env.DISCORD_CHANNEL_ID,
+  redPandaMediaDirectory: process.env.REDPANDA_MEDIA_DIR,
   reddit: {
     clientId: process.env.REDDIT_CLIENT_ID,
     clientSecret: process.env.REDDIT_CLIENT_SECRET,
