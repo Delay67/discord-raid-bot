@@ -209,6 +209,18 @@ async function getRedditMediaUrls() {
   return [];
 }
 
+function logSelectedMedia(interaction, selection) {
+  console.log(
+    `Red panda selected: ${JSON.stringify({
+      ...selection,
+      userId: interaction.user.id,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      guildId: interaction.guildId
+    })}`
+  );
+}
+
 module.exports = {
   allowAnyChannel: true,
   data: new SlashCommandBuilder()
@@ -221,6 +233,11 @@ module.exports = {
     const localMediaFile = await getRandomLocalMediaFile();
 
     if (localMediaFile) {
+      logSelectedMedia(interaction, {
+        source: "local",
+        file: localMediaFile
+      });
+
       await interaction.editReply({
         files: [localMediaFile]
       });
@@ -240,6 +257,11 @@ module.exports = {
     }
 
     const mediaUrl = mediaUrls[Math.floor(Math.random() * mediaUrls.length)];
+    logSelectedMedia(interaction, {
+      source: "reddit",
+      url: mediaUrl
+    });
+
     await interaction.editReply(mediaUrl);
   }
 };
