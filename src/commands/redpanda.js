@@ -5,6 +5,7 @@ const { redPandaMediaDirectory, reddit } = require("../config");
 
 const defaultMediaDirectory = path.join(__dirname, "..", "..", "data", "redpandas");
 const localMediaDirectory = redPandaMediaDirectory || defaultMediaDirectory;
+const maxLocalUploadBytes = 10 * 1024 * 1024;
 const localMediaExtensions = new Set([
   ".gif",
   ".jpg",
@@ -37,6 +38,12 @@ async function getLocalMediaFiles(directory) {
       }
 
       if (!entry.isFile() || !localMediaExtensions.has(path.extname(entry.name).toLowerCase())) {
+        return [];
+      }
+
+      const stats = await fs.stat(fullPath);
+
+      if (stats.size > maxLocalUploadBytes) {
         return [];
       }
 

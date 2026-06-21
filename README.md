@@ -78,6 +78,39 @@ DONE
 Light Blue Serca x1 DPS
 ```
 
+## Red Panda Media
+
+Local red panda media is read from `data/redpandas` by default, or from `REDPANDA_MEDIA_DIR` if it is set in `.env`.
+The bot ignores local files over Discord's 10 MiB upload limit.
+When `/redpanda` sends a local file, the bot logs the exact selected path so disliked files can be deleted later.
+
+Watch the bot logs:
+
+```bash
+sudo journalctl -u discord-raid-bot -f
+```
+
+Delete a bad file using the logged path:
+
+```bash
+rm "/home/delay/discord-raid-bot/data/redpandas/example.jpg"
+```
+
+Create smaller Discord-ready copies of oversized local media:
+
+```bash
+sudo apt install ffmpeg
+source .venv/bin/activate
+python scripts/prepare_redpanda_media.py
+```
+
+The script creates `.discord.jpg`, `.discord.gif`, or `.discord.mp4` copies beside the originals. Oversized GIFs are compressed as GIFs first, then converted to MP4 only if they still cannot fit under the upload limit.
+Add `--delete-originals` to delete oversized originals after their smaller copy is ready:
+
+```bash
+python scripts/prepare_redpanda_media.py --delete-originals
+```
+
 ## Image Import
 
 An `.xlsx` import is preferred because it can read values and fill colors directly from the workbook.
