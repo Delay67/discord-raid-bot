@@ -61,6 +61,9 @@ The bot needs `Manage Messages` in that channel to delete other users' messages.
 /redpanda
 /redpanda-delete-last
 /health
+/server-stats period:week
+/topchatter period:week
+/toppanda period:week
 /commands
 ```
 
@@ -88,6 +91,28 @@ Local red panda media is read from `data/redpandas` by default, or from `REDPAND
 The bot ignores local files over Discord's 10 MiB upload limit.
 When `/redpanda` sends a local file, the bot logs the exact selected path so disliked files can be deleted later.
 Admins can also delete the last local file the bot posted with `/redpanda-delete-last`.
+
+## Server Stats
+
+The bot tracks aggregate server activity in `data/activity-stats.json`.
+It does not store message contents.
+Use `/server-stats period:week`, `/server-stats period:month`, or `/server-stats period:year` to show overall message, command, and red panda counts.
+Use `/topchatter period:week` or `/toppanda period:week` for focused leaderboards.
+
+Backfill historical chat message counts from readable channel history:
+
+```bash
+npm run backfill:messages -- --dry-run
+npm run backfill:messages
+```
+
+Backfill one channel only:
+
+```bash
+npm run backfill:messages -- --channel 123456789012345678
+```
+
+The backfill replaces message-count buckets only. Command and red panda stats are preserved.
 
 Watch the bot logs:
 

@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "type": "commonjs",
   "scripts": {
+    "backfill:messages": "node scripts/backfill-message-stats.js",
     "start": "node src/index.js",
     "commands:register": "node scripts/register-commands.js"
   },

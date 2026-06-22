@@ -9,5 +9,6 @@ __pycache__/
 discordbotdelayssh
 discordbotdelayssh.pub
 data/staticsheet.xlsx
+data/activity-stats.json
 data/redpanda-last.json
 data/redpandas/

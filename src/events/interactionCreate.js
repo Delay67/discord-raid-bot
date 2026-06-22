@@ -1,5 +1,6 @@
 const { Events } = require("discord.js");
 const { channelId } = require("../config");
+const { recordCommand } = require("../services/activityStats");
 const { scheduleInteractionCleanup } = require("../services/cleanup");
 const {
   cancelPendingImport,
@@ -151,6 +152,7 @@ module.exports = {
 
     try {
       await command.execute(interaction);
+      recordCommand(interaction);
       logCommandUsage(interaction, "success", {
         durationMs: Date.now() - startedAt
       });
