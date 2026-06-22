@@ -10,13 +10,15 @@ function addPeriodOption(command) {
       .addChoices(
         { name: "Week", value: "week" },
         { name: "Month", value: "month" },
-        { name: "Year", value: "year" }
+        { name: "Year", value: "year" },
+        { name: "All Time", value: "all" }
       )
   );
 }
 
 function getPeriodLabel(period) {
   return {
+    all: "All Time",
     month: "This Month",
     week: "This Week",
     year: "This Year"
@@ -35,6 +37,7 @@ function formatTopUsers(users) {
 }
 
 module.exports = {
+  allowAnyChannel: true,
   data: addPeriodOption(
     new SlashCommandBuilder()
       .setName("topchatter")

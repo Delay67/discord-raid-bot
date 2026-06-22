@@ -26,7 +26,7 @@ module.exports = {
         "Shows bot uptime, raid counts, and red panda media counts.",
         "",
         "`/server-stats period:Week`",
-        "Shows overall activity, command usage, and red panda stats.",
+        "Shows overall message and red panda stats.",
         "",
         "`/topchatter period:Week`",
         "Shows the top chatters for the selected period.",

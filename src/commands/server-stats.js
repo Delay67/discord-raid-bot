@@ -12,19 +12,9 @@ function formatTopUsers(users, emptyText) {
     .join("\n");
 }
 
-function formatCounts(items, emptyText) {
-  if (items.length === 0) {
-    return emptyText;
-  }
-
-  return items
-    .slice(0, 10)
-    .map((item, index) => `${index + 1}. ${item.name} - ${item.count}`)
-    .join("\n");
-}
-
 function getPeriodLabel(period) {
   return {
+    all: "All Time",
     month: "This Month",
     week: "This Week",
     year: "This Year"
@@ -32,6 +22,7 @@ function getPeriodLabel(period) {
 }
 
 module.exports = {
+  allowAnyChannel: true,
   data: new SlashCommandBuilder()
     .setName("server-stats")
     .setDescription("Show server activity stats and red panda numbers.")
@@ -43,7 +34,8 @@ module.exports = {
         .addChoices(
           { name: "Week", value: "week" },
           { name: "Month", value: "month" },
-          { name: "Year", value: "year" }
+          { name: "Year", value: "year" },
+          { name: "All Time", value: "all" }
         )
     ),
 
@@ -62,7 +54,6 @@ module.exports = {
               name: "Totals",
               value: [
                 `Messages: ${stats.messages.total}`,
-                `Commands: ${stats.commands.total}`,
                 `Red pandas served: ${stats.redpandas.total}`
               ].join("\n")
             },
@@ -72,18 +63,8 @@ module.exports = {
               inline: true
             },
             {
-              name: "Top Command Users",
-              value: formatTopUsers(stats.commands.users, "No commands tracked yet."),
-              inline: true
-            },
-            {
               name: "Top Red Panda Requesters",
               value: formatTopUsers(stats.redpandas.users, "No red pandas served yet."),
-              inline: true
-            },
-            {
-              name: "Most Used Commands",
-              value: formatCounts(stats.commands.byName, "No commands tracked yet."),
               inline: true
             }
           )

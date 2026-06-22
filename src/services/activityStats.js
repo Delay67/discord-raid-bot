@@ -3,7 +3,7 @@ const path = require("node:path");
 
 const dataDirectory = path.join(__dirname, "..", "..", "data");
 const statsPath = path.join(dataDirectory, "activity-stats.json");
-const periods = ["week", "month", "year"];
+const periods = ["week", "month", "year", "all"];
 
 function ensureStore() {
   if (!fs.existsSync(dataDirectory)) {
@@ -40,6 +40,10 @@ function getIsoWeek(date) {
 }
 
 function getPeriodKey(period, date = new Date()) {
+  if (period === "all") {
+    return "all-time";
+  }
+
   if (period === "week") {
     return getIsoWeek(date);
   }
@@ -204,9 +208,47 @@ function replaceMessageStats(guildId, messageStatsByPeriod) {
   writeStats(stats);
 }
 
+function migrateAllTimeMessageStats() {
+  const stats = readStats();
+  const results = [];
+
+  for (const [guildId, guildStats] of Object.entries(stats.guilds)) {
+    const yearlyBuckets = Object.values(guildStats.periods?.year || {});
+    const allTimeMessages = {
+      total: 0,
+      users: {}
+    };
+
+    for (const bucket of yearlyBuckets) {
+      allTimeMessages.total += bucket.messages?.total || 0;
+
+      for (const [userId, userStats] of Object.entries(bucket.messages?.users || {})) {
+        allTimeMessages.users[userId] ||= {
+          count: 0,
+          label: userStats.label || userId
+        };
+        allTimeMessages.users[userId].count += userStats.count || 0;
+        allTimeMessages.users[userId].label = userStats.label || allTimeMessages.users[userId].label;
+      }
+    }
+
+    const bucket = getBucket(stats, guildId, "all", "all-time");
+    bucket.messages = allTimeMessages;
+    results.push({
+      guildId,
+      total: allTimeMessages.total,
+      users: Object.keys(allTimeMessages.users).length
+    });
+  }
+
+  writeStats(stats);
+  return results;
+}
+
 module.exports = {
   getPeriodKey,
   getCurrentStats,
+  migrateAllTimeMessageStats,
   recordCommand,
   recordMessage,
   recordRedPanda,

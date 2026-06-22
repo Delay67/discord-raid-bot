@@ -10,7 +10,7 @@ const {
   replaceMessageStats
 } = require("../src/services/activityStats");
 
-const periods = ["week", "month", "year"];
+const periods = ["week", "month", "year", "all"];
 const backfillGuildId = "977982426989101077";
 
 function parseArgs(argv) {
@@ -35,6 +35,7 @@ function parseArgs(argv) {
 
 function createMessageStats() {
   return {
+    all: {},
     month: {},
     week: {},
     year: {}
