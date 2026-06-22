@@ -51,15 +51,6 @@ function formatComboResult(result) {
   return `${result.color} ${result.name} ${roleText}`;
 }
 
-function getCurrentComboToken(value) {
-  return value.split(/[,\s]+/).pop() || "";
-}
-
-function replaceCurrentComboToken(value, replacement) {
-  const prefix = value.slice(0, value.length - getCurrentComboToken(value).length);
-  return `${prefix}${replacement}`;
-}
-
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("combo")
@@ -76,18 +67,19 @@ module.exports = {
         .setName("with")
         .setDescription("Other player names separated by spaces or commas, such as Vierazy Phil")
         .setRequired(true)
-        .setAutocomplete(true)
     ),
 
   async autocomplete(interaction) {
     const focused = interaction.options.getFocused(true);
-    const query =
-      focused.name === "with"
-        ? getCurrentComboToken(focused.value)
-        : focused.value;
-    const suggestions = getPlayerSuggestions(query).map((name) => ({
+
+    if (focused.name !== "name") {
+      await interaction.respond([]);
+      return;
+    }
+
+    const suggestions = getPlayerSuggestions(focused.value).map((name) => ({
       name,
-      value: focused.name === "with" ? replaceCurrentComboToken(focused.value, name) : name
+      value: name
     }));
 
     await interaction.respond(suggestions);
