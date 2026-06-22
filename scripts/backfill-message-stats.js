@@ -11,12 +11,12 @@ const {
 } = require("../src/services/activityStats");
 
 const periods = ["week", "month", "year"];
+const backfillGuildId = "977982426989101077";
 
 function parseArgs(argv) {
   const args = {
     channelId: null,
-    dryRun: false,
-    guildId: null
+    dryRun: false
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -24,9 +24,6 @@ function parseArgs(argv) {
 
     if (arg === "--dry-run") {
       args.dryRun = true;
-    } else if (arg === "--guild") {
-      args.guildId = argv[index + 1];
-      index += 1;
     } else if (arg === "--channel") {
       args.channelId = argv[index + 1];
       index += 1;
@@ -85,9 +82,7 @@ function canReadHistory(channel, me) {
 }
 
 async function fetchReadableChannels(client, args) {
-  const guilds = args.guildId
-    ? [await client.guilds.fetch(args.guildId)]
-    : [...client.guilds.cache.values()];
+  const guilds = [await client.guilds.fetch(backfillGuildId)];
   const channels = [];
 
   for (const partialGuild of guilds) {
@@ -194,6 +189,7 @@ async function main() {
   }
 
   console.log(`Backfilling ${channels.length} channel(s).`);
+  console.log(`Guild: ${backfillGuildId}`);
 
   for (const channel of channels) {
     await backfillChannel(channel, messageStats);
@@ -204,7 +200,7 @@ async function main() {
   if (args.dryRun) {
     console.log("Dry run complete. activity-stats.json was not changed.");
   } else {
-    replaceMessageStats(messageStats);
+    replaceMessageStats(backfillGuildId, messageStats);
     console.log("Backfill complete. Replaced message stats in data/activity-stats.json.");
   }
 

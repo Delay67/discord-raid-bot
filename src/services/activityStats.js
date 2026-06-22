@@ -11,13 +11,17 @@ function ensureStore() {
   }
 
   if (!fs.existsSync(statsPath)) {
-    fs.writeFileSync(statsPath, `${JSON.stringify({ periods: {} }, null, 2)}\n`, "utf8");
+    fs.writeFileSync(statsPath, `${JSON.stringify({ guilds: {} }, null, 2)}\n`, "utf8");
   }
 }
 
 function readStats() {
   ensureStore();
-  return JSON.parse(fs.readFileSync(statsPath, "utf8"));
+  const stats = JSON.parse(fs.readFileSync(statsPath, "utf8"));
+
+  stats.guilds ||= {};
+
+  return stats;
 }
 
 function writeStats(stats) {
@@ -66,10 +70,20 @@ function createBucket() {
   };
 }
 
-function getBucket(stats, period, key) {
-  stats.periods[period] ||= {};
-  stats.periods[period][key] ||= createBucket();
-  return stats.periods[period][key];
+function getGuildStats(stats, guildId) {
+  stats.guilds[guildId] ||= {
+    periods: {}
+  };
+
+  return stats.guilds[guildId];
+}
+
+function getBucket(stats, guildId, period, key) {
+  const guildStats = getGuildStats(stats, guildId);
+
+  guildStats.periods[period] ||= {};
+  guildStats.periods[period][key] ||= createBucket();
+  return guildStats.periods[period][key];
 }
 
 function getUserLabel(user) {
@@ -85,26 +99,30 @@ function incrementUser(users, user) {
   users[user.id].label = getUserLabel(user);
 }
 
-function updateCurrentBuckets(updateBucket) {
+function updateCurrentBuckets(guildId, updateBucket) {
+  if (!guildId) {
+    return;
+  }
+
   const stats = readStats();
   const now = new Date();
 
   for (const period of periods) {
-    updateBucket(getBucket(stats, period, getPeriodKey(period, now)));
+    updateBucket(getBucket(stats, guildId, period, getPeriodKey(period, now)));
   }
 
   writeStats(stats);
 }
 
 function recordMessage(message) {
-  updateCurrentBuckets((bucket) => {
+  updateCurrentBuckets(message.guildId, (bucket) => {
     bucket.messages.total += 1;
     incrementUser(bucket.messages.users, message.author);
   });
 }
 
 function recordCommand(interaction) {
-  updateCurrentBuckets((bucket) => {
+  updateCurrentBuckets(interaction.guildId, (bucket) => {
     bucket.commands.total += 1;
     bucket.commands.byName[interaction.commandName] =
       (bucket.commands.byName[interaction.commandName] || 0) + 1;
@@ -113,7 +131,7 @@ function recordCommand(interaction) {
 }
 
 function recordRedPanda(interaction, source) {
-  updateCurrentBuckets((bucket) => {
+  updateCurrentBuckets(interaction.guildId, (bucket) => {
     bucket.redpandas.total += 1;
     bucket.redpandas.sources[source] = (bucket.redpandas.sources[source] || 0) + 1;
     incrementUser(bucket.redpandas.users, interaction.user);
@@ -136,10 +154,11 @@ function sortUsers(users) {
     .sort((left, right) => right.count - left.count);
 }
 
-function getCurrentStats(period) {
+function getCurrentStats(period, guildId) {
   const stats = readStats();
   const key = getPeriodKey(period);
-  const bucket = stats.periods[period]?.[key] || createBucket();
+  const guildStats = stats.guilds[guildId] || { periods: {} };
+  const bucket = guildStats.periods[period]?.[key] || createBucket();
 
   return {
     commands: {
@@ -147,6 +166,7 @@ function getCurrentStats(period) {
       total: bucket.commands.total,
       users: sortUsers(bucket.commands.users)
     },
+    guildId,
     key,
     messages: {
       total: bucket.messages.total,
@@ -161,13 +181,14 @@ function getCurrentStats(period) {
   };
 }
 
-function replaceMessageStats(messageStatsByPeriod) {
+function replaceMessageStats(guildId, messageStatsByPeriod) {
   const stats = readStats();
+  const guildStats = getGuildStats(stats, guildId);
 
   for (const period of periods) {
-    stats.periods[period] ||= {};
+    guildStats.periods[period] ||= {};
 
-    for (const bucket of Object.values(stats.periods[period])) {
+    for (const bucket of Object.values(guildStats.periods[period])) {
       bucket.messages = {
         total: 0,
         users: {}
@@ -175,7 +196,7 @@ function replaceMessageStats(messageStatsByPeriod) {
     }
 
     for (const [key, messages] of Object.entries(messageStatsByPeriod[period] || {})) {
-      const bucket = getBucket(stats, period, key);
+      const bucket = getBucket(stats, guildId, period, key);
       bucket.messages = messages;
     }
   }

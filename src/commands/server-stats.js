@@ -49,7 +49,7 @@ module.exports = {
 
   async execute(interaction) {
     const period = interaction.options.getString("period", true);
-    const stats = getCurrentStats(period);
+    const stats = getCurrentStats(period, interaction.guildId);
 
     await interaction.reply({
       embeds: [

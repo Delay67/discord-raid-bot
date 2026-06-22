@@ -94,12 +94,12 @@ Admins can also delete the last local file the bot posted with `/redpanda-delete
 
 ## Server Stats
 
-The bot tracks aggregate server activity in `data/activity-stats.json`.
+The bot tracks aggregate server activity in `data/activity-stats.json`, separated by Discord server.
 It does not store message contents.
 Use `/server-stats period:week`, `/server-stats period:month`, or `/server-stats period:year` to show overall message, command, and red panda counts.
 Use `/topchatter period:week` or `/toppanda period:week` for focused leaderboards.
 
-Backfill historical chat message counts from readable channel history:
+Backfill historical chat message counts from readable channel history in server `977982426989101077`:
 
 ```bash
 npm run backfill:messages -- --dry-run
