@@ -71,6 +71,62 @@ function clearRaids() {
   writeRaids([]);
 }
 
+function getRaidStats() {
+  const raids = readRaids();
+  const stats = raids.reduce(
+    (counts, raid) => {
+      const status = raid.status || "TODO";
+      counts.total += 1;
+      counts.byStatus[status] = (counts.byStatus[status] || 0) + 1;
+      counts.byColor[raid.color] = (counts.byColor[raid.color] || 0) + 1;
+      return counts;
+    },
+    {
+      byColor: {},
+      byStatus: {},
+      total: 0
+    }
+  );
+
+  return stats;
+}
+
+function getColorSuggestions(query = "") {
+  const normalizedQuery = query.trim().toLowerCase();
+  const colors = [...new Set(readRaids().map((raid) => raid.color))].sort((left, right) =>
+    left.localeCompare(right)
+  );
+
+  return colors
+    .filter((color) => color.toLowerCase().includes(normalizedQuery))
+    .slice(0, 25);
+}
+
+function getPlayerSuggestions(query = "") {
+  const normalizedQuery = normalizePlayerName(query);
+  const players = new Map();
+
+  for (const raid of readRaids()) {
+    for (const member of raid.members) {
+      if (!players.has(member.lookupName)) {
+        players.set(member.lookupName, member.name);
+      }
+    }
+  }
+
+  return [...players.entries()]
+    .filter(([lookupName, name]) => {
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      return lookupName.includes(normalizedQuery) || name.toLowerCase().includes(normalizedQuery);
+    })
+    .map(([, name]) => name)
+    .sort((left, right) => left.localeCompare(right))
+    .slice(0, 25);
+}
+
 function completeRaids({ color, raidName, completedBy }) {
   const normalizedColor = color.trim().toLowerCase();
   const normalizedRaidName = raidName?.trim().toLowerCase();
@@ -156,6 +212,9 @@ module.exports = {
   clearRaids,
   completeRaids,
   findComboRaids,
+  getColorSuggestions,
+  getPlayerSuggestions,
+  getRaidStats,
   lookupRaids,
   normalizePlayerName,
   readRaids

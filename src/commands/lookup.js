@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
-const { lookupRaids } = require("../services/raidStore");
-const { formatStatusGroupedRaidResults } = require("../services/raidFormatter");
+const { buildRaidResultsEmbed } = require("../services/raidEmbeds");
+const { getPlayerSuggestions, lookupRaids } = require("../services/raidStore");
 
 function groupLookupResults(results) {
   const grouped = new Map();
@@ -36,10 +36,6 @@ function formatLookupResult(result) {
   return `${result.color} ${result.name} ${roleText}`;
 }
 
-function formatLookupResults(results) {
-  return formatStatusGroupedRaidResults(groupLookupResults(results), formatLookupResult);
-}
-
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("lookup")
@@ -49,7 +45,18 @@ module.exports = {
         .setName("name")
         .setDescription("Player name, such as Ghonty")
         .setRequired(true)
+        .setAutocomplete(true)
     ),
+
+  async autocomplete(interaction) {
+    const focusedValue = interaction.options.getFocused();
+    const suggestions = getPlayerSuggestions(focusedValue).map((name) => ({
+      name,
+      value: name
+    }));
+
+    await interaction.respond(suggestions);
+  },
 
   async execute(interaction) {
     const name = interaction.options.getString("name", true);
@@ -60,6 +67,14 @@ module.exports = {
       return;
     }
 
-    await interaction.reply(formatLookupResults(results));
+    await interaction.reply({
+      embeds: [
+        buildRaidResultsEmbed({
+          title: `${name} Raids`,
+          results: groupLookupResults(results),
+          getLine: formatLookupResult
+        })
+      ]
+    });
   }
 };

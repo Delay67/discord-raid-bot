@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require("discord.js");
-const { completeRaids } = require("../services/raidStore");
+const { completeRaids, getColorSuggestions } = require("../services/raidStore");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -10,6 +10,7 @@ module.exports = {
         .setName("color")
         .setDescription("Color group to mark complete, such as Orange or Red")
         .setRequired(true)
+        .setAutocomplete(true)
     )
     .addStringOption((option) =>
       option
@@ -21,6 +22,16 @@ module.exports = {
           { name: "Cathedral", value: "Cathedral" }
         )
     ),
+
+  async autocomplete(interaction) {
+    const focusedValue = interaction.options.getFocused();
+    const suggestions = getColorSuggestions(focusedValue).map((color) => ({
+      name: color,
+      value: color
+    }));
+
+    await interaction.respond(suggestions);
+  },
 
   async execute(interaction) {
     const color = interaction.options.getString("color", true);

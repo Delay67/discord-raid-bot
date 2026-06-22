@@ -55,14 +55,18 @@ The bot needs `Manage Messages` in that channel to delete other users' messages.
 /raids-upload file:<upload>
 /lookup name:Ghonty
 /combo name:Ghonty with:Vierazy Phil
+/complete color:Orange raid:Serca
 /schedule-set image:<upload>
 /schedule
 /redpanda
+/redpanda-delete-last
+/health
 /commands
 ```
 
 Member names are matched by the text before the first hyphen, so `Ghonty-Downogeri` and `Ghonty-Catpounce` both match `/lookup Ghonty`.
 If a raid block in the workbook has `DONE` in its status box, that raid is imported as done. `/lookup` and `/combo` show TODO raids first and DONE raids after.
+`/lookup`, `/combo`, and `/complete color` support autocomplete from the current raid data.
 
 Lookup responses are formatted like:
 
@@ -83,6 +87,7 @@ Light Blue Serca x1 DPS
 Local red panda media is read from `data/redpandas` by default, or from `REDPANDA_MEDIA_DIR` if it is set in `.env`.
 The bot ignores local files over Discord's 10 MiB upload limit.
 When `/redpanda` sends a local file, the bot logs the exact selected path so disliked files can be deleted later.
+Admins can also delete the last local file the bot posted with `/redpanda-delete-last`.
 
 Watch the bot logs:
 

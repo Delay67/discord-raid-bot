@@ -22,6 +22,9 @@ module.exports = {
         "`/redpanda`",
         "Shows a random red panda image or gif.",
         "",
+        "`/health`",
+        "Shows bot uptime, raid counts, and red panda media counts.",
+        "",
         "`/commands`",
         "Shows this command list."
       ].join("\n"),

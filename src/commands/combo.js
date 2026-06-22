@@ -1,6 +1,10 @@
 const { SlashCommandBuilder } = require("discord.js");
-const { formatStatusGroupedRaidResults } = require("../services/raidFormatter");
-const { findComboRaids, normalizePlayerName } = require("../services/raidStore");
+const { buildRaidResultsEmbed } = require("../services/raidEmbeds");
+const {
+  findComboRaids,
+  getPlayerSuggestions,
+  normalizePlayerName
+} = require("../services/raidStore");
 
 function parseNames(value) {
   return value
@@ -47,6 +51,15 @@ function formatComboResult(result) {
   return `${result.color} ${result.name} ${roleText}`;
 }
 
+function getCurrentComboToken(value) {
+  return value.split(/[,\s]+/).pop() || "";
+}
+
+function replaceCurrentComboToken(value, replacement) {
+  const prefix = value.slice(0, value.length - getCurrentComboToken(value).length);
+  return `${prefix}${replacement}`;
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("combo")
@@ -56,13 +69,29 @@ module.exports = {
         .setName("name")
         .setDescription("Main player name, such as Ghonty")
         .setRequired(true)
+        .setAutocomplete(true)
     )
     .addStringOption((option) =>
       option
         .setName("with")
         .setDescription("Other player names separated by spaces or commas, such as Vierazy Phil")
         .setRequired(true)
+        .setAutocomplete(true)
     ),
+
+  async autocomplete(interaction) {
+    const focused = interaction.options.getFocused(true);
+    const query =
+      focused.name === "with"
+        ? getCurrentComboToken(focused.value)
+        : focused.value;
+    const suggestions = getPlayerSuggestions(query).map((name) => ({
+      name,
+      value: focused.name === "with" ? replaceCurrentComboToken(focused.value, name) : name
+    }));
+
+    await interaction.respond(suggestions);
+  },
 
   async execute(interaction) {
     const name = interaction.options.getString("name", true);
@@ -75,8 +104,15 @@ module.exports = {
       return;
     }
 
-    await interaction.reply(
-      formatStatusGroupedRaidResults(groupComboResults(results, name), formatComboResult)
-    );
+    await interaction.reply({
+      embeds: [
+        buildRaidResultsEmbed({
+          title: `${name} Combo`,
+          description: `With ${withNames.join(", ")}`,
+          results: groupComboResults(results, name),
+          getLine: formatComboResult
+        })
+      ]
+    });
   }
 };

@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require("discord.js");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { redPandaMediaDirectory, reddit } = require("../config");
+const { rememberLastLocalSelection } = require("../services/redPandaStore");
 
 const defaultMediaDirectory = path.join(__dirname, "..", "..", "data", "redpandas");
 const localMediaDirectory = redPandaMediaDirectory || defaultMediaDirectory;
@@ -244,6 +245,7 @@ module.exports = {
         source: "local",
         file: localMediaFile
       });
+      rememberLastLocalSelection(interaction, localMediaFile);
 
       await interaction.editReply({
         files: [localMediaFile]
