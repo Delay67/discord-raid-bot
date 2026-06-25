@@ -56,6 +56,7 @@ Mention replies using Groq require the Discord Developer Portal `Message Content
 /raid-list
 /raid-clear
 /raids-upload file:<upload>
+/llm mode:disable
 /lookup name:Ghonty
 /combo name:Ghonty with:Vierazy Phil
 /complete color:Orange raid:Serca
@@ -74,6 +75,14 @@ Mention the bot to ask Groq a short question:
 
 ```text
 @delay raid helper why is Serca cursed?
+```
+
+Admins can disable or re-enable all mention replies:
+
+```text
+/llm mode:disable
+/llm mode:enable
+/llm mode:status
 ```
 
 Some mention questions are answered directly from `data/raids.json` instead of Groq:

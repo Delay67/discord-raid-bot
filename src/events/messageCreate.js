@@ -1,6 +1,7 @@
 const { Events } = require("discord.js");
 const { channelId } = require("../config");
 const { recordMessage } = require("../services/activityStats");
+const { isMentionLlmEnabled } = require("../services/botSettings");
 const { deleteMessage } = require("../services/cleanup");
 const { askGroq, isGroqEnabled } = require("../services/groqChat");
 const { answerRaidQuestion } = require("../services/raidQuestionAnswer");
@@ -38,6 +39,10 @@ async function handleBotMention(message) {
 
   if (prompt === null) {
     return false;
+  }
+
+  if (!isMentionLlmEnabled()) {
+    return true;
   }
 
   if (!prompt) {
