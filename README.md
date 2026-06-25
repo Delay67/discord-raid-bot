@@ -21,6 +21,7 @@ A Discord bot for looking up which fixed Lost Ark raid groups a player is includ
    ```env
    DISCORD_TOKEN=your-bot-token
    DISCORD_CHANNEL_ID=your-bot-channel-id
+   PLANNED_TIMES_CHANNEL_ID=1265458054623789277
    CLEANUP_DELAY_MS=300000
    REDDIT_CLIENT_ID=your-reddit-client-id
    REDDIT_CLIENT_SECRET=your-reddit-client-secret
@@ -192,6 +193,8 @@ python scripts/import_raids_from_xlsx.py path\to\schedule.xlsx
 The script previews what it parsed first. It only wipes and replaces `data/raids.json` if you type `YES`.
 Admins can also upload the workbook directly in Discord with `/raids-upload`.
 The bot previews the parsed raids and only replaces `data/staticsheet.xlsx` and `data/raids.json` after the admin clicks `Confirm Import`.
+
+`/schedule-set` posts and pins the uploaded image in the planned times channel. If another schedule was posted earlier in the same Amsterdam week, that earlier post is deleted. Older-week schedule posts are kept but unpinned so only the latest submitted schedule remains pinned.
 
 The screenshot importer is available as a fallback, but it is less reliable because it uses OCR. It also needs the Tesseract OCR app installed. On Windows:
 
