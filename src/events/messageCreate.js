@@ -1,5 +1,5 @@
-const { Events } = require("discord.js");
-const { channelId } = require("../config");
+const { Events, MessageType } = require("discord.js");
+const { channelId, plannedTimesChannelId } = require("../config");
 const { recordMessage } = require("../services/activityStats");
 const { isMentionLlmEnabled } = require("../services/botSettings");
 const { deleteMessage } = require("../services/cleanup");
@@ -89,6 +89,14 @@ async function handleBotMention(message) {
 module.exports = {
   name: Events.MessageCreate,
   async execute(message) {
+    if (
+      message.channelId === plannedTimesChannelId &&
+      message.type === MessageType.ChannelPinnedMessage
+    ) {
+      await deleteMessage(message);
+      return;
+    }
+
     if (!message.system && !message.author.bot && message.guildId) {
       recordMessage(message);
     }

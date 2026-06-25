@@ -75,8 +75,9 @@ function getAmsterdamWeekKey(date = new Date()) {
 function setScheduleImage({ attachment, plannedMessage, uploadedBy }) {
   const previousSchedule = readSchedule();
   const postedSchedules = previousSchedule.postedSchedules || [];
+  const plannedAttachment = plannedMessage?.attachments?.first();
   const schedule = {
-    url: attachment.url,
+    url: plannedAttachment?.url || attachment.url,
     name: attachment.name,
     contentType: attachment.contentType,
     uploadedBy,

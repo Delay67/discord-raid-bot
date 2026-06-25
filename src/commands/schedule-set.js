@@ -1,4 +1,5 @@
 const {
+  MessageType,
   PermissionFlagsBits,
   SlashCommandBuilder
 } = require("discord.js");
@@ -12,6 +13,33 @@ const {
 
 function shouldIgnoreMessageError(error) {
   return error.code === 10008 || error.code === 50001 || error.code === 50013;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function deleteRecentPinNotice(channel, pinnedMessage) {
+  try {
+    await wait(750);
+
+    const recentMessages = await channel.messages.fetch({ limit: 10 });
+    const pinNotice = recentMessages.find(
+      (message) =>
+        message.type === MessageType.ChannelPinnedMessage &&
+        message.createdTimestamp >= pinnedMessage.createdTimestamp - 1000
+    );
+
+    if (pinNotice) {
+      await pinNotice.delete();
+    }
+  } catch (error) {
+    if (!shouldIgnoreMessageError(error)) {
+      throw error;
+    }
+  }
 }
 
 async function cleanupPreviousSchedulePosts(client, currentWeekKey) {
@@ -62,12 +90,16 @@ async function postPlannedSchedule(interaction, attachment) {
   }
 
   const message = await channel.send({
-    content: [
-      attachment.url
-    ].join("\n")
+    files: [
+      {
+        attachment: attachment.url,
+        name: attachment.name || "schedule.png"
+      }
+    ]
   });
 
   await message.pin("Current raid schedule");
+  await deleteRecentPinNotice(channel, message);
 
   return message;
 }
