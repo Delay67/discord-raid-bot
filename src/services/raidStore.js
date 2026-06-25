@@ -71,6 +71,42 @@ function clearRaids() {
   writeRaids([]);
 }
 
+function resetRaidsToTodo({ resetBy = "weekly-reset" } = {}) {
+  const raids = readRaids();
+  let resetCount = 0;
+  const resetAt = new Date().toISOString();
+
+  const updatedRaids = raids.map((raid) => {
+    if ((raid.status || "TODO") !== "DONE") {
+      return raid;
+    }
+
+    resetCount += 1;
+
+    const {
+      completedAt,
+      completedBy,
+      ...rest
+    } = raid;
+
+    return {
+      ...rest,
+      status: "TODO",
+      resetAt,
+      resetBy
+    };
+  });
+
+  if (resetCount > 0) {
+    writeRaids(updatedRaids);
+  }
+
+  return {
+    resetCount,
+    totalCount: raids.length
+  };
+}
+
 function getRaidStats() {
   const raids = readRaids();
   const stats = raids.reduce(
@@ -217,5 +253,6 @@ module.exports = {
   getRaidStats,
   lookupRaids,
   normalizePlayerName,
-  readRaids
+  readRaids,
+  resetRaidsToTodo
 };

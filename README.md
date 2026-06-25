@@ -59,6 +59,7 @@ Mention replies using Groq require the Discord Developer Portal `Message Content
 /llm mode:disable
 /lookup name:Ghonty
 /combo name:Ghonty with:Vierazy Phil
+/overlap name:Ghonty
 /complete color:Orange raid:Serca
 /schedule-set image:<upload>
 /schedule
@@ -95,6 +96,7 @@ Some mention questions are answered directly from `data/raids.json` instead of G
 Member names are matched by the text before the first hyphen, so `Ghonty-Downogeri` and `Ghonty-Catpounce` both match `/lookup Ghonty`.
 If a raid block in the workbook has `DONE` in its status box, that raid is imported as done. `/lookup` and `/combo` show TODO raids first and DONE raids after.
 `/lookup`, `/combo`, and `/complete color` support autocomplete from the current raid data.
+All raids are automatically reset back to TODO every Wednesday at 09:00 Amsterdam time.
 
 Lookup responses are formatted like:
 
