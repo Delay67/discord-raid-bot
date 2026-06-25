@@ -63,8 +63,6 @@ async function postPlannedSchedule(interaction, attachment) {
 
   const message = await channel.send({
     content: [
-      "Current raid schedule",
-      `Uploaded by <@${interaction.user.id}>`,
       attachment.url
     ].join("\n")
   });
