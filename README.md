@@ -26,6 +26,8 @@ A Discord bot for looking up which fixed Lost Ark raid groups a player is includ
    REDDIT_CLIENT_SECRET=your-reddit-client-secret
    REDDIT_USERNAME=your-reddit-username
    REDDIT_PASSWORD=your-reddit-password
+   GROQ_API_KEY=your-groq-api-key
+   GROQ_MODEL=openai/gpt-oss-120b
    ```
 
 3. Register slash commands:
@@ -47,6 +49,7 @@ Commands only work in the channel configured as `DISCORD_CHANNEL_ID`.
 Bot replies in that channel are deleted after `CLEANUP_DELAY_MS`.
 Regular user messages in that channel are deleted immediately.
 The bot needs `Manage Messages` in that channel to delete other users' messages.
+Mention replies using Groq require the Discord Developer Portal `Message Content Intent` to be enabled for the bot.
 
 ```text
 /raid-add color:Red raid:Serca difficulty:Nightmare dps:Ghonty-Glavier,Phil supports:Nonna-Artist
@@ -65,6 +68,12 @@ The bot needs `Manage Messages` in that channel to delete other users' messages.
 /topchatter period:week
 /toppanda period:week
 /commands
+```
+
+Mention the bot to ask Groq a short question:
+
+```text
+@delay raid helper why is Serca cursed?
 ```
 
 Member names are matched by the text before the first hyphen, so `Ghonty-Downogeri` and `Ghonty-Catpounce` both match `/lookup Ghonty`.

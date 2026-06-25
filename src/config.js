@@ -26,6 +26,10 @@ function validateEnvironment() {
 module.exports = {
   cleanupDelayMs: getCleanupDelayMs(),
   channelId: process.env.DISCORD_CHANNEL_ID,
+  groq: {
+    apiKey: process.env.GROQ_API_KEY,
+    model: process.env.GROQ_MODEL || "openai/gpt-oss-120b"
+  },
   redPandaMediaDirectory: process.env.REDPANDA_MEDIA_DIR,
   reddit: {
     clientId: process.env.REDDIT_CLIENT_ID,
