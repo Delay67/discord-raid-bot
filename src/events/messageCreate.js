@@ -3,6 +3,7 @@ const { channelId } = require("../config");
 const { recordMessage } = require("../services/activityStats");
 const { deleteMessage } = require("../services/cleanup");
 const { askGroq, isGroqEnabled } = require("../services/groqChat");
+const { answerRaidQuestion } = require("../services/raidQuestionAnswer");
 
 const mentionCooldownMs = 15000;
 const mentionCooldowns = new Map();
@@ -39,13 +40,20 @@ async function handleBotMention(message) {
     return false;
   }
 
-  if (!isGroqEnabled()) {
-    await message.reply("Groq is not configured yet.");
+  if (!prompt) {
+    await message.reply("Mention me with something to answer.");
     return true;
   }
 
-  if (!prompt) {
-    await message.reply("Mention me with something to answer.");
+  const raidAnswer = answerRaidQuestion(prompt, message);
+
+  if (raidAnswer) {
+    await message.reply(raidAnswer);
+    return true;
+  }
+
+  if (!isGroqEnabled()) {
+    await message.reply("Groq is not configured yet.");
     return true;
   }
 

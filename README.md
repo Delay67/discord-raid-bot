@@ -76,6 +76,13 @@ Mention the bot to ask Groq a short question:
 @delay raid helper why is Serca cursed?
 ```
 
+Some mention questions are answered directly from `data/raids.json` instead of Groq:
+
+```text
+@delay raid helper what raids do I have left?
+@delay raid helper what raids does Ghonty have left?
+```
+
 Member names are matched by the text before the first hyphen, so `Ghonty-Downogeri` and `Ghonty-Catpounce` both match `/lookup Ghonty`.
 If a raid block in the workbook has `DONE` in its status box, that raid is imported as done. `/lookup` and `/combo` show TODO raids first and DONE raids after.
 `/lookup`, `/combo`, and `/complete color` support autocomplete from the current raid data.
