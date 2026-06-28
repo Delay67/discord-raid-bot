@@ -185,7 +185,7 @@ Install the Python import dependencies:
 python -m pip install -r scripts/requirements.txt
 ```
 
-Import raids from the `Serca+Cath` sheet:
+Import raids from the `Copy of Serca+Cath` sheet:
 
 ```bash
 python scripts/import_raids_from_xlsx.py path\to\schedule.xlsx
@@ -193,8 +193,8 @@ python scripts/import_raids_from_xlsx.py path\to\schedule.xlsx
 
 The script previews what it parsed first. It only wipes and replaces `data/raids.json` if you type `YES`.
 Admins can also upload the workbook directly in Discord with `/raids-upload`.
-The bot previews the parsed raids and only replaces `data/staticsheet.xlsx` and `data/raids.json` after the admin clicks `Confirm Import`.
-After importing, `/raid-suggest` can generate alternative group layouts as a text file. It keeps Serca Nightmare locked, only swaps members inside the same raid pool, preserves DPS/Support roles, uses workbook item levels for Cathedral 2/3 eligibility, can recolor non-locked raids, and only allows a multi-run color cluster when every run in that color has the exact same players. It scores color clusters toward 2-4 runs while avoiding isolated runs. Increase `variety` for bigger shake-ups.
+The bot previews both the parsed raids and a schedule image generated from the workbook. After the admin clicks `Confirm Import`, it replaces `data/staticsheet.xlsx` and `data/raids.json`, then posts and pins the generated schedule image in the planned times channel.
+After importing, `/raid-suggest` can generate alternative group layouts as a text report, a workbook with one sheet per option, and a high-resolution image for every option. Each visual color cluster keeps Serca runs on the left and Cathedral runs on the right with black divisions between clusters. The optimizer keeps the Light Yellow, Red, and Magenta Serca Nightmare membership assignments locked. Other Nightmare runs can exchange same-role players with other Nightmare runs, while Serca Hard swaps remain within Hard. Same-player character swaps do not count as changes or distinct suggestions. It preserves DPS/Support roles, uses workbook item levels for Cathedral 2/3 eligibility, can recolor raids, and only allows a multi-run color cluster when every run in that color has the exact same players. Suggestions are capped at five singleton color clusters and score fewer singletons more highly. It scores color clusters toward 2-4 runs while avoiding isolated runs. Increase `variety` for more player-composition changes.
 
 `/schedule-set` posts and pins the uploaded image in the planned times channel. If another schedule was posted earlier in the same Amsterdam week, that earlier post is deleted. Older-week schedule posts are kept but unpinned so only the latest submitted schedule remains pinned.
 

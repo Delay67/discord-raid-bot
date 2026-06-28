@@ -41,6 +41,12 @@ function createPreviewAttachment(preview) {
   });
 }
 
+function createScheduleAttachment(scheduleImage) {
+  return new AttachmentBuilder(scheduleImage, {
+    name: "schedule-preview.png"
+  });
+}
+
 function formatPreviewMessage({ attachmentName, raids, summary }) {
   return [
     `Parsed ${raids.length} raid(s) from \`${attachmentName}\`.`,
@@ -49,7 +55,7 @@ function formatPreviewMessage({ attachmentName, raids, summary }) {
     "```text",
     summary,
     "```",
-    "Open `raid-import-preview.txt` for the full parsed preview, then confirm or cancel."
+    "The generated schedule image is attached below. Open `raid-import-preview.txt` for the full parsed preview, then confirm or cancel."
   ].join("\n");
 }
 
@@ -75,7 +81,7 @@ module.exports = {
     .addAttachmentOption((option) =>
       option
         .setName("file")
-        .setDescription("The .xlsx workbook with the Serca+Cath sheet")
+        .setDescription("The .xlsx workbook with the Copy of Serca+Cath sheet")
         .setRequired(true)
     ),
 
@@ -103,7 +109,10 @@ module.exports = {
           raids: pendingImport.raids,
           summary
         }),
-        files: [createPreviewAttachment(preview)],
+        files: [
+          createScheduleAttachment(pendingImport.scheduleImage),
+          createPreviewAttachment(preview)
+        ],
         components: [createConfirmationButtons(pendingImport.importId)]
       });
     } catch (error) {

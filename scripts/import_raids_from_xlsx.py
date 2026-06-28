@@ -17,7 +17,7 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RAIDS_PATH = ROOT / "data" / "raids.json"
-DEFAULT_SHEET_NAME = "Serca+Cath"
+DEFAULT_SHEET_NAME = "Copy of Serca+Cath"
 
 EXACT_COLOR_NAMES = {
     (0, 255, 255): "Cyan",
@@ -317,7 +317,7 @@ def write_raids(raids_path, raids):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Import fixed raid groups from the Serca+Cath workbook sheet into data/raids.json."
+        description="Import fixed raid groups from the Copy of Serca+Cath workbook sheet into data/raids.json."
     )
     parser.add_argument("workbook", type=Path, help="Path to the .xlsx workbook")
     parser.add_argument("--sheet", default=DEFAULT_SHEET_NAME, help="Sheet to import")
@@ -335,7 +335,7 @@ def main():
 
     if not raids:
         print("No raids were parsed. Nothing was changed.")
-        print("Make sure the workbook has a sheet named Serca+Cath and visible raid labels like Serca Hard.")
+        print(f"Make sure the workbook has a sheet named {args.sheet} and visible raid labels like Serca Hard.")
         sys.exit(1)
 
     if args.json:

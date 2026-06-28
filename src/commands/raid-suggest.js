@@ -7,6 +7,7 @@ const {
   buildSuggestions,
   formatSuggestionsReport
 } = require("../services/raidOptimizer");
+const { generateSuggestionArtifacts } = require("../services/suggestionArtifacts");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -50,9 +51,21 @@ module.exports = {
       variety
     });
     const report = formatSuggestionsReport(result);
-    const attachment = new AttachmentBuilder(Buffer.from(report, "utf8"), {
+    const reportAttachment = new AttachmentBuilder(Buffer.from(report, "utf8"), {
       name: "raid-suggestions.txt"
     });
+    const artifacts = await generateSuggestionArtifacts(result);
+    const files = artifacts
+      ? [
+          ...artifacts.images.map((image) =>
+            new AttachmentBuilder(image.buffer, { name: image.name })
+          ),
+          new AttachmentBuilder(artifacts.workbook.buffer, {
+            name: artifacts.workbook.name
+          }),
+          reportAttachment
+        ]
+      : [reportAttachment];
 
     const bestSuggestion = result.suggestions[0];
     const summary = bestSuggestion
@@ -62,9 +75,11 @@ module.exports = {
     await interaction.editReply({
       content: [
         summary,
-        "Open `raid-suggestions.txt` for the proposed groups, clusters, and validation notes."
+        artifacts
+          ? "Each option is attached as a high-resolution image. The workbook contains one sheet per option, and `raid-suggestions.txt` contains the validation notes."
+          : "Open `raid-suggestions.txt` for the proposed groups, clusters, and validation notes."
       ].join("\n"),
-      files: [attachment]
+      files
     });
   }
 };

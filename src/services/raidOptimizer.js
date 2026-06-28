@@ -3,6 +3,7 @@ const { readRaids } = require("./raidStore");
 const DEFAULT_ITERATIONS = 45000;
 const DEFAULT_SUGGESTION_COUNT = 3;
 const DEFAULT_VARIETY = 3;
+const MAX_SINGLETON_CLUSTERS = 5;
 const COLOR_POOL = [
   "Red",
   "Orange",
@@ -52,7 +53,13 @@ function getRoleCounts(raid) {
 }
 
 function isLockedRaid(raid) {
-  return raid.name === "Serca" && raid.difficulty === "Nightmare";
+  const lockedNightmareColors = new Set(["light yellow", "red", "magenta"]);
+
+  return (
+    raid.name === "Serca" &&
+    raid.difficulty === "Nightmare" &&
+    lockedNightmareColors.has(normalizeName(raid.originalColor || raid.color))
+  );
 }
 
 function isCathedral3Eligible(member, raid) {
@@ -73,18 +80,6 @@ function isCathedral3Eligible(member, raid) {
   return raid.name === "Cathedral" && raid.difficulty === "3";
 }
 
-function memberKey(member, raid) {
-  return [
-    raid.name,
-    member.role,
-    member.name,
-    member.lookupName,
-    member.label || "",
-    member.tier || "",
-    member.itemLevel || ""
-  ].join("|");
-}
-
 function cloneRaid(raid) {
   return {
     ...raid,
@@ -97,14 +92,11 @@ function buildState(raids) {
     ...cloneRaid(raid),
     originalIndex: raidIndex,
     originalColor: raid.color,
-    originalMemberKeys: raid.members.map((member) =>
-      memberKey(member, raid)
-    ),
+    originalCanonicalMembers: canonicalMembers(raid.members),
     locked: isLockedRaid(raid),
     members: raid.members.map((member) => ({
       ...member,
-      eligibleForCathedral3: isCathedral3Eligible(member, raid),
-      originalMemberKey: memberKey(member, raid)
+      eligibleForCathedral3: isCathedral3Eligible(member, raid)
     }))
   }));
 }
@@ -174,7 +166,7 @@ function validateRaid(raid) {
 
 function scoreClusterSize(size) {
   if (size === 1) {
-    return -70;
+    return -320;
   }
 
   if (size === 2 || size === 5) {
@@ -236,7 +228,24 @@ function validateCluster(cluster) {
 function scoreState(raids) {
   let score = 0;
   const clusters = getClusters(raids);
+  const singletonClusterCount = clusters.filter((cluster) => cluster.length === 1).length;
+  const playerCompositionCounts = raids.reduce((counts, raid) => {
+    const members = canonicalMembers(raid.members);
+    counts.set(members, (counts.get(members) || 0) + 1);
+    return counts;
+  }, new Map());
+  const playerSingletonClusterCount = [...playerCompositionCounts.values()]
+    .filter((count) => count === 1).length;
   const validationProblems = [];
+
+  if (singletonClusterCount > MAX_SINGLETON_CLUSTERS) {
+    score -= (singletonClusterCount - MAX_SINGLETON_CLUSTERS) * 2500;
+  }
+
+  score -= playerSingletonClusterCount * 350;
+  if (playerSingletonClusterCount > MAX_SINGLETON_CLUSTERS) {
+    score -= (playerSingletonClusterCount - MAX_SINGLETON_CLUSTERS) * 3000;
+  }
 
   for (const raid of raids) {
     const counts = getRoleCounts(raid);
@@ -287,7 +296,9 @@ function scoreState(raids) {
 
   return {
     clusters,
+    playerSingletonClusterCount,
     score,
+    singletonClusterCount,
     validationProblems
   };
 }
@@ -337,12 +348,9 @@ function getMovableSlots(raids) {
 }
 
 function getRecolorSlots(raids) {
-  return raids
-    .map((raid, raidIndex) => ({
-      locked: raid.locked,
-      raidIndex
-    }))
-    .filter((slot) => !slot.locked);
+  return raids.map((raid, raidIndex) => ({
+    raidIndex
+  }));
 }
 
 function canSwap(leftSlot, rightSlot, raids) {
@@ -354,10 +362,24 @@ function canSwap(leftSlot, rightSlot, raids) {
     return false;
   }
 
+  if (
+    leftSlot.raidName === "Serca" &&
+    leftSlot.difficulty !== rightSlot.difficulty
+  ) {
+    return false;
+  }
+
   const leftRaid = raids[leftSlot.raidIndex];
   const rightRaid = raids[rightSlot.raidIndex];
   const leftMember = leftRaid.members[leftSlot.memberIndex];
   const rightMember = rightRaid.members[rightSlot.memberIndex];
+
+  if (
+    normalizeName(leftMember.lookupName || leftMember.name) ===
+    normalizeName(rightMember.lookupName || rightMember.name)
+  ) {
+    return false;
+  }
 
   if (leftRaid.name === "Cathedral" && leftRaid.difficulty === "3" && !rightMember.eligibleForCathedral3) {
     return false;
@@ -387,6 +409,145 @@ function swapSlots(raids, leftSlot, rightSlot) {
   rightRaid.members[rightSlot.memberIndex] = leftMember;
 }
 
+function consolidateSingletonPlayerGroups(raids, slots) {
+  let currentSingletonCount = scoreState(raids).playerSingletonClusterCount;
+
+  while (currentSingletonCount > MAX_SINGLETON_CLUSTERS) {
+    let bestSingletonCount = currentSingletonCount;
+    const bestSwaps = [];
+
+    for (let leftIndex = 0; leftIndex < slots.length; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < slots.length; rightIndex += 1) {
+        const leftSlot = slots[leftIndex];
+        const rightSlot = slots[rightIndex];
+
+        if (!canSwap(leftSlot, rightSlot, raids)) {
+          continue;
+        }
+
+        swapSlots(raids, leftSlot, rightSlot);
+        const singletonCount = scoreState(raids).playerSingletonClusterCount;
+        swapSlots(raids, leftSlot, rightSlot);
+
+        if (singletonCount < bestSingletonCount) {
+          bestSingletonCount = singletonCount;
+          bestSwaps.length = 0;
+          bestSwaps.push([leftSlot, rightSlot]);
+        } else if (singletonCount === bestSingletonCount && singletonCount < currentSingletonCount) {
+          bestSwaps.push([leftSlot, rightSlot]);
+        }
+      }
+    }
+
+    if (bestSwaps.length === 0) {
+      break;
+    }
+
+    const [leftSlot, rightSlot] = bestSwaps[randomInt(bestSwaps.length)];
+    swapSlots(raids, leftSlot, rightSlot);
+    currentSingletonCount = bestSingletonCount;
+  }
+
+  if (currentSingletonCount <= MAX_SINGLETON_CLUSTERS) {
+    return currentSingletonCount;
+  }
+
+  let bestSingletonCount = currentSingletonCount;
+  let bestRaids = cloneState(raids);
+  const searchIterations = 20000;
+
+  for (let iteration = 0; iteration < searchIterations; iteration += 1) {
+    const leftSlot = slots[randomInt(slots.length)];
+    const rightSlot = slots[randomInt(slots.length)];
+
+    if (!leftSlot || !rightSlot || !canSwap(leftSlot, rightSlot, raids)) {
+      continue;
+    }
+
+    swapSlots(raids, leftSlot, rightSlot);
+    const nextSingletonCount = scoreState(raids).playerSingletonClusterCount;
+    const temperature = Math.max(0.2, 1.5 * (1 - iteration / searchIterations));
+    const shouldAccept =
+      nextSingletonCount <= currentSingletonCount ||
+      Math.exp((currentSingletonCount - nextSingletonCount) / temperature) > Math.random();
+
+    if (shouldAccept) {
+      currentSingletonCount = nextSingletonCount;
+
+      if (nextSingletonCount < bestSingletonCount) {
+        bestSingletonCount = nextSingletonCount;
+        bestRaids = cloneState(raids);
+
+        if (bestSingletonCount <= MAX_SINGLETON_CLUSTERS) {
+          break;
+        }
+      }
+    } else {
+      swapSlots(raids, leftSlot, rightSlot);
+    }
+  }
+
+  raids.splice(0, raids.length, ...bestRaids.map(cloneRaid));
+  return bestSingletonCount;
+}
+
+function seedNightmarePlayerSwap(raids, slots) {
+  const nightmareSlots = slots.filter(
+    (slot) => slot.raidName === "Serca" && slot.difficulty === "Nightmare"
+  );
+
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const leftSlot = nightmareSlots[randomInt(nightmareSlots.length)];
+    const rightSlot = nightmareSlots[randomInt(nightmareSlots.length)];
+
+    if (!leftSlot || !rightSlot || !canSwap(leftSlot, rightSlot, raids)) {
+      continue;
+    }
+
+    swapSlots(raids, leftSlot, rightSlot);
+    return true;
+  }
+
+  return false;
+}
+
+function alignColorsWithPlayerGroups(raids, colorPool) {
+  const groups = new Map();
+
+  for (const raid of raids) {
+    const members = canonicalMembers(raid.members);
+    if (!groups.has(members)) {
+      groups.set(members, []);
+    }
+    groups.get(members).push(raid);
+  }
+
+  const orderedGroups = [...groups.values()].sort((left, right) => {
+    const leftLocked = left.some((raid) => raid.locked);
+    const rightLocked = right.some((raid) => raid.locked);
+    return Number(rightLocked) - Number(leftLocked) || right.length - left.length;
+  });
+  const usedColors = new Set();
+
+  for (const group of orderedGroups) {
+    const preferredColors = [
+      ...group.map((raid) => raid.originalColor),
+      ...group.map((raid) => raid.color),
+      ...colorPool
+    ].filter(Boolean);
+    const color = preferredColors.find((candidate) => !usedColors.has(candidate));
+
+    if (!color) {
+      continue;
+    }
+
+    usedColors.add(color);
+    group.forEach((raid) => {
+      raid.color = color;
+    });
+  }
+}
+
 function recolorRaid(raids, slot, color) {
   const raid = raids[slot.raidIndex];
   const previousColor = raid.color;
@@ -406,15 +567,30 @@ function cloneState(raids) {
 
 function signatureForState(raids) {
   return raids
-    .map((raid) => `${raid.originalIndex}:${raid.color}:${canonicalMembers(raid.members)}`)
+    .map((raid) => `${raid.originalIndex}:${canonicalMembers(raid.members)}`)
     .join(";");
 }
 
-function countChangedRaids(raids) {
-  return raids.filter((raid) =>
-    raid.color !== raid.originalColor ||
-    raid.members.some((member, index) => member.originalMemberKey !== raid.originalMemberKeys[index])
+function countPlayerChangedRaids(raids) {
+  return raids.filter(
+    (raid) => canonicalMembers(raid.members) !== raid.originalCanonicalMembers
   ).length;
+}
+
+function countNightmarePlayerChangedRaids(raids) {
+  return raids.filter(
+    (raid) =>
+      raid.name === "Serca" &&
+      raid.difficulty === "Nightmare" &&
+      canonicalMembers(raid.members) !== raid.originalCanonicalMembers
+  ).length;
+}
+
+function nightmareSignatureForState(raids) {
+  return raids
+    .filter((raid) => raid.name === "Serca" && raid.difficulty === "Nightmare")
+    .map((raid) => `${raid.originalIndex}:${canonicalMembers(raid.members)}`)
+    .join(";");
 }
 
 function countColorChangedRaids(raids) {
@@ -422,14 +598,31 @@ function countColorChangedRaids(raids) {
 }
 
 function optionAdjustedScore(result, variety) {
-  return result.score + result.changedRaidCount * variety * 8 + result.colorChangedRaidCount * variety * 14;
+  return (
+    result.score +
+    result.changedRaidCount * variety * 20 +
+    result.nightmareChangedRaidCount * variety * 80 -
+    result.singletonClusterCount * variety * 50 -
+    result.playerSingletonClusterCount * variety * 80
+  );
 }
 
-function optimizeOnce(sourceRaids, iterations, variety) {
+function optimizeOnce(
+  sourceRaids,
+  iterations,
+  variety,
+  excludedNightmareSignatures = new Set()
+) {
   const raids = buildState(sourceRaids);
   const slots = getMovableSlots(raids);
   const recolorSlots = getRecolorSlots(raids);
   const colorPool = getColorPool(raids);
+  seedNightmarePlayerSwap(raids, slots);
+  const consolidatedSingletonCount = consolidateSingletonPlayerGroups(raids, slots);
+  if (process.env.DEBUG_RAID_OPTIMIZER) {
+    console.log(`Consolidated player singleton groups: ${consolidatedSingletonCount}`);
+  }
+  alignColorsWithPlayerGroups(raids, colorPool);
   let current = scoreState(raids);
   let bestRaids = cloneState(raids);
   let best = current;
@@ -438,6 +631,26 @@ function optimizeOnce(sourceRaids, iterations, variety) {
   let bestChangedAdjustedScore = -Infinity;
   const initialSignature = signatureForState(raids);
   let temperature = 28 + variety * 4;
+
+  if (
+    current.validationProblems.length === 0 &&
+    countPlayerChangedRaids(raids) > 0 &&
+    countNightmarePlayerChangedRaids(raids) > 0 &&
+    current.singletonClusterCount <= MAX_SINGLETON_CLUSTERS &&
+    current.playerSingletonClusterCount <= MAX_SINGLETON_CLUSTERS &&
+    !excludedNightmareSignatures.has(nightmareSignatureForState(raids))
+  ) {
+    bestChanged = current;
+    bestChangedRaids = cloneState(raids);
+    bestChangedAdjustedScore = optionAdjustedScore({
+      changedRaidCount: countPlayerChangedRaids(raids),
+      colorChangedRaidCount: countColorChangedRaids(raids),
+      nightmareChangedRaidCount: countNightmarePlayerChangedRaids(raids),
+      playerSingletonClusterCount: current.playerSingletonClusterCount,
+      score: current.score,
+      singletonClusterCount: current.singletonClusterCount
+    }, variety);
+  }
 
   for (let iteration = 0; iteration < iterations; iteration += 1) {
     const useRecolor = Math.random() < 0.35;
@@ -476,13 +689,20 @@ function optimizeOnce(sourceRaids, iterations, variety) {
 
     if (
       next.validationProblems.length === 0 &&
-      countChangedRaids(raids) > 0 &&
+      countPlayerChangedRaids(raids) > 0 &&
+      countNightmarePlayerChangedRaids(raids) > 0 &&
+      next.singletonClusterCount <= MAX_SINGLETON_CLUSTERS &&
+      next.playerSingletonClusterCount <= MAX_SINGLETON_CLUSTERS &&
+      !excludedNightmareSignatures.has(nightmareSignatureForState(raids)) &&
       signatureForState(raids) !== initialSignature
     ) {
       const candidate = {
-        changedRaidCount: countChangedRaids(raids),
+        changedRaidCount: countPlayerChangedRaids(raids),
         colorChangedRaidCount: countColorChangedRaids(raids),
-        score: next.score
+        nightmareChangedRaidCount: countNightmarePlayerChangedRaids(raids),
+        playerSingletonClusterCount: next.playerSingletonClusterCount,
+        score: next.score,
+        singletonClusterCount: next.singletonClusterCount
       };
       const adjustedScore = optionAdjustedScore(candidate, variety);
 
@@ -507,17 +727,24 @@ function optimizeOnce(sourceRaids, iterations, variety) {
     temperature = Math.max(0.35, temperature * 0.99992);
   }
 
-  const returnedRaids = countChangedRaids(bestRaids) > 0 || !bestChangedRaids
+  const bestRaidsAreEligible =
+    countPlayerChangedRaids(bestRaids) > 0 &&
+    countNightmarePlayerChangedRaids(bestRaids) > 0 &&
+    !excludedNightmareSignatures.has(nightmareSignatureForState(bestRaids));
+  const returnedRaids = bestRaidsAreEligible || !bestChangedRaids
     ? bestRaids
     : bestChangedRaids;
   const finalScore = scoreState(returnedRaids);
 
   return {
-    changedRaidCount: countChangedRaids(returnedRaids),
+    changedRaidCount: countPlayerChangedRaids(returnedRaids),
     colorChangedRaidCount: countColorChangedRaids(returnedRaids),
     clusters: finalScore.clusters,
+    nightmareChangedRaidCount: countNightmarePlayerChangedRaids(returnedRaids),
+    playerSingletonClusterCount: finalScore.playerSingletonClusterCount,
     raids: returnedRaids,
     score: finalScore.score,
+    singletonClusterCount: finalScore.singletonClusterCount,
     validationProblems: finalScore.validationProblems
   };
 }
@@ -538,21 +765,33 @@ function buildSuggestions({
   const baseline = scoreState(baseState);
   const suggestions = [];
   const seen = new Set([signatureForState(baseState)]);
-  const attempts = Math.max(count * 5, 8);
+  const seenNightmareLayouts = new Set([nightmareSignatureForState(baseState)]);
+  const attempts = Math.max(count * 12, 20);
 
   for (let attempt = 0; attempt < attempts && suggestions.length < count; attempt += 1) {
-    const suggestion = optimizeOnce(raids, iterations, variety + attempt);
+    const suggestion = optimizeOnce(
+      raids,
+      iterations,
+      variety + attempt,
+      seenNightmareLayouts
+    );
     const signature = signatureForState(suggestion.raids);
+    const nightmareSignature = nightmareSignatureForState(suggestion.raids);
 
     if (
       seen.has(signature) ||
+      seenNightmareLayouts.has(nightmareSignature) ||
       suggestion.changedRaidCount === 0 ||
+      suggestion.nightmareChangedRaidCount === 0 ||
+      suggestion.singletonClusterCount > MAX_SINGLETON_CLUSTERS ||
+      suggestion.playerSingletonClusterCount > MAX_SINGLETON_CLUSTERS ||
       suggestion.validationProblems.length > 0
     ) {
       continue;
     }
 
     seen.add(signature);
+    seenNightmareLayouts.add(nightmareSignature);
     suggestions.push(suggestion);
   }
 
@@ -564,6 +803,8 @@ function buildSuggestions({
     baseline: {
       clusters: baseline.clusters,
       score: baseline.score,
+      playerSingletonClusterCount: baseline.playerSingletonClusterCount,
+      singletonClusterCount: baseline.singletonClusterCount,
       validationProblems: baseline.validationProblems
     },
     itemLevelsAvailable: hasImportedLabels(raids),
@@ -648,7 +889,10 @@ function formatSuggestionsReport(result) {
       `Option ${index + 1}`,
       "-".repeat(8),
       `Score: ${suggestion.score} (${suggestion.score - result.baseline.score >= 0 ? "+" : ""}${suggestion.score - result.baseline.score})`,
-      `Changed raids: ${suggestion.changedRaidCount}`,
+      `Player-composition changes: ${suggestion.changedRaidCount}`,
+      `Nightmare player-composition changes: ${suggestion.nightmareChangedRaidCount}`,
+      `Singleton color clusters: ${suggestion.singletonClusterCount}/${MAX_SINGLETON_CLUSTERS} max`,
+      `Singleton player compositions: ${suggestion.playerSingletonClusterCount}/${MAX_SINGLETON_CLUSTERS} max`,
       `Color changes: ${suggestion.colorChangedRaidCount}`,
       `Validation issues: ${formatValidationProblems(suggestion.validationProblems)}`,
       "",
