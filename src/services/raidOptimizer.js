@@ -177,11 +177,19 @@ function scoreClusterSize(size) {
     return -70;
   }
 
-  if (size >= 2 && size <= 4) {
-    return 60 + size * 18;
+  if (size === 2 || size === 5) {
+    return 80;
   }
 
-  return -260 * (size - 4);
+  if (size === 3) {
+    return 190;
+  }
+
+  if (size === 4) {
+    return 260;
+  }
+
+  return -260 * (size - 5);
 }
 
 function getClusters(raids) {
@@ -270,7 +278,7 @@ function scoreState(raids) {
 
     score += scoreClusterSize(cluster.length);
 
-    if (cluster.length > 4) {
+    if (cluster.length > 5) {
       continue;
     }
 
