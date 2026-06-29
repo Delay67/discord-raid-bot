@@ -9,9 +9,11 @@ const colorOrder = [
   "Light Green",
   "Cyan",
   "Light Blue",
+  "Blue",
   "Purple",
   "Pink",
   "Magenta",
+  "Brown",
   "Brick Red",
   "Gray"
 ];
