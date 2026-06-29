@@ -3,6 +3,7 @@ const { readRaids } = require("./raidStore");
 const DEFAULT_ITERATIONS = 45000;
 const DEFAULT_SUGGESTION_COUNT = 3;
 const DEFAULT_VARIETY = 3;
+const MAX_COLOR_CLUSTERS = 13;
 const MAX_SINGLETON_CLUSTERS = 5;
 const COLOR_POOL = [
   "Red",
@@ -236,7 +237,12 @@ function scoreState(raids) {
   }, new Map());
   const playerSingletonClusterCount = [...playerCompositionCounts.values()]
     .filter((count) => count === 1).length;
+  const playerCompositionClusterCount = playerCompositionCounts.size;
   const validationProblems = [];
+
+  if (clusters.length > MAX_COLOR_CLUSTERS) {
+    score -= (clusters.length - MAX_COLOR_CLUSTERS) * 3000;
+  }
 
   if (singletonClusterCount > MAX_SINGLETON_CLUSTERS) {
     score -= (singletonClusterCount - MAX_SINGLETON_CLUSTERS) * 2500;
@@ -245,6 +251,9 @@ function scoreState(raids) {
   score -= playerSingletonClusterCount * 350;
   if (playerSingletonClusterCount > MAX_SINGLETON_CLUSTERS) {
     score -= (playerSingletonClusterCount - MAX_SINGLETON_CLUSTERS) * 3000;
+  }
+  if (playerCompositionClusterCount > MAX_COLOR_CLUSTERS) {
+    score -= (playerCompositionClusterCount - MAX_COLOR_CLUSTERS) * 3500;
   }
 
   for (const raid of raids) {
@@ -296,6 +305,7 @@ function scoreState(raids) {
 
   return {
     clusters,
+    playerCompositionClusterCount,
     playerSingletonClusterCount,
     score,
     singletonClusterCount,
@@ -448,11 +458,22 @@ function consolidateSingletonPlayerGroups(raids, slots) {
     currentSingletonCount = bestSingletonCount;
   }
 
-  if (currentSingletonCount <= MAX_SINGLETON_CLUSTERS) {
+  if (
+    currentSingletonCount <= MAX_SINGLETON_CLUSTERS &&
+    scoreState(raids).playerCompositionClusterCount <= MAX_COLOR_CLUSTERS
+  ) {
     return currentSingletonCount;
   }
 
-  let bestSingletonCount = currentSingletonCount;
+  let currentState = scoreState(raids);
+  const consolidationCost = (state) =>
+    Math.max(0, state.playerSingletonClusterCount - MAX_SINGLETON_CLUSTERS) * 5 +
+    Math.max(0, state.playerCompositionClusterCount - MAX_COLOR_CLUSTERS) * 7 +
+    state.playerSingletonClusterCount * 0.02 +
+    state.playerCompositionClusterCount * 0.01;
+  let currentCost = consolidationCost(currentState);
+  let bestCost = currentCost;
+  let bestSingletonCount = currentState.playerSingletonClusterCount;
   let bestRaids = cloneState(raids);
   const searchIterations = 20000;
 
@@ -465,20 +486,28 @@ function consolidateSingletonPlayerGroups(raids, slots) {
     }
 
     swapSlots(raids, leftSlot, rightSlot);
-    const nextSingletonCount = scoreState(raids).playerSingletonClusterCount;
+    const nextState = scoreState(raids);
+    const nextSingletonCount = nextState.playerSingletonClusterCount;
+    const nextCost = consolidationCost(nextState);
     const temperature = Math.max(0.2, 1.5 * (1 - iteration / searchIterations));
     const shouldAccept =
-      nextSingletonCount <= currentSingletonCount ||
-      Math.exp((currentSingletonCount - nextSingletonCount) / temperature) > Math.random();
+      nextCost <= currentCost ||
+      Math.exp((currentCost - nextCost) / temperature) > Math.random();
 
     if (shouldAccept) {
       currentSingletonCount = nextSingletonCount;
+      currentCost = nextCost;
+      currentState = nextState;
 
-      if (nextSingletonCount < bestSingletonCount) {
+      if (nextCost < bestCost) {
+        bestCost = nextCost;
         bestSingletonCount = nextSingletonCount;
         bestRaids = cloneState(raids);
 
-        if (bestSingletonCount <= MAX_SINGLETON_CLUSTERS) {
+        if (
+          bestSingletonCount <= MAX_SINGLETON_CLUSTERS &&
+          nextState.playerCompositionClusterCount <= MAX_COLOR_CLUSTERS
+        ) {
           break;
         }
       }
@@ -602,6 +631,7 @@ function optionAdjustedScore(result, variety) {
     result.score +
     result.changedRaidCount * variety * 20 +
     result.nightmareChangedRaidCount * variety * 80 -
+    result.colorClusterCount * variety * 60 -
     result.singletonClusterCount * variety * 50 -
     result.playerSingletonClusterCount * variety * 80
   );
@@ -636,6 +666,8 @@ function optimizeOnce(
     current.validationProblems.length === 0 &&
     countPlayerChangedRaids(raids) > 0 &&
     countNightmarePlayerChangedRaids(raids) > 0 &&
+    current.clusters.length <= MAX_COLOR_CLUSTERS &&
+    current.playerCompositionClusterCount <= MAX_COLOR_CLUSTERS &&
     current.singletonClusterCount <= MAX_SINGLETON_CLUSTERS &&
     current.playerSingletonClusterCount <= MAX_SINGLETON_CLUSTERS &&
     !excludedNightmareSignatures.has(nightmareSignatureForState(raids))
@@ -644,6 +676,7 @@ function optimizeOnce(
     bestChangedRaids = cloneState(raids);
     bestChangedAdjustedScore = optionAdjustedScore({
       changedRaidCount: countPlayerChangedRaids(raids),
+      colorClusterCount: current.clusters.length,
       colorChangedRaidCount: countColorChangedRaids(raids),
       nightmareChangedRaidCount: countNightmarePlayerChangedRaids(raids),
       playerSingletonClusterCount: current.playerSingletonClusterCount,
@@ -691,6 +724,8 @@ function optimizeOnce(
       next.validationProblems.length === 0 &&
       countPlayerChangedRaids(raids) > 0 &&
       countNightmarePlayerChangedRaids(raids) > 0 &&
+      next.clusters.length <= MAX_COLOR_CLUSTERS &&
+      next.playerCompositionClusterCount <= MAX_COLOR_CLUSTERS &&
       next.singletonClusterCount <= MAX_SINGLETON_CLUSTERS &&
       next.playerSingletonClusterCount <= MAX_SINGLETON_CLUSTERS &&
       !excludedNightmareSignatures.has(nightmareSignatureForState(raids)) &&
@@ -698,6 +733,7 @@ function optimizeOnce(
     ) {
       const candidate = {
         changedRaidCount: countPlayerChangedRaids(raids),
+        colorClusterCount: next.clusters.length,
         colorChangedRaidCount: countColorChangedRaids(raids),
         nightmareChangedRaidCount: countNightmarePlayerChangedRaids(raids),
         playerSingletonClusterCount: next.playerSingletonClusterCount,
@@ -727,9 +763,14 @@ function optimizeOnce(
     temperature = Math.max(0.35, temperature * 0.99992);
   }
 
+  const bestRaidsScore = scoreState(bestRaids);
   const bestRaidsAreEligible =
     countPlayerChangedRaids(bestRaids) > 0 &&
     countNightmarePlayerChangedRaids(bestRaids) > 0 &&
+    bestRaidsScore.clusters.length <= MAX_COLOR_CLUSTERS &&
+    bestRaidsScore.playerCompositionClusterCount <= MAX_COLOR_CLUSTERS &&
+    bestRaidsScore.singletonClusterCount <= MAX_SINGLETON_CLUSTERS &&
+    bestRaidsScore.playerSingletonClusterCount <= MAX_SINGLETON_CLUSTERS &&
     !excludedNightmareSignatures.has(nightmareSignatureForState(bestRaids));
   const returnedRaids = bestRaidsAreEligible || !bestChangedRaids
     ? bestRaids
@@ -738,9 +779,11 @@ function optimizeOnce(
 
   return {
     changedRaidCount: countPlayerChangedRaids(returnedRaids),
+    colorClusterCount: finalScore.clusters.length,
     colorChangedRaidCount: countColorChangedRaids(returnedRaids),
     clusters: finalScore.clusters,
     nightmareChangedRaidCount: countNightmarePlayerChangedRaids(returnedRaids),
+    playerCompositionClusterCount: finalScore.playerCompositionClusterCount,
     playerSingletonClusterCount: finalScore.playerSingletonClusterCount,
     raids: returnedRaids,
     score: finalScore.score,
@@ -765,34 +808,70 @@ function buildSuggestions({
   const baseline = scoreState(baseState);
   const suggestions = [];
   const seen = new Set([signatureForState(baseState)]);
-  const seenNightmareLayouts = new Set([nightmareSignatureForState(baseState)]);
-  const attempts = Math.max(count * 12, 20);
+  const baselineNightmareSignature = nightmareSignatureForState(baseState);
+  const seenNightmareLayouts = new Set([baselineNightmareSignature]);
+  const isAcceptable = (suggestion, requireUniqueNightmare) => {
+    const signature = signatureForState(suggestion.raids);
+    const nightmareSignature = nightmareSignatureForState(suggestion.raids);
 
-  for (let attempt = 0; attempt < attempts && suggestions.length < count; attempt += 1) {
+    return !(
+      seen.has(signature) ||
+      (requireUniqueNightmare && seenNightmareLayouts.has(nightmareSignature)) ||
+      suggestion.changedRaidCount === 0 ||
+      suggestion.colorClusterCount > MAX_COLOR_CLUSTERS ||
+      suggestion.nightmareChangedRaidCount === 0 ||
+      suggestion.playerCompositionClusterCount > MAX_COLOR_CLUSTERS ||
+      suggestion.singletonClusterCount > MAX_SINGLETON_CLUSTERS ||
+      suggestion.playerSingletonClusterCount > MAX_SINGLETON_CLUSTERS ||
+      suggestion.validationProblems.length > 0
+    );
+  };
+  const addSuggestion = (suggestion) => {
+    seen.add(signatureForState(suggestion.raids));
+    seenNightmareLayouts.add(nightmareSignatureForState(suggestion.raids));
+    suggestions.push(suggestion);
+  };
+  const preferredAttempts = Math.max(count * 12, 20);
+
+  for (
+    let attempt = 0;
+    attempt < preferredAttempts && suggestions.length < count;
+    attempt += 1
+  ) {
     const suggestion = optimizeOnce(
       raids,
       iterations,
       variety + attempt,
       seenNightmareLayouts
     );
-    const signature = signatureForState(suggestion.raids);
-    const nightmareSignature = nightmareSignatureForState(suggestion.raids);
 
-    if (
-      seen.has(signature) ||
-      seenNightmareLayouts.has(nightmareSignature) ||
-      suggestion.changedRaidCount === 0 ||
-      suggestion.nightmareChangedRaidCount === 0 ||
-      suggestion.singletonClusterCount > MAX_SINGLETON_CLUSTERS ||
-      suggestion.playerSingletonClusterCount > MAX_SINGLETON_CLUSTERS ||
-      suggestion.validationProblems.length > 0
-    ) {
+    if (!isAcceptable(suggestion, true)) {
       continue;
     }
 
-    seen.add(signature);
-    seenNightmareLayouts.add(nightmareSignature);
-    suggestions.push(suggestion);
+    addSuggestion(suggestion);
+  }
+
+  const fallbackAttempts = Math.max(count * 20, 30);
+  const baselineNightmareLayouts = new Set([baselineNightmareSignature]);
+
+  for (
+    let attempt = 0;
+    attempt < fallbackAttempts && suggestions.length < count;
+    attempt += 1
+  ) {
+    const suggestion = optimizeOnce(
+      raids,
+      iterations,
+      variety + preferredAttempts + attempt,
+      baselineNightmareLayouts
+    );
+
+    if (!isAcceptable(suggestion, false)) {
+      continue;
+    }
+
+    addSuggestion(suggestion);
   }
 
   suggestions.sort((left, right) =>
@@ -802,6 +881,8 @@ function buildSuggestions({
   return {
     baseline: {
       clusters: baseline.clusters,
+      colorClusterCount: baseline.clusters.length,
+      playerCompositionClusterCount: baseline.playerCompositionClusterCount,
       score: baseline.score,
       playerSingletonClusterCount: baseline.playerSingletonClusterCount,
       singletonClusterCount: baseline.singletonClusterCount,
@@ -894,6 +975,7 @@ function formatSuggestionsReport(result) {
       `Singleton color clusters: ${suggestion.singletonClusterCount}/${MAX_SINGLETON_CLUSTERS} max`,
       `Singleton player compositions: ${suggestion.playerSingletonClusterCount}/${MAX_SINGLETON_CLUSTERS} max`,
       `Color changes: ${suggestion.colorChangedRaidCount}`,
+      `Color clusters: ${suggestion.colorClusterCount}/${MAX_COLOR_CLUSTERS} max`,
       `Validation issues: ${formatValidationProblems(suggestion.validationProblems)}`,
       "",
       "Clusters:",
