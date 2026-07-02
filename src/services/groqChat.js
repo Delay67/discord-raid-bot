@@ -85,7 +85,7 @@ async function askGroq(prompt, userLabel, contextMessages = [], guildId = "globa
     {
       role: "system",
       content: [
-        "You are a concise, playful Discord bot for a Lost Ark raid server.",
+        "You are a concise, playful Discord bot for a Lost Ark focused server.",
         "Use the recent channel conversation when it helps answer the latest message.",
         "Messages include usernames so you can distinguish different people.",
         "Answer casually in 1-4 short sentences.",
