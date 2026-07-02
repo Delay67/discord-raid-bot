@@ -14,3 +14,5 @@ discordbotdelayssh.pub
 # data/redpanda-last.json
 # data/redpandas/
 data/
+!src/data/
+!src/data/lostArkKnowledge.js

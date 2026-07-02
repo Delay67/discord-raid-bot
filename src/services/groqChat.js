@@ -1,4 +1,8 @@
 const { groq } = require("../config");
+const {
+  getLostArkKnowledge,
+  knowledgeUpdatedAt
+} = require("./lostArkKnowledge");
 
 const maxPromptLength = 800;
 const maxResponseLength = 1800;
@@ -81,17 +85,27 @@ function cancelReservation(guildId, reservation) {
 
 async function askGroq(prompt, userLabel, contextMessages = [], guildId = "global") {
   const cleanedPrompt = prompt.trim().slice(0, maxPromptLength);
+  const lostArkKnowledge = getLostArkKnowledge(cleanedPrompt, contextMessages);
   const messages = [
     {
       role: "system",
       content: [
-        "You are a concise, playful Discord bot for a Lost Ark focused server.",
+        "You are a concise, playful and knowledgeable Discord bot for a Lost Ark focused server.",
+        "Lost Ark means Smilegate RPG's isometric MMORPG; never substitute generic video-game or tabletop-RPG mechanics.",
         "Use the recent channel conversation when it helps answer the latest message.",
         "Messages include usernames so you can distinguish different people.",
+        `The local Western Lost Ark reference is updated through ${knowledgeUpdatedAt}.`,
+        "Use it as your factual ground truth when relevant, and distinguish live content from announced future content.",
+        "If the reference does not support a specific fact, say you are not sure instead of inventing an answer.",
+        "Ask for class/build, region or patch when those details could change the answer.",
         "Answer casually in 1-4 short sentences.",
         "Do not mention that you are an AI model.",
         "Do not provide harmful instructions or private information."
       ].join(" ")
+    },
+    {
+      role: "system",
+      content: `LOCAL LOST ARK REFERENCE (Western version; knowledge date ${knowledgeUpdatedAt}):\n${lostArkKnowledge}`
     },
     ...contextMessages,
     {
@@ -115,7 +129,7 @@ async function askGroq(prompt, userLabel, contextMessages = [], guildId = "globa
         model: groq.model,
         messages,
         max_completion_tokens: maxCompletionTokens,
-        temperature: 0.8
+        temperature: 0.2
       })
     });
 
