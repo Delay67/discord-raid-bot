@@ -3,6 +3,7 @@ const path = require("node:path");
 
 const dataDirectory = path.join(__dirname, "..", "..", "data");
 const lastSelectionPath = path.join(dataDirectory, "redpanda-last.json");
+const selectionHistoryPath = path.join(dataDirectory, "redpanda-history.json");
 
 function ensureDataDirectory() {
   if (!fs.existsSync(dataDirectory)) {
@@ -22,6 +23,41 @@ function readLastSelection() {
 function writeLastSelection(selection) {
   ensureDataDirectory();
   fs.writeFileSync(lastSelectionPath, `${JSON.stringify(selection, null, 2)}\n`, "utf8");
+}
+
+function readSelectionHistory() {
+  if (!fs.existsSync(selectionHistoryPath)) {
+    return [];
+  }
+
+  try {
+    const history = JSON.parse(fs.readFileSync(selectionHistoryPath, "utf8"));
+    return Array.isArray(history) ? history : [];
+  } catch (error) {
+    console.warn(`Could not read red panda selection history: ${error.message}`);
+    return [];
+  }
+}
+
+function getRecentlySentMedia(since) {
+  const cutoff = since.getTime();
+
+  return readSelectionHistory().filter(
+    (selection) =>
+      selection.media && new Date(selection.sentAt).getTime() >= cutoff
+  );
+}
+
+function rememberSentMedia(media) {
+  const cutoff = Date.now() - 3 * 60 * 60 * 1000;
+  const history = readSelectionHistory().filter(
+    (selection) => new Date(selection.sentAt).getTime() >= cutoff
+  );
+  const sentAt = new Date().toISOString();
+
+  history.push(...media.map((item) => ({ media: item, sentAt })));
+  ensureDataDirectory();
+  fs.writeFileSync(selectionHistoryPath, `${JSON.stringify(history, null, 2)}\n`, "utf8");
 }
 
 function rememberLastLocalSelection(interaction, file) {
@@ -70,5 +106,7 @@ function deleteLastLocalSelection() {
 
 module.exports = {
   deleteLastLocalSelection,
+  getRecentlySentMedia,
+  rememberSentMedia,
   rememberLastLocalSelection
 };

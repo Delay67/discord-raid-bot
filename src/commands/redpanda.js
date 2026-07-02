@@ -3,13 +3,21 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 const { redPandaMediaDirectory, reddit } = require("../config");
 const { recordRedPanda } = require("../services/activityStats");
-const { rememberLastLocalSelection } = require("../services/redPandaStore");
+const {
+  getRecentlySentMedia,
+  rememberLastLocalSelection,
+  rememberSentMedia
+} = require("../services/redPandaStore");
 
 const defaultMediaDirectory = path.join(__dirname, "..", "..", "data", "redpandas");
 const localMediaDirectory = redPandaMediaDirectory || defaultMediaDirectory;
 const maxLocalUploadBytes = 10 * 1024 * 1024;
 const redPandaBombChance = 0.0067;
 const redPandaBombSize = 5;
+const duplicateProtectionMs = 3 * 60 * 60 * 1000;
+const userCooldownMs = 60 * 1000;
+const userCooldowns = new Map();
+const reservedMedia = new Set();
 const localMediaExtensions = new Set([
   ".gif",
   ".jpg",
@@ -58,9 +66,11 @@ async function getLocalMediaFiles(directory) {
   return files.flat();
 }
 
-async function getRandomLocalMediaFiles(count = 1) {
+async function getRandomLocalMediaFiles(count = 1, excludedMedia = new Set()) {
   try {
-    const files = await getLocalMediaFiles(localMediaDirectory);
+    const files = (await getLocalMediaFiles(localMediaDirectory)).filter(
+      (file) => !excludedMedia.has(file)
+    );
 
     if (files.length === 0) {
       return [];
@@ -249,11 +259,39 @@ module.exports = {
     .setDescription("Show a random red panda image or gif."),
 
   async execute(interaction) {
+    const now = Date.now();
+    const cooldownExpiresAt = userCooldowns.get(interaction.user.id) || 0;
+
+    if (cooldownExpiresAt > now) {
+      const retryAt = Math.ceil(cooldownExpiresAt / 1000);
+      await interaction.reply({
+        content: `You can request another red panda <t:${retryAt}:R>.`,
+        ephemeral: true
+      });
+      return;
+    }
+
+    const newCooldownExpiresAt = now + userCooldownMs;
+    userCooldowns.set(interaction.user.id, newCooldownExpiresAt);
+    setTimeout(() => {
+      if (userCooldowns.get(interaction.user.id) === newCooldownExpiresAt) {
+        userCooldowns.delete(interaction.user.id);
+      }
+    }, userCooldownMs);
     await interaction.deferReply();
 
+    const recentlySentMedia = new Set(
+      getRecentlySentMedia(new Date(now - duplicateProtectionMs)).map(
+        (selection) => selection.media
+      )
+    );
+    reservedMedia.forEach((media) => recentlySentMedia.add(media));
     const isRedPandaBomb = Math.random() < redPandaBombChance;
     const requestedMediaCount = isRedPandaBomb ? redPandaBombSize : 1;
-    const selectedMediaFiles = await getRandomLocalMediaFiles(requestedMediaCount);
+    const selectedMediaFiles = await getRandomLocalMediaFiles(
+      requestedMediaCount,
+      recentlySentMedia
+    );
     const isCompleteRedPandaBomb =
       isRedPandaBomb && selectedMediaFiles.length === redPandaBombSize;
     const localMediaFiles = isCompleteRedPandaBomb
@@ -262,6 +300,7 @@ module.exports = {
     const localMediaFile = localMediaFiles[0];
 
     if (localMediaFile) {
+      localMediaFiles.forEach((file) => reservedMedia.add(file));
       logSelectedMedia(interaction, {
         source: "local",
         files: localMediaFiles,
@@ -269,10 +308,15 @@ module.exports = {
       });
       rememberLastLocalSelection(interaction, localMediaFile);
 
-      await interaction.editReply({
-        content: isCompleteRedPandaBomb ? "💥 Red panda bomb!" : undefined,
-        files: localMediaFiles
-      });
+      try {
+        await interaction.editReply({
+          content: isCompleteRedPandaBomb ? "💥 Red panda bomb!" : undefined,
+          files: localMediaFiles
+        });
+        rememberSentMedia(localMediaFiles);
+      } finally {
+        localMediaFiles.forEach((file) => reservedMedia.delete(file));
+      }
       recordRedPanda(interaction, "local");
       return;
     }
@@ -282,7 +326,9 @@ module.exports = {
       return;
     }
 
-    const mediaUrls = await getRedditMediaUrls();
+    const mediaUrls = (await getRedditMediaUrls()).filter(
+      (url) => !recentlySentMedia.has(url) && !reservedMedia.has(url)
+    );
 
     if (mediaUrls.length === 0) {
       await interaction.editReply("I could not find a Reddit red panda right now.");
@@ -295,7 +341,13 @@ module.exports = {
       url: mediaUrl
     });
 
-    await interaction.editReply(mediaUrl);
+    reservedMedia.add(mediaUrl);
+    try {
+      await interaction.editReply(mediaUrl);
+      rememberSentMedia([mediaUrl]);
+    } finally {
+      reservedMedia.delete(mediaUrl);
+    }
     recordRedPanda(interaction, "reddit");
   }
 };
