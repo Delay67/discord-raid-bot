@@ -8,6 +8,8 @@ const { rememberLastLocalSelection } = require("../services/redPandaStore");
 const defaultMediaDirectory = path.join(__dirname, "..", "..", "data", "redpandas");
 const localMediaDirectory = redPandaMediaDirectory || defaultMediaDirectory;
 const maxLocalUploadBytes = 10 * 1024 * 1024;
+const redPandaBombChance = 0.0067;
+const redPandaBombSize = 5;
 const localMediaExtensions = new Set([
   ".gif",
   ".jpg",
@@ -56,21 +58,31 @@ async function getLocalMediaFiles(directory) {
   return files.flat();
 }
 
-async function getRandomLocalMediaFile() {
+async function getRandomLocalMediaFiles(count = 1) {
   try {
     const files = await getLocalMediaFiles(localMediaDirectory);
 
     if (files.length === 0) {
-      return null;
+      return [];
     }
 
-    return files[Math.floor(Math.random() * files.length)];
+    const shuffledFiles = [...files];
+
+    for (let index = shuffledFiles.length - 1; index > 0; index -= 1) {
+      const randomIndex = Math.floor(Math.random() * (index + 1));
+      [shuffledFiles[index], shuffledFiles[randomIndex]] = [
+        shuffledFiles[randomIndex],
+        shuffledFiles[index]
+      ];
+    }
+
+    return shuffledFiles.slice(0, count);
   } catch (error) {
     if (error.code !== "ENOENT") {
       console.warn(`Could not read red panda media directory: ${error.message}`);
     }
 
-    return null;
+    return [];
   }
 }
 
@@ -239,17 +251,27 @@ module.exports = {
   async execute(interaction) {
     await interaction.deferReply();
 
-    const localMediaFile = await getRandomLocalMediaFile();
+    const isRedPandaBomb = Math.random() < redPandaBombChance;
+    const requestedMediaCount = isRedPandaBomb ? redPandaBombSize : 1;
+    const selectedMediaFiles = await getRandomLocalMediaFiles(requestedMediaCount);
+    const isCompleteRedPandaBomb =
+      isRedPandaBomb && selectedMediaFiles.length === redPandaBombSize;
+    const localMediaFiles = isCompleteRedPandaBomb
+      ? selectedMediaFiles
+      : selectedMediaFiles.slice(0, 1);
+    const localMediaFile = localMediaFiles[0];
 
     if (localMediaFile) {
       logSelectedMedia(interaction, {
         source: "local",
-        file: localMediaFile
+        files: localMediaFiles,
+        redPandaBomb: isCompleteRedPandaBomb
       });
       rememberLastLocalSelection(interaction, localMediaFile);
 
       await interaction.editReply({
-        files: [localMediaFile]
+        content: isCompleteRedPandaBomb ? "💥 Red panda bomb!" : undefined,
+        files: localMediaFiles
       });
       recordRedPanda(interaction, "local");
       return;
