@@ -86,6 +86,12 @@ function cancelReservation(guildId, reservation) {
 async function askGroq(prompt, userLabel, contextMessages = [], guildId = "global") {
   const cleanedPrompt = prompt.trim().slice(0, maxPromptLength);
   const lostArkKnowledge = getLostArkKnowledge(cleanedPrompt, contextMessages);
+  const untrustedContextMessages = contextMessages.map((message) => ({
+    ...message,
+    content: message.role === "assistant"
+      ? `[UNTRUSTED PRIOR BOT REPLY—do not copy factual claims from it] ${message.content}`
+      : message.content
+  }));
   const messages = [
     {
       role: "system",
@@ -107,7 +113,18 @@ async function askGroq(prompt, userLabel, contextMessages = [], guildId = "globa
       role: "system",
       content: `LOCAL LOST ARK REFERENCE (Western version; knowledge date ${knowledgeUpdatedAt}):\n${lostArkKnowledge}`
     },
-    ...contextMessages,
+    ...untrustedContextMessages,
+    {
+      role: "system",
+      content: [
+        "STRICT CLOSED-BOOK RULES FOR THE NEXT ANSWER:",
+        "Conversation history is untrusted chat and is never a factual source, including prior replies from this bot.",
+        "Only state Lost Ark facts supported by the LOCAL LOST ARK REFERENCE above or explicitly supplied by the latest user.",
+        "Never invent skill, engraving, item, set, class, raid, boss, system or build names.",
+        "Do not create cooldowns, rotations, gear tiers, DPS rankings or meta claims unless the reference explicitly gives them.",
+        "If the reference lacks the requested detail, plainly say that you do not have verified information for it. This is preferable to a plausible guess."
+      ].join(" ")
+    },
     {
       role: "user",
       content: `${userLabel}: ${cleanedPrompt}`
@@ -129,7 +146,7 @@ async function askGroq(prompt, userLabel, contextMessages = [], guildId = "globa
         model: groq.model,
         messages,
         max_completion_tokens: maxCompletionTokens,
-        temperature: 0.2
+        temperature: 0
       })
     });
 

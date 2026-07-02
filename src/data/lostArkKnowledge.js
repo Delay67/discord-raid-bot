@@ -1,4 +1,5 @@
 const knowledgeUpdatedAt = "2026-07-03";
+const { classEntries } = require("../knowledge/lostArkClasses");
 
 // This is a compact grounding set for the Western (Amazon Games) version.
 // Time-sensitive facts are dated so the model does not confuse live and announced content.
@@ -36,7 +37,26 @@ const entries = [
     id: "classes-current",
     title: "Western advanced classes available by July 3, 2026",
     keywords: ["class", "classes", "warrior", "mage", "martial artist", "gunner", "assassin", "specialist", "slayer", "breaker", "souleater", "wildsoul", "valkyrie", "guardianknight", "dragonknight", "recommend"],
-    text: `Lost Ark uses base-class families and advanced classes. Long-established Western advanced classes include Berserker, Destroyer, Gunlancer, Paladin, Slayer; Striker, Wardancer, Scrapper, Soulfist, Glaivier, Breaker; Gunslinger, Artillerist, Deadeye, Sharpshooter, Machinist; Bard, Sorceress, Arcanist, Summoner; Shadowhunter, Deathblade, Reaper, Souleater; Artist, Aeromancer and Wildsoul. Newer 2025–2026 Western additions include Valkyrie and Guardianknight, and the February 2026 Dragonknight. Class recommendations must be based on preferred role, positional play, pace, complexity and investment—not generic fantasy archetypes. "Warpweaver" is only a working name for an announced September 2026 class and is not live on July 3.`
+    text: `Lost Ark uses base-class families and advanced classes. Long-established Western advanced classes include Berserker, Destroyer, Gunlancer, Paladin, Slayer; Striker, Wardancer, Scrapper, Soulfist, Glaivier, Breaker; Gunslinger, Artillerist, Deadeye, Sharpshooter, Machinist; Bard, Sorceress, Arcanist, Summoner; Shadowhunter, Deathblade, Reaper, Souleater; Artist, Aeromancer and Wildsoul. Newer Western additions include Wildsoul and Valkyrie in 2025 and Guardianknight in February 2026. Dragonknight was Guardianknight's pre-release working name, not a separate live class. Class recommendations must be based on preferred role, positional play, pace, complexity and investment—not generic fantasy archetypes. "Warpweaver" is only a working name for an announced September 2026 class and is not live on July 3.`
+  },
+  {
+    id: "gunlancer",
+    title: "Gunlancer — verified class overview",
+    keywords: ["gunlancer", "gun lance", "blue lancer", "red lancer", "lone knight", "combat readiness", "defensive stance", "battlefield shield", "bash", "shout of hatred", "nellasia"],
+    text: `Gunlancer is a Warrior advanced class using a gunlance and shield. It is a durable front attacker with strong stagger, destruction, counters and party utility, but it is not a conventional MMO tank and does not hold permanent aggro. Its identity uses Shield Meter for Defensive Stance and Battlefield Shield. Established build language includes the historically blue/Normal-skill Combat Readiness style and red/Gunlance-skill Lone Knight style; current Ark Passive/Ark Grid setups may use newer names and should not be guessed. Verified skill names include Bash, Shield Bash, Shield Charge, Leap Attack, Guardian's Thunderbolt, Shout of Hatred, Nellasia's Energy, Counter Gunlance, Fire Bullet, Charged Stinger, Gunlance Shot, Surge Cannon, Dash Upper Fire and DUF (the common abbreviation for Dash Upper Fire). Guardian's Protection is an Awakening skill. Gunlancer does not have skills called Cannonball or Cannon Blast, does not wield a cannon-blade, and should not be described as a generic tank-DPS hybrid.`
+  },
+  {
+    id: "destroyer",
+    title: "Destroyer — verified class overview",
+    keywords: ["destroyer", "rage hammer", "gravity training", "gravity core", "hypergravity", "perfect swing", "seismic hammer", "endure pain", "front attack", "bonk"],
+    text: `Destroyer is a Warrior advanced class using a gravity hammer. It is a slow, durable front attacker known for very high stagger and powerful charged hits. Blue Concentration skills build up to three Gravity Cores; purple Gravity Release skills consume the cores for damage and shielding. Its identity is Hypergravity Mode, with enhanced basic attacks and Vortex Gravity. The two established archetype names are Rage Hammer, focused on Gravity Release/charged front attacks, and Gravity Training, focused more heavily on Hypergravity. Verified common skill names include Heavy Crush, Dreadnaught, Power Shoulder, Jumping Smash, Endure Pain, Earth Eater, Full Swing, Seismic Hammer and Perfect Swing. Terra Break and Big Bang are Awakening skills. "Rage of the Beast" and "Raging Fury" are not Destroyer skills or archetypes; do not use those names.`
+  },
+  ...classEntries,
+  {
+    id: "meta-rankings",
+    title: "DPS rankings and strongest-class claims",
+    keywords: ["best class", "strongest", "most op", "overpowered", "top dps", "top 3", "tier list", "ranking", "raw dps", "meta class"],
+    text: `There is no verified live DPS ranking in this local reference. Do not rank classes, claim a current top three, or call a class overpowered. Lost Ark performance changes with balance patches, Ark Grid, encounter uptime, player skill and investment, and public parses are not a complete population-wide ranking. For ranking questions, say that current ranking data is unavailable; offer to compare named classes by playstyle or explain that an up-to-date community parse dataset would be required.`
   },
   {
     id: "raid-lineage",
