@@ -3,11 +3,15 @@ const { channelId, plannedTimesChannelId } = require("../config");
 const { recordMessage } = require("../services/activityStats");
 const { isMentionLlmEnabled } = require("../services/botSettings");
 const { deleteMessage } = require("../services/cleanup");
-const { askGroq, isGroqEnabled } = require("../services/groqChat");
+const {
+  askGroq,
+  GroqTokenLimitError,
+  isGroqEnabled
+} = require("../services/groqChat");
 const { answerRaidQuestion } = require("../services/raidQuestionAnswer");
 
-const mentionCooldownMs = 15000;
-const mentionCooldowns = new Map();
+const contextMessageLimit = 10;
+const maxContextLength = 4000;
 
 function getMentionPrompt(message) {
   const botUser = message.client.user;
@@ -22,16 +26,66 @@ function getMentionPrompt(message) {
     .trim();
 }
 
-function isOnCooldown(userId) {
-  const now = Date.now();
-  const availableAt = mentionCooldowns.get(userId) || 0;
+function formatContextMessage(contextMessage, botUserId) {
+  const content = contextMessage.content.trim();
 
-  if (now < availableAt) {
-    return true;
+  if (!content || contextMessage.system || (contextMessage.author.bot && contextMessage.author.id !== botUserId)) {
+    return null;
   }
 
-  mentionCooldowns.set(userId, now + mentionCooldownMs);
-  return false;
+  return {
+    content:
+      contextMessage.author.id === botUserId
+        ? content
+        : `${contextMessage.author.username}: ${content}`,
+    id: contextMessage.id,
+    role: contextMessage.author.id === botUserId ? "assistant" : "user"
+  };
+}
+
+async function getConversationContext(message) {
+  const recentMessages = await message.channel.messages.fetch({
+    before: message.id,
+    limit: contextMessageLimit
+  });
+  const contextById = new Map();
+
+  for (const contextMessage of [...recentMessages.values()].reverse()) {
+    const formatted = formatContextMessage(contextMessage, message.client.user.id);
+    if (formatted) contextById.set(formatted.id, formatted);
+  }
+
+  let referencedMessageId = null;
+  if (message.reference?.messageId) {
+    try {
+      const referencedMessage = await message.fetchReference();
+      const formatted = formatContextMessage(referencedMessage, message.client.user.id);
+      if (formatted) {
+        referencedMessageId = formatted.id;
+        contextById.set(formatted.id, formatted);
+      }
+    } catch (error) {
+      console.warn(`Could not fetch referenced message for Groq context: ${error.message}`);
+    }
+  }
+
+  const context = [...contextById.values()].sort((left, right) =>
+    left.id.localeCompare(right.id)
+  );
+  let totalLength = context.reduce((total, item) => total + item.content.length, 0);
+
+  while (totalLength > maxContextLength && context.length > 1) {
+    const removableIndex = context.findIndex((item) => item.id !== referencedMessageId);
+    if (removableIndex === -1) break;
+    totalLength -= context[removableIndex].content.length;
+    context.splice(removableIndex, 1);
+  }
+
+  if (context.length === 1 && context[0].content.length > maxContextLength) {
+    context[0].content = context[0].content.slice(-maxContextLength);
+  }
+
+  return context.map(({ role, content }) => ({ role, content }));
 }
 
 async function handleBotMention(message) {
@@ -62,18 +116,25 @@ async function handleBotMention(message) {
     return true;
   }
 
-  if (isOnCooldown(message.author.id)) {
-    await message.reply("Give me a few seconds before asking again.");
-    return true;
-  }
-
   await message.channel.sendTyping();
 
   try {
-    const answer = await askGroq(prompt, message.author.username);
+    const context = await getConversationContext(message);
+    const answer = await askGroq(
+      prompt,
+      message.author.username,
+      context,
+      message.guildId || "direct-messages"
+    );
     await message.reply(answer);
   } catch (error) {
     console.error(error);
+
+    if (error instanceof GroqTokenLimitError) {
+      const seconds = Math.ceil(error.retryAfterMs / 1000);
+      await message.reply(`My server-wide token budget is busy. Try again in about ${seconds} seconds.`);
+      return true;
+    }
 
     if (error.status === 429) {
       await message.reply("Sorry, im too sleepy right now ask me again after my nap.");
