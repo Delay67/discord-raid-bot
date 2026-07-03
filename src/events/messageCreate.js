@@ -7,6 +7,8 @@ const { askGroq, isGroqEnabled } = require("../services/groqChat");
 const { answerRaidQuestion } = require("../services/raidQuestionAnswer");
 
 const mentionCooldownMs = 15000;
+const mentionCooldownRetryDelayMs = 5000;
+const mentionCooldownMaxRetries = 3;
 const mentionCooldowns = new Map();
 
 function getMentionPrompt(message) {
@@ -31,6 +33,24 @@ function isOnCooldown(userId) {
   }
 
   mentionCooldowns.set(userId, now + mentionCooldownMs);
+  return false;
+}
+
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function waitForMentionCooldown(userId) {
+  for (let retry = 0; retry <= mentionCooldownMaxRetries; retry += 1) {
+    if (!isOnCooldown(userId)) {
+      return true;
+    }
+
+    if (retry < mentionCooldownMaxRetries) {
+      await wait(mentionCooldownRetryDelayMs);
+    }
+  }
+
   return false;
 }
 
@@ -62,12 +82,12 @@ async function handleBotMention(message) {
     return true;
   }
 
-  if (isOnCooldown(message.author.id)) {
+  await message.channel.sendTyping();
+
+  if (!(await waitForMentionCooldown(message.author.id))) {
     await message.reply("Give me a few seconds before asking again.");
     return true;
   }
-
-  await message.channel.sendTyping();
 
   try {
     const answer = await askGroq(prompt, message.author.username);
