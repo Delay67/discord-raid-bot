@@ -96,6 +96,23 @@ async function getRandomLocalMediaFiles(count = 1, excludedMedia = new Set()) {
   }
 }
 
+async function reserveRandomLocalMediaFiles(count = 1) {
+  const recentlySentMedia = new Set(
+    getRecentlySentMedia(new Date(Date.now() - duplicateProtectionMs)).map(
+      (selection) => selection.media
+    )
+  );
+  reservedMedia.forEach((media) => recentlySentMedia.add(media));
+
+  const files = await getRandomLocalMediaFiles(count, recentlySentMedia);
+  files.forEach((file) => reservedMedia.add(file));
+  return files;
+}
+
+function releaseReservedMedia(files) {
+  files.forEach((file) => reservedMedia.delete(file));
+}
+
 function hasRedditConfig() {
   return Boolean(
     reddit.clientId &&
@@ -351,3 +368,6 @@ module.exports = {
     recordRedPanda(interaction, "reddit");
   }
 };
+
+module.exports.releaseReservedMedia = releaseReservedMedia;
+module.exports.reserveRandomLocalMediaFiles = reserveRandomLocalMediaFiles;

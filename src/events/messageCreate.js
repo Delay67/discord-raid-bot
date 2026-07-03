@@ -1,15 +1,60 @@
 const { Events, MessageType } = require("discord.js");
 const { channelId, plannedTimesChannelId } = require("../config");
-const { recordMessage } = require("../services/activityStats");
+const { recordMessage, recordRedPanda } = require("../services/activityStats");
 const { isMentionLlmEnabled } = require("../services/botSettings");
 const { deleteMessage } = require("../services/cleanup");
 const { askGroq, isGroqEnabled } = require("../services/groqChat");
 const { answerRaidQuestion } = require("../services/raidQuestionAnswer");
+const {
+  releaseReservedMedia,
+  reserveRandomLocalMediaFiles
+} = require("../commands/redpanda");
+const {
+  rememberLastLocalSelection,
+  rememberSentMedia
+} = require("../services/redPandaStore");
 
 const mentionCooldownMs = 15000;
 const mentionCooldownRetryDelayMs = 5000;
 const mentionCooldownMaxRetries = 3;
 const mentionCooldowns = new Map();
+
+function isRedPandaMediaRequest(prompt) {
+  return /\bred\s*panda(?:s)?\b/i.test(prompt) &&
+    /\b(?:send|show|give|post|share|see|image|picture|pic|photo|gif|meme|video)\b/i.test(prompt);
+}
+
+async function replyWithLocalRedPanda(message) {
+  const files = await reserveRandomLocalMediaFiles();
+  const file = files[0];
+
+  if (!file) {
+    await message.reply("I couldn't find any local red panda media right now.");
+    return;
+  }
+
+  rememberLastLocalSelection(
+    {
+      channelId: message.channelId,
+      guildId: message.guildId,
+      user: message.author
+    },
+    file
+  );
+
+  console.log(`Red panda selected from mention: ${file}`);
+
+  try {
+    await message.reply({ content: "Here you go!", files });
+    rememberSentMedia(files);
+    recordRedPanda(
+      { guildId: message.guildId, user: message.author },
+      "local"
+    );
+  } finally {
+    releaseReservedMedia(files);
+  }
+}
 
 function getMentionPrompt(message) {
   const botUser = message.client.user;
@@ -67,6 +112,11 @@ async function handleBotMention(message) {
 
   if (!prompt) {
     await message.reply("Mention me with something to answer.");
+    return true;
+  }
+
+  if (isRedPandaMediaRequest(prompt)) {
+    await replyWithLocalRedPanda(message);
     return true;
   }
 
