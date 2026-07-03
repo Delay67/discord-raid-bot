@@ -37,6 +37,9 @@ module.exports = {
         "`/toppanda period:Week`",
         "Shows who requested the most red pandas.",
         "",
+        "`/pandahighroller`",
+        "Shows the top red panda bomb proccers and latest winner.",
+        "",
         "`/commands`",
         "Shows this command list."
       ].join("\n"),

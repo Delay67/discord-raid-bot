@@ -4,6 +4,7 @@ const path = require("node:path");
 const dataDirectory = path.join(__dirname, "..", "..", "data");
 const lastSelectionPath = path.join(dataDirectory, "redpanda-last.json");
 const selectionHistoryPath = path.join(dataDirectory, "redpanda-history.json");
+const bombHistoryPath = path.join(dataDirectory, "redpanda-bombs.json");
 
 function ensureDataDirectory() {
   if (!fs.existsSync(dataDirectory)) {
@@ -71,6 +72,61 @@ function rememberLastLocalSelection(interaction, file) {
   });
 }
 
+function readBombHistory() {
+  if (!fs.existsSync(bombHistoryPath)) {
+    return [];
+  }
+
+  try {
+    const history = JSON.parse(fs.readFileSync(bombHistoryPath, "utf8"));
+    return Array.isArray(history) ? history : [];
+  } catch (error) {
+    console.warn(`Could not read red panda bomb history: ${error.message}`);
+    return [];
+  }
+}
+
+function rememberRedPandaBomb(interaction) {
+  const history = readBombHistory();
+
+  history.push({
+    guildId: interaction.guildId,
+    procAt: new Date().toISOString(),
+    userId: interaction.user.id,
+    userTag: interaction.user.tag
+  });
+  ensureDataDirectory();
+  fs.writeFileSync(bombHistoryPath, `${JSON.stringify(history, null, 2)}\n`, "utf8");
+}
+
+function summarizeRedPandaBombs(history, guildId) {
+  const bombs = history
+    .filter((bomb) => bomb.guildId === guildId && bomb.userId && bomb.procAt)
+    .sort((left, right) => new Date(right.procAt) - new Date(left.procAt));
+  const users = new Map();
+
+  for (const bomb of bombs) {
+    const current = users.get(bomb.userId);
+    users.set(bomb.userId, {
+      count: (current?.count || 0) + 1,
+      userId: bomb.userId,
+      userTag: current?.userTag || bomb.userTag
+    });
+  }
+
+  return {
+    latest: bombs[0] || null,
+    leaders: [...users.values()]
+      .sort((left, right) => right.count - left.count || left.userId.localeCompare(right.userId))
+      .slice(0, 3),
+    total: bombs.length
+  };
+}
+
+function getRedPandaBombStats(guildId) {
+  return summarizeRedPandaBombs(readBombHistory(), guildId);
+}
+
 function clearLastSelection() {
   if (fs.existsSync(lastSelectionPath)) {
     fs.unlinkSync(lastSelectionPath);
@@ -107,6 +163,9 @@ function deleteLastLocalSelection() {
 module.exports = {
   deleteLastLocalSelection,
   getRecentlySentMedia,
+  getRedPandaBombStats,
+  rememberRedPandaBomb,
   rememberSentMedia,
-  rememberLastLocalSelection
+  rememberLastLocalSelection,
+  summarizeRedPandaBombs
 };

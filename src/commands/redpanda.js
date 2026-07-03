@@ -6,6 +6,7 @@ const { recordRedPanda } = require("../services/activityStats");
 const {
   getRecentlySentMedia,
   rememberLastLocalSelection,
+  rememberRedPandaBomb,
   rememberSentMedia
 } = require("../services/redPandaStore");
 
@@ -331,6 +332,9 @@ module.exports = {
           files: localMediaFiles
         });
         rememberSentMedia(localMediaFiles);
+        if (isCompleteRedPandaBomb) {
+          rememberRedPandaBomb(interaction);
+        }
       } finally {
         localMediaFiles.forEach((file) => reservedMedia.delete(file));
       }
