@@ -13,10 +13,16 @@ const {
   rememberLastLocalSelection,
   rememberSentMedia
 } = require("../services/redPandaStore");
+const {
+  getMemberMemories,
+  upsertMemberMemories
+} = require("../services/memberMemory");
 
 const mentionCooldownMs = 15000;
 const mentionCooldownRetryDelayMs = 5000;
 const mentionCooldownMaxRetries = 3;
+const conversationMessageLimit = 15;
+const maxConversationLength = 6000;
 const mentionCooldowns = new Map();
 
 function isRedPandaMediaRequest(prompt) {
@@ -99,6 +105,43 @@ async function waitForMentionCooldown(userId) {
   return false;
 }
 
+async function getConversationContext(message) {
+  const recentMessages = await message.channel.messages.fetch({
+    before: message.id,
+    limit: conversationMessageLimit
+  });
+  const context = [];
+  let remainingLength = maxConversationLength;
+
+  for (const recentMessage of recentMessages.values()) {
+    const content = recentMessage.content.trim();
+
+    if (
+      !content ||
+      recentMessage.system ||
+      (recentMessage.author.bot && recentMessage.author.id !== message.client.user.id)
+    ) {
+      continue;
+    }
+
+    const role = recentMessage.author.id === message.client.user.id
+      ? "assistant"
+      : "user";
+    const labelledContent = role === "assistant"
+      ? content
+      : `${recentMessage.author.username}: ${content}`;
+
+    if (labelledContent.length > remainingLength) {
+      continue;
+    }
+
+    context.unshift({ role, content: labelledContent });
+    remainingLength -= labelledContent.length;
+  }
+
+  return context;
+}
+
 async function handleBotMention(message) {
   const prompt = getMentionPrompt(message);
 
@@ -140,8 +183,21 @@ async function handleBotMention(message) {
   }
 
   try {
-    const answer = await askGroq(prompt, message.author.username);
-    await message.reply(answer);
+    const context = await getConversationContext(message);
+    const guildId = message.guildId || "direct-messages";
+    const memories = getMemberMemories(guildId, message.author.id);
+    const result = await askGroq(
+      prompt,
+      message.author.username,
+      context,
+      memories
+    );
+    upsertMemberMemories(
+      guildId,
+      message.author.id,
+      result.memoryUpdates
+    );
+    await message.reply(result.answer);
   } catch (error) {
     console.error(error);
 
