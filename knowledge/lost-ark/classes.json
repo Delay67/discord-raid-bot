@@ -1,0 +1,38 @@
+[
+  {
+    "id": "class-roster-2026-06",
+    "topic": "Live Western advanced-class roster",
+    "status": "live",
+    "updatedAt": "2026-06-10",
+    "keywords": ["class", "classes", "roster", "advanced class", "support", "dps"],
+    "content": "The live Western roster includes Berserker, Destroyer, Gunlancer, Paladin, Slayer, Valkyrie, Arcanist, Bard, Sorceress, Summoner, Wardancer, Scrapper, Soulfist, Glaivier, Striker, Breaker, Deathblade, Shadowhunter, Reaper, Souleater, Sharpshooter, Deadeye, Artillerist, Machinist, Gunslinger, Artist, Aeromancer, Wildsoul, and Guardianknight. Bard, Artist, Paladin, and support-build Valkyrie are established support choices; Valkyrie can instead play as DPS. Do not claim an overall best class or current DPS ranking without newer verified balance data.",
+    "source": "https://www.playlostark.com/en-us/game/classes"
+  },
+  {
+    "id": "class-guardianknight",
+    "topic": "Guardianknight",
+    "status": "live",
+    "updatedAt": "2026-06-10",
+    "keywords": ["guardianknight", "guardian knight", "halberd", "incarnation", "embereth", "manifest"],
+    "content": "Guardianknight is a live class that wields a massive halberd and channels the power of the Guardian Embereth. Normal play manages Embereth energy; entering Incarnation removes those resource restrictions and enhances her skills. Her skill families include Normal, Manifest, and Incarnation skills.",
+    "source": "https://www.playlostark.com/en-us/news/articles/guardianknight-class-behind-the-scenes"
+  },
+  {
+    "id": "class-valkyrie",
+    "topic": "Valkyrie",
+    "status": "live",
+    "updatedAt": "2025-08-20",
+    "keywords": ["valkyrie", "support", "healer", "holy sword", "piety", "light"],
+    "content": "Valkyrie is a live advanced class using a one-handed sword and Piety Meter. She can be configured as a support that buffs and heals allies or as a DPS that summons holy swords. Her identities include Release Light for offensive support and Light of the Faithful for recovery; exact effects depend on the current build and Ark Passive choices.",
+    "source": "https://www.playlostark.com/en-us/game/releases/rise-of-the-valkyrie"
+  },
+  {
+    "id": "class-wildsoul",
+    "topic": "Wildsoul",
+    "status": "live",
+    "updatedAt": "2025-02-26",
+    "keywords": ["wildsoul", "bear", "fox", "specialist", "scroll", "phantom beast"],
+    "content": "Wildsoul is a live Specialist class that uses a mystical scroll and animal spirits. She can summon phantom beasts or transform, using Bear Form for heavy melee attacks and Fox Form for agile ranged attacks. Her identity also includes Phantom Beast Awakening.",
+    "source": "https://www.playlostark.com/en-us/game/releases/call-of-the-wildsoul"
+  }
+]

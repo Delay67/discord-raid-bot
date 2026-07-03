@@ -1,4 +1,5 @@
 const { groq } = require("../config");
+const { findRelevantKnowledge } = require("./lostArkKnowledge");
 
 const maxPromptLength = 800;
 const maxResponseLength = 1800;
@@ -18,6 +19,7 @@ function trimForDiscord(value) {
 
 async function askGroq(prompt, userLabel) {
   const cleanedPrompt = prompt.trim().slice(0, maxPromptLength);
+  const lostArkReference = findRelevantKnowledge(cleanedPrompt);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
 
@@ -36,10 +38,15 @@ async function askGroq(prompt, userLabel) {
             role: "system",
             content: [
               "You are a concise, playful Discord bot for a Lost Ark raid server.",
+              "Use the supplied verified Western Lost Ark reference for factual claims; if it does not contain the answer, say you are not sure.",
               "Answer casually in 1-4 short sentences.",
               "Do not mention that you are an AI model.",
               "Do not provide harmful instructions or private information."
             ].join(" ")
+          },
+          {
+            role: "system",
+            content: `VERIFIED LOST ARK REFERENCE:\n${lostArkReference}`
           },
           {
             role: "user",
