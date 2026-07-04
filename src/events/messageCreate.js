@@ -214,7 +214,8 @@ async function handleBotMention(message) {
       const member = message.guild?.members.cache.get(user.id);
       referencedMembers.set(user.id, {
         id: user.id,
-        label: member?.displayName || user.globalName || user.username
+        label: member?.displayName || user.globalName || user.username,
+        source: "explicit-mention"
       });
     }
 
@@ -222,7 +223,8 @@ async function handleBotMention(message) {
       if (promptReferencesMember(prompt, member)) {
         referencedMembers.set(member.id, {
           id: member.id,
-          label: member.displayName || member.user.globalName || member.user.username
+          label: member.displayName || member.user.globalName || member.user.username,
+          source: "guild-member-cache"
         });
       }
     }
@@ -233,7 +235,8 @@ async function handleBotMention(message) {
       if (promptReferencesMember(prompt, { user })) {
         referencedMembers.set(user.id, {
           id: user.id,
-          label: user.globalName || user.username
+          label: user.globalName || user.username,
+          source: "client-user-cache"
         });
       }
     }
@@ -243,14 +246,36 @@ async function handleBotMention(message) {
         id !== message.client.user.id && id !== message.author.id
       );
     const referencedMemberMemories = externalReferencedMembers
-      .map(({ id, label }) => ({
+      .map(({ id, label, source }) => ({
+        id,
         label,
+        source,
         memories: getMemberMemories(guildId, id)
       }))
       .filter(({ memories: mentionedMemories }) => mentionedMemories.length > 0);
     const latestMemberMemories = externalReferencedMembers.length > 0
       ? []
       : memories;
+    console.log("[member-memory lookup]", JSON.stringify({
+      guildId,
+      prompt,
+      author: {
+        id: message.author.id,
+        username: message.author.username,
+        loadedMemories: memories
+      },
+      cacheSizes: {
+        guildMembers: message.guild?.members.cache.size || 0,
+        clientUsers: message.client.users.cache.size
+      },
+      matchedMembers: [...referencedMembers.values()],
+      externalReferencedMembers,
+      loadedReferencedMemories: referencedMemberMemories,
+      sentLatestMemberMemories: latestMemberMemories,
+      decision: externalReferencedMembers.length > 0
+        ? "use referenced members; suppress author memory"
+        : "no other member resolved; use author memory"
+    }, null, 2));
     const result = await askGroq(
       prompt,
       message.author.username,
