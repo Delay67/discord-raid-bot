@@ -15,7 +15,7 @@ const blockedValuePatterns = [
 function createEmptyStore() {
   return { guilds: {}, version: 1 };
 }
-
+//test
 function readStore(filePath = memoryPath) {
   if (!fs.existsSync(filePath)) return createEmptyStore();
 
