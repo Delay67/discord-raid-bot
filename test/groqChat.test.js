@@ -45,6 +45,19 @@ test("instructs the model to answer direct personal questions from member memory
   assert.match(messages[2].content, /delay67_main_class: Guardianknight/);
 });
 
+test("injects separately labeled memory for a mentioned member", () => {
+  const messages = buildMessages("what does @Delay main?", "Arcel", [], [], [
+    {
+      label: "Delay",
+      memories: [{ key: "delay67_main_class", value: "Guardianknight" }]
+    }
+  ]);
+
+  assert.match(messages[2].content, /REFERENCED MEMBER MEMORY \(Delay\)/);
+  assert.match(messages[2].content, /delay67_main_class: Guardianknight/);
+  assert.match(messages[0].content, /do not confuse it with the latest user's memory/i);
+});
+
 test("extracts hidden memory updates from the visible answer", () => {
   const result = parseMemoryUpdates(
     'Nice choice! <memory>{"key":"favorite_color","value":"blue"}</memory>'

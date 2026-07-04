@@ -75,6 +75,28 @@ function getMentionPrompt(message) {
     .trim();
 }
 
+function normalizeMemberName(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function promptReferencesMember(prompt, member) {
+  const normalizedPrompt = ` ${normalizeMemberName(prompt)} `;
+  const names = [
+    member.displayName,
+    member.user?.globalName,
+    member.user?.username
+  ];
+
+  return names.some((name) => {
+    const normalizedName = normalizeMemberName(name);
+    return normalizedName.length >= 3 &&
+      normalizedPrompt.includes(` ${normalizedName} `);
+  });
+}
+
 function isOnCooldown(userId) {
   const now = Date.now();
   const availableAt = mentionCooldowns.get(userId) || 0;
@@ -186,11 +208,40 @@ async function handleBotMention(message) {
     const context = await getConversationContext(message);
     const guildId = message.guildId || "direct-messages";
     const memories = getMemberMemories(guildId, message.author.id);
+    const referencedMembers = new Map();
+
+    for (const user of message.mentions.users.values()) {
+      const member = message.guild?.members.cache.get(user.id);
+      referencedMembers.set(user.id, {
+        id: user.id,
+        label: member?.displayName || user.globalName || user.username
+      });
+    }
+
+    for (const member of message.guild?.members.cache.values() || []) {
+      if (promptReferencesMember(prompt, member)) {
+        referencedMembers.set(member.id, {
+          id: member.id,
+          label: member.displayName || member.user.globalName || member.user.username
+        });
+      }
+    }
+
+    const referencedMemberMemories = [...referencedMembers.values()]
+      .filter(({ id }) =>
+        id !== message.client.user.id && id !== message.author.id
+      )
+      .map(({ id, label }) => ({
+        label,
+        memories: getMemberMemories(guildId, id)
+      }))
+      .filter(({ memories: mentionedMemories }) => mentionedMemories.length > 0);
     const result = await askGroq(
       prompt,
       message.author.username,
       context,
-      memories
+      memories,
+      referencedMemberMemories
     );
     upsertMemberMemories(
       guildId,
@@ -214,6 +265,7 @@ async function handleBotMention(message) {
 
 module.exports = {
   name: Events.MessageCreate,
+  promptReferencesMember,
   async execute(message) {
     if (
       message.channelId === plannedTimesChannelId &&
