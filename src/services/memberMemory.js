@@ -45,6 +45,11 @@ function getMemberMemories(guildId, userId, filePath = memoryPath) {
     .map(([key, memory]) => ({ key, value: memory.value }));
 }
 
+function getGuildMemberIds(guildId, filePath = memoryPath) {
+  const members = readStore(filePath).guilds[guildId]?.members;
+  return members ? Object.keys(members) : [];
+}
+
 function normalizeUpdate(update) {
   const key = String(update?.key || "")
     .toLowerCase()
@@ -91,6 +96,7 @@ function upsertMemberMemories(guildId, userId, updates, filePath = memoryPath) {
 }
 
 module.exports = {
+  getGuildMemberIds,
   getMemberMemories,
   upsertMemberMemories
 };

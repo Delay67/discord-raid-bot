@@ -4,6 +4,7 @@ const os = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
 const {
+  getGuildMemberIds,
   getMemberMemories,
   upsertMemberMemories
 } = require("../src/services/memberMemory");
@@ -24,6 +25,7 @@ test("persists and updates memories per guild member", (context) => {
     { key: "main_class", value: "Artist" }
   ]);
   assert.deepEqual(getMemberMemories("guild-a", "other-user", filePath), []);
+  assert.deepEqual(getGuildMemberIds("guild-a", filePath), ["user-a"]);
 });
 
 test("rejects obvious sensitive memory fields", (context) => {

@@ -14,6 +14,7 @@ const {
   rememberSentMedia
 } = require("../services/redPandaStore");
 const {
+  getGuildMemberIds,
   getMemberMemories,
   upsertMemberMemories
 } = require("../services/memberMemory");
@@ -237,6 +238,32 @@ async function handleBotMention(message) {
           id: user.id,
           label: user.globalName || user.username,
           source: "client-user-cache"
+        });
+      }
+    }
+
+    // Memory records are keyed by Discord ID, so resolve those IDs directly.
+    // This works even when the guild/member and client/user caches are cold.
+    const storedUsers = await Promise.all(
+      getGuildMemberIds(guildId).map(async (id) => {
+        const cachedUser = message.client.users.cache.get(id);
+        if (cachedUser) return cachedUser;
+
+        try {
+          return await message.client.users.fetch(id);
+        } catch (error) {
+          console.warn(`[member-memory lookup] Could not resolve stored user ${id}:`, error.message);
+          return null;
+        }
+      })
+    );
+
+    for (const user of storedUsers.filter(Boolean)) {
+      if (promptReferencesMember(prompt, { user })) {
+        referencedMembers.set(user.id, {
+          id: user.id,
+          label: user.globalName || user.username,
+          source: "stored-memory-user-id"
         });
       }
     }
