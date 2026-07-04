@@ -55,7 +55,7 @@ test("injects separately labeled memory for a mentioned member", () => {
 
   assert.match(messages[2].content, /REFERENCED MEMBER MEMORY \(Delay\)/);
   assert.match(messages[2].content, /delay67_main_class: Guardianknight/);
-  assert.match(messages[0].content, /do not confuse it with the latest user's memory/i);
+  assert.match(messages[0].content, /never attribute another member's memory to them/i);
 });
 
 test("extracts hidden memory updates from the visible answer", () => {

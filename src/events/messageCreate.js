@@ -236,11 +236,14 @@ async function handleBotMention(message) {
         memories: getMemberMemories(guildId, id)
       }))
       .filter(({ memories: mentionedMemories }) => mentionedMemories.length > 0);
+    const latestMemberMemories = referencedMemberMemories.length > 0
+      ? []
+      : memories;
     const result = await askGroq(
       prompt,
       message.author.username,
       context,
-      memories,
+      latestMemberMemories,
       referencedMemberMemories
     );
     upsertMemberMemories(
