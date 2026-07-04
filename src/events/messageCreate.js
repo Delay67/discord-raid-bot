@@ -227,16 +227,28 @@ async function handleBotMention(message) {
       }
     }
 
-    const referencedMemberMemories = [...referencedMembers.values()]
+    // Guild member caching requires a privileged intent, but the client user
+    // cache still contains users encountered in messages and interactions.
+    for (const user of message.client.users.cache.values()) {
+      if (promptReferencesMember(prompt, { user })) {
+        referencedMembers.set(user.id, {
+          id: user.id,
+          label: user.globalName || user.username
+        });
+      }
+    }
+
+    const externalReferencedMembers = [...referencedMembers.values()]
       .filter(({ id }) =>
         id !== message.client.user.id && id !== message.author.id
-      )
+      );
+    const referencedMemberMemories = externalReferencedMembers
       .map(({ id, label }) => ({
         label,
         memories: getMemberMemories(guildId, id)
       }))
       .filter(({ memories: mentionedMemories }) => mentionedMemories.length > 0);
-    const latestMemberMemories = referencedMemberMemories.length > 0
+    const latestMemberMemories = externalReferencedMembers.length > 0
       ? []
       : memories;
     const result = await askGroq(

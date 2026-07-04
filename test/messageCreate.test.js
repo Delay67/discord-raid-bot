@@ -11,6 +11,11 @@ test("recognizes a member by plain-text global name", () => {
   assert.equal(promptReferencesMember("what class does kolax main", kolax), true);
 });
 
+test("recognizes a plain Discord user when no guild member is cached", () => {
+  const userOnly = { user: { globalName: "Kolax", username: "kolax_loa" } };
+  assert.equal(promptReferencesMember("what class does kolax main", userOnly), true);
+});
+
 test("recognizes a member by server display name or username", () => {
   assert.equal(promptReferencesMember("ask kolax the great about it", kolax), true);
   assert.equal(promptReferencesMember("what does kolax_loa play?", kolax), true);
