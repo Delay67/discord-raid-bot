@@ -6,6 +6,7 @@ const {
   isMentionLlmEnabled,
   setMentionLlmEnabled
 } = require("../services/botSettings");
+const { updateLlmPresence } = require("../services/botPresence");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -37,6 +38,7 @@ module.exports = {
 
     const enabled = mode === "enable";
     setMentionLlmEnabled(enabled, interaction.user.id);
+    updateLlmPresence(interaction.client, enabled);
 
     await interaction.reply({
       content: `Mention LLM replies are now ${enabled ? "enabled" : "disabled"}.`,
