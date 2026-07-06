@@ -302,6 +302,7 @@ module.exports = {
           files: [juniorMediaFile]
         });
         rememberSentMedia([juniorMediaFile]);
+        rememberRedPandaBomb(interaction);
       } finally {
         reservedMedia.delete(juniorMediaFile);
       }
