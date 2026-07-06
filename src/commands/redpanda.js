@@ -248,10 +248,6 @@ async function getRedditMediaUrls() {
     }
 
     const mediaUrls = extractRedditMediaUrls(payload);
-    const postCount = payload.data?.children?.length || 0;
-
-    console.log(`Red panda Reddit fetch: ${url} posts=${postCount} media=${mediaUrls.length}`);
-
     if (mediaUrls.length > 0) {
       return mediaUrls;
     }
@@ -260,16 +256,8 @@ async function getRedditMediaUrls() {
   return [];
 }
 
-function logSelectedMedia(interaction, selection) {
-  console.log(
-    `Red panda selected: ${JSON.stringify({
-      ...selection,
-      userId: interaction.user.id,
-      userTag: interaction.user.tag,
-      channelId: interaction.channelId,
-      guildId: interaction.guildId
-    })}`
-  );
+function logSelectedMedia(media) {
+  media.forEach((item) => console.log(`Red panda image: ${item}`));
 }
 
 module.exports = {
@@ -301,15 +289,11 @@ module.exports = {
     await interaction.deferReply();
 
     const randomValue = Math.random();
-    console.log(`Math.random(): ${randomValue}`);
+    console.log(`Red panda Math.random(): ${randomValue}`);
 
-    if (randomValue < juniorChance) {
+    if (randomValue <= juniorChance) {
       reservedMedia.add(juniorMediaFile);
-      logSelectedMedia(interaction, {
-        source: "local",
-        files: [juniorMediaFile],
-        junior: true
-      });
+      logSelectedMedia([juniorMediaFile]);
       rememberLastLocalSelection(interaction, juniorMediaFile);
 
       try {
@@ -331,7 +315,7 @@ module.exports = {
       )
     );
     reservedMedia.forEach((media) => recentlySentMedia.add(media));
-    const isRedPandaBomb = Math.random() < redPandaBombChance;
+    const isRedPandaBomb = randomValue <= redPandaBombChance;
     const requestedMediaCount = isRedPandaBomb ? redPandaBombSize : 1;
     const selectedMediaFiles = await getRandomLocalMediaFiles(
       requestedMediaCount,
@@ -346,11 +330,7 @@ module.exports = {
 
     if (localMediaFile) {
       localMediaFiles.forEach((file) => reservedMedia.add(file));
-      logSelectedMedia(interaction, {
-        source: "local",
-        files: localMediaFiles,
-        redPandaBomb: isCompleteRedPandaBomb
-      });
+      logSelectedMedia(localMediaFiles);
       rememberLastLocalSelection(interaction, localMediaFile);
 
       try {
@@ -384,10 +364,7 @@ module.exports = {
     }
 
     const mediaUrl = mediaUrls[Math.floor(Math.random() * mediaUrls.length)];
-    logSelectedMedia(interaction, {
-      source: "reddit",
-      url: mediaUrl
-    });
+    logSelectedMedia([mediaUrl]);
 
     reservedMedia.add(mediaUrl);
     try {

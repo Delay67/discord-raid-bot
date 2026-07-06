@@ -33,34 +33,14 @@ async function handleRaidUploadButton(interaction) {
   });
 }
 
-function getCommandOptions(interaction) {
-  return interaction.options.data.map((option) => ({
-    name: option.name,
-    type: option.type,
-    value: option.attachment ? option.attachment.name : option.value
-  }));
-}
-
 function getUserLabel(user) {
   return `${user.tag || user.username} (${user.id})`;
 }
 
-function logCommandUsage(interaction, status, details = {}) {
-  const payload = {
-    channelId: interaction.channelId,
-    command: interaction.commandName,
-    durationMs: details.durationMs,
-    guildId: interaction.guildId,
-    options: getCommandOptions(interaction),
-    status,
-    user: getUserLabel(interaction.user)
-  };
-
-  if (details.reason) {
-    payload.reason = details.reason;
-  }
-
-  console.log(`Command usage: ${JSON.stringify(payload)}`);
+function logCommandUsage(interaction) {
+  console.log(
+    `Command: /${interaction.commandName} | Used by: ${getUserLabel(interaction.user)}`
+  );
 }
 
 function logButtonUsage(interaction, status, details = {}) {
