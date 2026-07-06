@@ -22,6 +22,8 @@ const {
 const mentionCooldownMs = 15000;
 const mentionCooldownRetryDelayMs = 5000;
 const mentionCooldownMaxRetries = 3;
+const groqRetryDelayMs = 5000;
+const groqMaxRetries = 2;
 const conversationMessageLimit = 15;
 const maxConversationLength = 6000;
 const mentionCooldowns = new Map();
@@ -112,6 +114,29 @@ function isOnCooldown(userId) {
 
 function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function isRetryableGroqError(error) {
+  return !error.status || error.status === 429 || error.status >= 500;
+}
+
+async function askGroqWithRetry(args, onRetry = async () => {}) {
+  for (let attempt = 0; attempt <= groqMaxRetries; attempt += 1) {
+    try {
+      return await askGroq(...args);
+    } catch (error) {
+      if (attempt === groqMaxRetries || !isRetryableGroqError(error)) {
+        throw error;
+      }
+
+      console.warn(
+        `[Groq retry] Attempt ${attempt + 1} failed; retrying in ${groqRetryDelayMs}ms:`,
+        error.message
+      );
+      await onRetry(attempt + 1, error);
+      await wait(groqRetryDelayMs);
+    }
+  }
 }
 
 async function waitForMentionCooldown(userId) {
@@ -303,12 +328,15 @@ async function handleBotMention(message) {
         ? "use referenced members; suppress author memory"
         : "no other member resolved; use author memory"
     }, null, 2));
-    const result = await askGroq(
-      prompt,
-      message.author.username,
-      context,
-      latestMemberMemories,
-      referencedMemberMemories
+    const result = await askGroqWithRetry(
+      [
+        prompt,
+        message.author.username,
+        context,
+        latestMemberMemories,
+        referencedMemberMemories
+      ],
+      () => message.channel.sendTyping()
     );
     upsertMemberMemories(
       guildId,
@@ -331,6 +359,8 @@ async function handleBotMention(message) {
 }
 
 module.exports = {
+  askGroqWithRetry,
+  isRetryableGroqError,
   name: Events.MessageCreate,
   promptReferencesMember,
   async execute(message) {
