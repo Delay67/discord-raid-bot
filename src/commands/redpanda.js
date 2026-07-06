@@ -13,6 +13,8 @@ const {
 const defaultMediaDirectory = path.join(__dirname, "..", "..", "data", "redpandas");
 const localMediaDirectory = redPandaMediaDirectory || defaultMediaDirectory;
 const maxLocalUploadBytes = 10 * 1024 * 1024;
+const juniorChance = 0.0033;
+const juniorMediaFile = path.join(localMediaDirectory, "junior.jpg");
 const redPandaBombChance = 0.0067;
 const redPandaBombSize = 5;
 const duplicateProtectionMs = 3 * 60 * 60 * 1000;
@@ -297,6 +299,28 @@ module.exports = {
       }
     }, userCooldownMs);
     await interaction.deferReply();
+
+    if (Math.random() < juniorChance) {
+      reservedMedia.add(juniorMediaFile);
+      logSelectedMedia(interaction, {
+        source: "local",
+        files: [juniorMediaFile],
+        junior: true
+      });
+      rememberLastLocalSelection(interaction, juniorMediaFile);
+
+      try {
+        await interaction.editReply({
+          content: "Hey! You found me!",
+          files: [juniorMediaFile]
+        });
+        rememberSentMedia([juniorMediaFile]);
+      } finally {
+        reservedMedia.delete(juniorMediaFile);
+      }
+      recordRedPanda(interaction, "local");
+      return;
+    }
 
     const recentlySentMedia = new Set(
       getRecentlySentMedia(new Date(now - duplicateProtectionMs)).map(
