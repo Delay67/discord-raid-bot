@@ -300,7 +300,10 @@ module.exports = {
     }, userCooldownMs);
     await interaction.deferReply();
 
-    if (Math.random() < juniorChance) {
+    const randomValue = Math.random();
+    console.log(`Math.random(): ${randomValue}`);
+
+    if (randomValue < juniorChance) {
       reservedMedia.add(juniorMediaFile);
       logSelectedMedia(interaction, {
         source: "local",
