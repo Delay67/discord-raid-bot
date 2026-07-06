@@ -256,8 +256,8 @@ async function getRedditMediaUrls() {
   return [];
 }
 
-function logSelectedMedia(media) {
-  media.forEach((item) => console.log(`Red panda image: ${item}`));
+function formatMediaPaths(media) {
+  return media.join(", ");
 }
 
 module.exports = {
@@ -289,11 +289,11 @@ module.exports = {
     await interaction.deferReply();
 
     const randomValue = Math.random();
-    console.log(`Red panda Math.random(): ${randomValue}`);
+    interaction.commandLogDetails = { randomValue };
 
     if (randomValue <= juniorChance) {
       reservedMedia.add(juniorMediaFile);
-      logSelectedMedia([juniorMediaFile]);
+      interaction.commandLogDetails.image = formatMediaPaths([juniorMediaFile]);
       rememberLastLocalSelection(interaction, juniorMediaFile);
 
       try {
@@ -330,7 +330,7 @@ module.exports = {
 
     if (localMediaFile) {
       localMediaFiles.forEach((file) => reservedMedia.add(file));
-      logSelectedMedia(localMediaFiles);
+      interaction.commandLogDetails.image = formatMediaPaths(localMediaFiles);
       rememberLastLocalSelection(interaction, localMediaFile);
 
       try {
@@ -364,7 +364,7 @@ module.exports = {
     }
 
     const mediaUrl = mediaUrls[Math.floor(Math.random() * mediaUrls.length)];
-    logSelectedMedia([mediaUrl]);
+    interaction.commandLogDetails.image = formatMediaPaths([mediaUrl]);
 
     reservedMedia.add(mediaUrl);
     try {

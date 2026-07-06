@@ -38,8 +38,14 @@ function getUserLabel(user) {
 }
 
 function logCommandUsage(interaction) {
+  const details = interaction.commandLogDetails;
+  const redPandaDetails =
+    interaction.commandName === "redpanda" && details
+      ? ` | Image: ${details.image || "none"} | Math.random(): ${details.randomValue}`
+      : "";
+
   console.log(
-    `Command: /${interaction.commandName} | Used by: ${getUserLabel(interaction.user)}`
+    `Command: /${interaction.commandName} | Used by: ${getUserLabel(interaction.user)}${redPandaDetails}`
   );
 }
 
