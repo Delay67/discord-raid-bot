@@ -3,7 +3,7 @@ const path = require("node:path");
 
 const dataDirectory = path.join(__dirname, "..", "..", "data");
 const statsPath = path.join(dataDirectory, "activity-stats.json");
-const periods = ["week", "month", "year", "all"];
+const periods = ["day", "week", "month", "year", "all"];
 
 function ensureStore() {
   if (!fs.existsSync(dataDirectory)) {
@@ -46,6 +46,10 @@ function getPeriodKey(period, date = new Date()) {
 
   if (period === "week") {
     return getIsoWeek(date);
+  }
+
+  if (period === "day") {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   }
 
   if (period === "month") {
@@ -158,6 +162,66 @@ function sortUsers(users) {
     .sort((left, right) => right.count - left.count);
 }
 
+function mergeBuckets(buckets) {
+  const merged = createBucket();
+
+  for (const bucket of buckets) {
+    merged.redpandas.total += bucket?.redpandas?.total || 0;
+
+    for (const [source, count] of Object.entries(bucket?.redpandas?.sources || {})) {
+      merged.redpandas.sources[source] = (merged.redpandas.sources[source] || 0) + count;
+    }
+
+    for (const [id, user] of Object.entries(bucket?.redpandas?.users || {})) {
+      merged.redpandas.users[id] ||= { count: 0, label: user.label || id };
+      merged.redpandas.users[id].count += user.count || 0;
+      merged.redpandas.users[id].label = user.label || merged.redpandas.users[id].label;
+    }
+  }
+
+  return merged;
+}
+
+function getPastDayKeys(days, date = new Date()) {
+  return Array.from({ length: days }, (_, offset) => {
+    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate() - offset);
+    return getPeriodKey("day", day);
+  });
+}
+
+function getTopPandaStats(selection, guildId, date = new Date()) {
+  const stats = readStats();
+  const periodsByType = stats.guilds[guildId]?.periods || {};
+  let bucket;
+  let key;
+
+  if (selection.type === "all") {
+    key = "all-time";
+    bucket = periodsByType.all?.[key];
+  } else if (selection.type === "year") {
+    key = String(selection.year);
+    bucket = periodsByType.year?.[key];
+  } else if (selection.type === "month") {
+    key = `${date.getFullYear()}-${String(selection.month).padStart(2, "0")}`;
+    bucket = periodsByType.month?.[key];
+  } else {
+    const days = selection.type === "past30" ? 30 : 7;
+    const keys = getPastDayKeys(days, date);
+    key = `${keys.at(-1)} to ${keys[0]}`;
+    bucket = mergeBuckets(keys.map((dayKey) => periodsByType.day?.[dayKey]));
+  }
+
+  const redpandas = bucket?.redpandas || createBucket().redpandas;
+  return {
+    key,
+    redpandas: {
+      sources: sortCounts(redpandas.sources),
+      total: redpandas.total,
+      users: sortUsers(redpandas.users)
+    }
+  };
+}
+
 function getCurrentStats(period, guildId) {
   const stats = readStats();
   const key = getPeriodKey(period);
@@ -246,8 +310,10 @@ function migrateAllTimeMessageStats() {
 }
 
 module.exports = {
+  getPastDayKeys,
   getPeriodKey,
   getCurrentStats,
+  getTopPandaStats,
   migrateAllTimeMessageStats,
   recordCommand,
   recordMessage,

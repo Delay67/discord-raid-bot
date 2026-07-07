@@ -1,29 +1,10 @@
 const { EmbedBuilder, SlashCommandBuilder } = require("discord.js");
-const { getCurrentStats } = require("../services/activityStats");
+const { getTopPandaStats } = require("../services/activityStats");
 
-function addPeriodOption(command) {
-  return command.addStringOption((option) =>
-    option
-      .setName("period")
-      .setDescription("Stats period")
-      .setRequired(true)
-      .addChoices(
-        { name: "Week", value: "week" },
-        { name: "Month", value: "month" },
-        { name: "Year", value: "year" },
-        { name: "All Time", value: "all" }
-      )
-  );
-}
-
-function getPeriodLabel(period) {
-  return {
-    all: "All Time",
-    month: "This Month",
-    week: "This Week",
-    year: "This Year"
-  }[period];
-}
+const months = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
 
 function formatTopUsers(users) {
   if (users.length === 0) {
@@ -36,23 +17,71 @@ function formatTopUsers(users) {
     .join("\n");
 }
 
+function getSelection(interaction) {
+  const subcommand = interaction.options.getSubcommand();
+
+  if (subcommand === "year") {
+    const year = interaction.options.getInteger("year", true);
+    return { label: String(year), type: "year", year };
+  }
+
+  if (subcommand === "month") {
+    const month = interaction.options.getInteger("month", true);
+    return {
+      label: `${months[month - 1]} ${new Date().getFullYear()}`,
+      month,
+      type: "month"
+    };
+  }
+
+  return {
+    "all-time": { label: "All Time", type: "all" },
+    "past-7-days": { label: "Past 7 Days", type: "past7" },
+    "past-30-days": { label: "Past 30 Days", type: "past30" }
+  }[subcommand];
+}
+
 module.exports = {
   allowAnyChannel: true,
-  data: addPeriodOption(
-    new SlashCommandBuilder()
-      .setName("toppanda")
-      .setDescription("Show who requested the most red pandas for a period.")
-  ),
+  data: new SlashCommandBuilder()
+    .setName("toppanda")
+    .setDescription("Show who requested the most red pandas for a period.")
+    .addSubcommand((command) => command
+      .setName("all-time")
+      .setDescription("Show the all-time leaderboard."))
+    .addSubcommand((command) => command
+      .setName("year")
+      .setDescription("Show the leaderboard for a specific year.")
+      .addIntegerOption((option) => option
+        .setName("year")
+        .setDescription("Year, such as 2026")
+        .setMinValue(2020)
+        .setMaxValue(2100)
+        .setRequired(true)))
+    .addSubcommand((command) => command
+      .setName("month")
+      .setDescription("Show a month from the current year.")
+      .addIntegerOption((option) => option
+        .setName("month")
+        .setDescription("Month of the current year")
+        .setRequired(true)
+        .addChoices(...months.map((name, index) => ({ name, value: index + 1 })))))
+    .addSubcommand((command) => command
+      .setName("past-7-days")
+      .setDescription("Show the leaderboard for the past 7 days."))
+    .addSubcommand((command) => command
+      .setName("past-30-days")
+      .setDescription("Show the leaderboard for the past 30 days.")),
 
   async execute(interaction) {
-    const period = interaction.options.getString("period", true);
-    const stats = getCurrentStats(period, interaction.guildId);
+    const selection = getSelection(interaction);
+    const stats = getTopPandaStats(selection, interaction.guildId);
 
     await interaction.reply({
       embeds: [
         new EmbedBuilder()
           .setColor(0xd95f43)
-          .setTitle(`Top Red Panda Requesters - ${getPeriodLabel(period)}`)
+          .setTitle(`Top Red Panda Requesters - ${selection.label}`)
           .setDescription(`Red pandas served: ${stats.redpandas.total}`)
           .addFields({
             name: "Leaderboard",

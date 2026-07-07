@@ -34,7 +34,7 @@ module.exports = {
         "`/topchatter period:Week`",
         "Shows the top chatters for the selected period.",
         "",
-        "`/toppanda period:Week`",
+        "`/toppanda past-7-days`",
         "Shows who requested the most red pandas.",
         "",
         "`/pandahighroller`",
