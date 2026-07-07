@@ -75,3 +75,27 @@ test("extracts hidden memory updates from the visible answer", () => {
     { key: "favorite_color", value: "blue" }
   ]);
 });
+
+test("provides trusted timeout permissions and extracts a hidden timeout action", () => {
+  const messages = buildMessages("timeout <@42>", "Mod", [], [], [], {
+    enabled: true,
+    targets: [{ id: "42", label: "Target" }]
+  });
+  const result = parseMemoryUpdates(
+    'Enjoy the minute-long nap! <timeout>{"userId":"42","seconds":60,"reason":"Requested timeout"}</timeout>'
+  );
+
+  assert.match(messages[3].content, /Time-out actions are enabled/);
+  assert.match(messages[3].content, /42: Target/);
+  assert.equal(result.answer, "Enjoy the minute-long nap!");
+  assert.deepEqual(result.timeoutAction, {
+    userId: "42",
+    seconds: 60,
+    reason: "Requested timeout"
+  });
+});
+
+test("disables timeout tools when the requester lacks permission", () => {
+  const messages = buildMessages("timeout someone", "User");
+  assert.match(messages[3].content, /Time-out actions are disabled/);
+});

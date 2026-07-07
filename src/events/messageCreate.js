@@ -1,5 +1,5 @@
 const { Events, MessageType } = require("discord.js");
-const { channelId, plannedTimesChannelId } = require("../config");
+const { channelId, llmTimeoutRoleId, plannedTimesChannelId } = require("../config");
 const { recordMessage, recordRedPanda } = require("../services/activityStats");
 const { isMentionLlmEnabled } = require("../services/botSettings");
 const { deleteMessage } = require("../services/cleanup");
@@ -27,6 +27,7 @@ const groqMaxRetries = 2;
 const conversationMessageLimit = 15;
 const maxConversationLength = 6000;
 const mentionCooldowns = new Map();
+const maxLlmTimeoutSeconds = 60;
 
 function isRedPandaMediaRequest(prompt) {
   return /\bred\s*panda(?:s)?\b/i.test(prompt) &&
@@ -106,6 +107,13 @@ function getMemberAliases(member, user = member?.user) {
     user?.globalName,
     user?.username
   ].filter(Boolean))];
+}
+
+function clampTimeoutSeconds(value) {
+  const seconds = Number(value);
+  return Number.isFinite(seconds)
+    ? Math.max(1, Math.min(maxLlmTimeoutSeconds, Math.floor(seconds)))
+    : maxLlmTimeoutSeconds;
 }
 
 function isOnCooldown(userId) {
@@ -321,6 +329,18 @@ async function handleBotMention(message) {
     const latestMemberMemories = externalReferencedMembers.length > 0
       ? []
       : memories;
+    const canRequestTimeout = Boolean(
+      message.guild && message.member?.roles.cache.has(llmTimeoutRoleId)
+    );
+    const timeoutTargets = [...referencedMembers.values()]
+      .filter(({ id }) => id !== message.client.user.id);
+    if (!timeoutTargets.some(({ id }) => id === message.author.id)) {
+      timeoutTargets.push({ id: message.author.id, label: message.author.username });
+    }
+    const moderationContext = {
+      enabled: canRequestTimeout,
+      targets: timeoutTargets
+    };
     console.log("[member-memory lookup]", JSON.stringify({
       guildId,
       prompt,
@@ -348,7 +368,8 @@ async function handleBotMention(message) {
         message.author.username,
         context,
         latestMemberMemories,
-        referencedMemberMemories
+        referencedMemberMemories,
+        moderationContext
       ],
       () => message.channel.sendTyping()
     );
@@ -357,6 +378,24 @@ async function handleBotMention(message) {
       message.author.id,
       result.memoryUpdates
     );
+    if (result.timeoutAction && canRequestTimeout) {
+      const targetId = String(result.timeoutAction.userId || "");
+      const allowedTargetIds = new Set(timeoutTargets.map(({ id }) => id));
+
+      if (allowedTargetIds.has(targetId)) {
+        const seconds = clampTimeoutSeconds(result.timeoutAction.seconds);
+        const target = await message.guild.members.fetch(targetId);
+        const reason = String(result.timeoutAction.reason ||
+          `Requested by ${message.author.username} through Delay Junior`).slice(0, 200);
+
+        await target.timeout(seconds * 1000, reason);
+      } else {
+        console.warn("[LLM timeout] Rejected target outside latest request", {
+          requesterId: message.author.id,
+          targetId
+        });
+      }
+    }
     await message.reply(result.answer);
   } catch (error) {
     console.error(error);
@@ -374,6 +413,7 @@ async function handleBotMention(message) {
 
 module.exports = {
   askGroqWithRetry,
+  clampTimeoutSeconds,
   isRetryableGroqError,
   name: Events.MessageCreate,
   promptReferencesMember,

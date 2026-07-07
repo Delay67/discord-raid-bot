@@ -22,7 +22,8 @@ function buildMessages(
   userLabel,
   contextMessages = [],
   memberMemories = [],
-  referencedMemberMemories = []
+  referencedMemberMemories = [],
+  moderationContext = { enabled: false, targets: [] }
 ) {
   const cleanedPrompt = prompt.trim().slice(0, maxPromptLength);
   const lostArkReference = findRelevantKnowledge(cleanedPrompt);
@@ -44,6 +45,7 @@ function buildMessages(
         "At the very end, you may add up to 3 hidden memory updates in the exact form <memory>{\"key\":\"short_snake_case_key\",\"value\":\"concise fact\"}</memory>.",
         "Only remember a stable fact or preference explicitly stated by the latest user in their latest message; never infer it or take it from conversation history.",
         "Do not remember secrets, credentials, financial or medical information, exact addresses or contact details, protected traits, or facts about another person.",
+        "A separate trusted moderation-permissions message states whether the latest user may request time-outs and lists the only allowed targets. If enabled and the user directly asks to time out an allowed target, append exactly one hidden action at the very end: <timeout>{\"userId\":\"Discord ID\",\"seconds\":60,\"reason\":\"concise reason\"}</timeout>. Use 60 seconds when no shorter duration is requested, never exceed 60, and do not emit this action when moderation is disabled or the target is not listed.",
         "Answer casually in 1-4 short sentences.",
         "Do not mention that you are an AI model.",
         "Do not provide harmful instructions or private information."
@@ -70,6 +72,14 @@ function buildMessages(
         )
       ].filter(Boolean).join("\n\n")
     },
+    {
+      role: "system",
+      content: moderationContext.enabled
+        ? `TRUSTED MODERATION PERMISSIONS: Time-out actions are enabled for this requester. Allowed targets:\n${moderationContext.targets.map(({ id, label }) =>
+          `${id}: ${label}`
+        ).join("\n") || "None"}`
+        : "TRUSTED MODERATION PERMISSIONS: Time-out actions are disabled for this requester."
+    },
     ...safeContextMessages,
     {
       role: "user",
@@ -81,6 +91,8 @@ function buildMessages(
 function parseMemoryUpdates(content) {
   const updates = [];
   const memoryPattern = /<memory>([\s\S]*?)<\/memory>/gi;
+  const timeoutPattern = /<timeout>([\s\S]*?)<\/timeout>/gi;
+  const timeoutActions = [];
 
   for (const match of content.matchAll(memoryPattern)) {
     try {
@@ -91,9 +103,19 @@ function parseMemoryUpdates(content) {
     }
   }
 
+  for (const match of content.matchAll(timeoutPattern)) {
+    try {
+      const action = JSON.parse(match[1]);
+      if (action && typeof action === "object") timeoutActions.push(action);
+    } catch {
+      // Malformed hidden actions are discarded rather than shown to Discord.
+    }
+  }
+
   return {
-    answer: content.replace(memoryPattern, "").trim(),
-    memoryUpdates: updates.slice(0, 3)
+    answer: content.replace(memoryPattern, "").replace(timeoutPattern, "").trim(),
+    memoryUpdates: updates.slice(0, 3),
+    timeoutAction: timeoutActions[0] || null
   };
 }
 
@@ -102,14 +124,16 @@ async function askGroq(
   userLabel,
   contextMessages = [],
   memberMemories = [],
-  referencedMemberMemories = []
+  referencedMemberMemories = [],
+  moderationContext = { enabled: false, targets: [] }
 ) {
   const messages = buildMessages(
     prompt,
     userLabel,
     contextMessages,
     memberMemories,
-    referencedMemberMemories
+    referencedMemberMemories,
+    moderationContext
   );
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);

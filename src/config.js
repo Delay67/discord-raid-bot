@@ -30,6 +30,7 @@ module.exports = {
     apiKey: process.env.GROQ_API_KEY,
     model: process.env.GROQ_MODEL || "openai/gpt-oss-120b"
   },
+  llmTimeoutRoleId: process.env.LLM_TIMEOUT_ROLE_ID || "1465784380726186149",
   plannedTimesChannelId: process.env.PLANNED_TIMES_CHANNEL_ID || "1265458054623789277",
   redPandaMediaDirectory: process.env.REDPANDA_MEDIA_DIR,
   reddit: {

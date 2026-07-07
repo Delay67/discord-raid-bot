@@ -1,6 +1,9 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { promptReferencesMember } = require("../src/events/messageCreate");
+const {
+  clampTimeoutSeconds,
+  promptReferencesMember
+} = require("../src/events/messageCreate");
 
 const kolax = {
   displayName: "Kolax the Great",
@@ -24,4 +27,10 @@ test("recognizes a member by server display name or username", () => {
 test("does not match a member name embedded inside another word", () => {
   const member = { displayName: "Art", user: { username: "art_player" } };
   assert.equal(promptReferencesMember("is the artist class fun?", member), false);
+});
+
+test("hard-caps LLM timeout durations at one minute", () => {
+  assert.equal(clampTimeoutSeconds(300), 60);
+  assert.equal(clampTimeoutSeconds(30), 30);
+  assert.equal(clampTimeoutSeconds("invalid"), 60);
 });
