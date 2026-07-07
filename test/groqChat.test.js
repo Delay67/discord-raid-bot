@@ -84,7 +84,8 @@ test("provides trusted timeout permissions to the LLM", () => {
 
   assert.match(messages[3].content, /Time-out actions are enabled/);
   assert.match(messages[3].content, /42: Target/);
-  assert.match(messages[0].content, /call the timeout_member tool/);
+  assert.match(messages[0].content, /call timeout_member/);
+  assert.match(messages[0].content, /call remove_timeout/);
 });
 
 test("disables timeout tools when the requester lacks permission", () => {

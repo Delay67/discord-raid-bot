@@ -45,7 +45,7 @@ function buildMessages(
         "At the very end, you may add up to 3 hidden memory updates in the exact form <memory>{\"key\":\"short_snake_case_key\",\"value\":\"concise fact\"}</memory>.",
         "Only remember a stable fact or preference explicitly stated by the latest user in their latest message; never infer it or take it from conversation history.",
         "Do not remember secrets, credentials, financial or medical information, exact addresses or contact details, protected traits, or facts about another person.",
-        "A separate trusted moderation-permissions message states whether the latest user may request time-outs and lists the only allowed targets. If enabled and the user directly asks to time out an allowed target, call the timeout_member tool. Use 60 seconds when no shorter duration is requested, never exceed 60, and do not call it when moderation is disabled or the target is not listed. After receiving the tool result, answer naturally and accurately about whether it succeeded.",
+        "A separate trusted moderation-permissions message states whether the latest user may request time-outs and lists the only allowed targets. If enabled and the user directly asks to time out an allowed target, call timeout_member. Use 60 seconds when no shorter duration is requested and never exceed 60. If the user directly asks to lift or remove an allowed target's timeout, call remove_timeout. Do not call moderation tools when moderation is disabled or the target is not listed. After receiving the tool result, answer naturally and accurately about whether it succeeded.",
         "Answer casually in 1-4 short sentences.",
         "Do not mention that you are an AI model.",
         "Do not provide harmful instructions or private information."
@@ -164,35 +164,57 @@ async function askGroq(
 
   try {
     const allowedTargetIds = moderationContext.targets?.map(({ id }) => id) || [];
-    const tools = moderationContext.enabled && allowedTargetIds.length > 0 ? [{
-      type: "function",
-      function: {
-        name: "timeout_member",
-        description: "Time out an allowed Discord member for no more than 60 seconds.",
-        parameters: {
-          type: "object",
-          properties: {
-            userId: { type: "string", enum: allowedTargetIds },
-            seconds: { type: "integer", minimum: 1, maximum: 60 },
-            reason: { type: "string" }
-          },
-          required: ["userId", "seconds", "reason"]
+    const tools = moderationContext.enabled && allowedTargetIds.length > 0 ? [
+      {
+        type: "function",
+        function: {
+          name: "timeout_member",
+          description: "Time out an allowed Discord member for no more than 60 seconds.",
+          parameters: {
+            type: "object",
+            properties: {
+              userId: { type: "string", enum: allowedTargetIds },
+              seconds: { type: "integer", minimum: 1, maximum: 60 },
+              reason: { type: "string" }
+            },
+            required: ["userId", "seconds", "reason"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "remove_timeout",
+          description: "Lift the active timeout from an allowed Discord member.",
+          parameters: {
+            type: "object",
+            properties: {
+              userId: { type: "string", enum: allowedTargetIds },
+              reason: { type: "string" }
+            },
+            required: ["userId", "reason"]
+          }
         }
       }
-    }] : [];
+    ] : [];
     let responseMessage = await requestCompletion(messages, controller.signal, tools);
     const toolCall = responseMessage.tool_calls?.find(
-      ({ function: fn }) => fn?.name === "timeout_member"
+      ({ function: fn }) => ["timeout_member", "remove_timeout"].includes(fn?.name)
     );
 
-    if (toolCall && moderationContext.executeTimeout) {
+    if (toolCall) {
       let args = {};
       try {
         args = JSON.parse(toolCall.function.arguments || "{}");
       } catch {
         // The executor will return a useful validation failure.
       }
-      const outcome = await moderationContext.executeTimeout(args);
+      const executor = toolCall.function.name === "remove_timeout"
+        ? moderationContext.executeRemoveTimeout
+        : moderationContext.executeTimeout;
+      const outcome = executor
+        ? await executor(args)
+        : { error: "Requested moderation action is unavailable.", success: false };
       responseMessage = await requestCompletion([
         ...messages,
         responseMessage,

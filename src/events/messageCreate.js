@@ -367,6 +367,32 @@ async function handleBotMention(message) {
           });
           return { error: error.message, success: false, targetId };
         }
+      },
+      async executeRemoveTimeout(action) {
+        const targetId = String(action.userId || "");
+        const allowedTargetIds = new Set(timeoutTargets.map(({ id }) => id));
+        if (!allowedTargetIds.has(targetId)) {
+          return { error: "Target was not resolved from the latest request.", success: false };
+        }
+
+        try {
+          const target = await message.guild.members.fetch(targetId);
+          const reason = String(action.reason ||
+            `Requested by ${message.author.username} through Delay Junior`).slice(0, 200);
+          await target.timeout(null, reason);
+          console.log("[LLM timeout] Removed", {
+            requesterId: message.author.id,
+            targetId
+          });
+          return { success: true, targetId, timeoutRemoved: true };
+        } catch (error) {
+          console.warn("[LLM timeout] Remove failed", {
+            error: error.message,
+            requesterId: message.author.id,
+            targetId
+          });
+          return { error: error.message, success: false, targetId };
+        }
       }
     };
     console.log("[LLM moderation]", {
