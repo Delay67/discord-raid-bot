@@ -48,14 +48,21 @@ test("instructs the model to answer direct personal questions from member memory
 test("injects separately labeled memory for a mentioned member", () => {
   const messages = buildMessages("what does @Delay main?", "Arcel", [], [], [
     {
+      id: "123456789",
       label: "Delay",
+      aliases: ["Delay", "delay67"],
       memories: [{ key: "delay67_main_class", value: "Guardianknight" }]
     }
   ]);
 
-  assert.match(messages[2].content, /REFERENCED MEMBER MEMORY \(Delay\)/);
+  assert.match(messages[2].content, /Discord mention: <@123456789>/);
+  assert.match(messages[2].content, /Label: Delay/);
+  assert.match(messages[2].content, /Aliases: Delay, delay67/);
+  assert.match(messages[2].content, /Stored entries \(1\)/);
   assert.match(messages[2].content, /delay67_main_class: Guardianknight/);
-  assert.match(messages[0].content, /never attribute another member's memory to them/i);
+  assert.doesNotMatch(messages[2].content, /No long-term memories stored yet/);
+  assert.match(messages[0].content, /never attribute one member's memory to another member/i);
+  assert.match(messages[0].content, /never claim that no notes or memories exist/i);
 });
 
 test("extracts hidden memory updates from the visible answer", () => {

@@ -100,6 +100,14 @@ function promptReferencesMember(prompt, member) {
   });
 }
 
+function getMemberAliases(member, user = member?.user) {
+  return [...new Set([
+    member?.displayName,
+    user?.globalName,
+    user?.username
+  ].filter(Boolean))];
+}
+
 function isOnCooldown(userId) {
   const now = Date.now();
   const availableAt = mentionCooldowns.get(userId) || 0;
@@ -241,6 +249,7 @@ async function handleBotMention(message) {
       referencedMembers.set(user.id, {
         id: user.id,
         label: member?.displayName || user.globalName || user.username,
+        aliases: getMemberAliases(member, user),
         source: "explicit-mention"
       });
     }
@@ -250,6 +259,7 @@ async function handleBotMention(message) {
         referencedMembers.set(member.id, {
           id: member.id,
           label: member.displayName || member.user.globalName || member.user.username,
+          aliases: getMemberAliases(member),
           source: "guild-member-cache"
         });
       }
@@ -262,6 +272,7 @@ async function handleBotMention(message) {
         referencedMembers.set(user.id, {
           id: user.id,
           label: user.globalName || user.username,
+          aliases: getMemberAliases(null, user),
           source: "client-user-cache"
         });
       }
@@ -288,6 +299,7 @@ async function handleBotMention(message) {
         referencedMembers.set(user.id, {
           id: user.id,
           label: user.globalName || user.username,
+          aliases: getMemberAliases(null, user),
           source: "stored-memory-user-id"
         });
       }
@@ -298,9 +310,10 @@ async function handleBotMention(message) {
         id !== message.client.user.id && id !== message.author.id
       );
     const referencedMemberMemories = externalReferencedMembers
-      .map(({ id, label, source }) => ({
+      .map(({ id, label, aliases, source }) => ({
         id,
         label,
+        aliases,
         source,
         memories: getMemberMemories(guildId, id)
       }))
@@ -328,6 +341,7 @@ async function handleBotMention(message) {
         ? "use referenced members; suppress author memory"
         : "no other member resolved; use author memory"
     }, null, 2));
+
     const result = await askGroqWithRetry(
       [
         prompt,
