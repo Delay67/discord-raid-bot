@@ -45,7 +45,7 @@ function buildMessages(
         "At the very end, you may add up to 3 hidden memory updates in the exact form <memory>{\"key\":\"short_snake_case_key\",\"value\":\"concise fact\"}</memory>.",
         "Only remember a stable fact or preference explicitly stated by the latest user in their latest message; never infer it or take it from conversation history.",
         "Do not remember secrets, credentials, financial or medical information, exact addresses or contact details, protected traits, or facts about another person.",
-        "A separate trusted moderation-permissions message states whether the latest user may request time-outs and lists the only allowed targets. If enabled and the user directly asks to time out an allowed target, append exactly one hidden action at the very end: <timeout>{\"userId\":\"Discord ID\",\"seconds\":60,\"reason\":\"concise reason\"}</timeout>. Use 60 seconds when no shorter duration is requested, never exceed 60, and do not emit this action when moderation is disabled or the target is not listed.",
+        "A separate trusted moderation-permissions message states whether the latest user may request time-outs and lists the only allowed targets. If enabled and the user directly asks to time out an allowed target, call the timeout_member tool. Use 60 seconds when no shorter duration is requested, never exceed 60, and do not call it when moderation is disabled or the target is not listed. After receiving the tool result, answer naturally and accurately about whether it succeeded.",
         "Answer casually in 1-4 short sentences.",
         "Do not mention that you are an AI model.",
         "Do not provide harmful instructions or private information."
@@ -91,8 +91,6 @@ function buildMessages(
 function parseMemoryUpdates(content) {
   const updates = [];
   const memoryPattern = /<memory>([\s\S]*?)<\/memory>/gi;
-  const timeoutPattern = /<timeout>([\s\S]*?)<\/timeout>/gi;
-  const timeoutActions = [];
 
   for (const match of content.matchAll(memoryPattern)) {
     try {
@@ -103,20 +101,46 @@ function parseMemoryUpdates(content) {
     }
   }
 
-  for (const match of content.matchAll(timeoutPattern)) {
-    try {
-      const action = JSON.parse(match[1]);
-      if (action && typeof action === "object") timeoutActions.push(action);
-    } catch {
-      // Malformed hidden actions are discarded rather than shown to Discord.
-    }
+  return {
+    answer: content.replace(memoryPattern, "").trim(),
+    memoryUpdates: updates.slice(0, 3)
+  };
+}
+
+async function requestCompletion(messages, signal, tools) {
+  const body = {
+    model: groq.model,
+    messages,
+    max_completion_tokens: 350,
+    temperature: 0.8
+  };
+
+  if (tools?.length > 0) {
+    body.tools = tools;
+    body.tool_choice = "auto";
   }
 
-  return {
-    answer: content.replace(memoryPattern, "").replace(timeoutPattern, "").trim(),
-    memoryUpdates: updates.slice(0, 3),
-    timeoutAction: timeoutActions[0] || null
-  };
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    signal,
+    headers: {
+      Authorization: `Bearer ${groq.apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message = payload?.error?.message || `Groq request failed with ${response.status}`;
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
+  }
+
+  const responseMessage = payload?.choices?.[0]?.message;
+  if (!responseMessage) throw new Error("Groq returned an empty response.");
+  return responseMessage;
 }
 
 async function askGroq(
@@ -139,31 +163,48 @@ async function askGroq(
   const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
 
   try {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${groq.apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: groq.model,
-        messages,
-        max_completion_tokens: 350,
-        temperature: 0.8
-      })
-    });
+    const allowedTargetIds = moderationContext.targets?.map(({ id }) => id) || [];
+    const tools = moderationContext.enabled && allowedTargetIds.length > 0 ? [{
+      type: "function",
+      function: {
+        name: "timeout_member",
+        description: "Time out an allowed Discord member for no more than 60 seconds.",
+        parameters: {
+          type: "object",
+          properties: {
+            userId: { type: "string", enum: allowedTargetIds },
+            seconds: { type: "integer", minimum: 1, maximum: 60 },
+            reason: { type: "string" }
+          },
+          required: ["userId", "seconds", "reason"]
+        }
+      }
+    }] : [];
+    let responseMessage = await requestCompletion(messages, controller.signal, tools);
+    const toolCall = responseMessage.tool_calls?.find(
+      ({ function: fn }) => fn?.name === "timeout_member"
+    );
 
-    const payload = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      const message = payload?.error?.message || `Groq request failed with ${response.status}`;
-      const error = new Error(message);
-      error.status = response.status;
-      throw error;
+    if (toolCall && moderationContext.executeTimeout) {
+      let args = {};
+      try {
+        args = JSON.parse(toolCall.function.arguments || "{}");
+      } catch {
+        // The executor will return a useful validation failure.
+      }
+      const outcome = await moderationContext.executeTimeout(args);
+      responseMessage = await requestCompletion([
+        ...messages,
+        responseMessage,
+        {
+          role: "tool",
+          tool_call_id: toolCall.id,
+          content: JSON.stringify(outcome)
+        }
+      ], controller.signal, tools);
     }
 
-    const content = payload?.choices?.[0]?.message?.content?.trim();
+    const content = responseMessage.content?.trim();
 
     if (!content) {
       throw new Error("Groq returned an empty response.");

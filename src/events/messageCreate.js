@@ -339,8 +339,42 @@ async function handleBotMention(message) {
     }
     const moderationContext = {
       enabled: canRequestTimeout,
-      targets: timeoutTargets
+      targets: timeoutTargets,
+      async executeTimeout(action) {
+        const targetId = String(action.userId || "");
+        const allowedTargetIds = new Set(timeoutTargets.map(({ id }) => id));
+        if (!allowedTargetIds.has(targetId)) {
+          return { error: "Target was not resolved from the latest request.", success: false };
+        }
+
+        try {
+          const seconds = clampTimeoutSeconds(action.seconds);
+          const target = await message.guild.members.fetch(targetId);
+          const reason = String(action.reason ||
+            `Requested by ${message.author.username} through Delay Junior`).slice(0, 200);
+          await target.timeout(seconds * 1000, reason);
+          console.log("[LLM timeout] Applied", {
+            requesterId: message.author.id,
+            seconds,
+            targetId
+          });
+          return { seconds, success: true, targetId };
+        } catch (error) {
+          console.warn("[LLM timeout] Failed", {
+            error: error.message,
+            requesterId: message.author.id,
+            targetId
+          });
+          return { error: error.message, success: false, targetId };
+        }
+      }
     };
+    console.log("[LLM moderation]", {
+      enabled: canRequestTimeout,
+      requesterId: message.author.id,
+      roleId: llmTimeoutRoleId,
+      targetIds: timeoutTargets.map(({ id }) => id)
+    });
     console.log("[member-memory lookup]", JSON.stringify({
       guildId,
       prompt,
@@ -378,24 +412,6 @@ async function handleBotMention(message) {
       message.author.id,
       result.memoryUpdates
     );
-    if (result.timeoutAction && canRequestTimeout) {
-      const targetId = String(result.timeoutAction.userId || "");
-      const allowedTargetIds = new Set(timeoutTargets.map(({ id }) => id));
-
-      if (allowedTargetIds.has(targetId)) {
-        const seconds = clampTimeoutSeconds(result.timeoutAction.seconds);
-        const target = await message.guild.members.fetch(targetId);
-        const reason = String(result.timeoutAction.reason ||
-          `Requested by ${message.author.username} through Delay Junior`).slice(0, 200);
-
-        await target.timeout(seconds * 1000, reason);
-      } else {
-        console.warn("[LLM timeout] Rejected target outside latest request", {
-          requesterId: message.author.id,
-          targetId
-        });
-      }
-    }
     await message.reply(result.answer);
   } catch (error) {
     console.error(error);
