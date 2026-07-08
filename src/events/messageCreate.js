@@ -25,7 +25,9 @@ const mentionCooldownMaxRetries = 3;
 const groqRetryDelayMs = 5000;
 const groqMaxRetries = 2;
 const conversationMessageLimit = 15;
-const maxConversationLength = 6000;
+const maxConversationMessages = 10;
+const maxConversationLength = 3600;
+const maxConversationMessageLength = 700;
 const mentionCooldowns = new Map();
 const maxLlmTimeoutSeconds = 60;
 
@@ -191,12 +193,17 @@ async function getConversationContext(message) {
     const role = recentMessage.author.id === message.client.user.id
       ? "assistant"
       : "user";
-    const labelledContent = role === "assistant"
+    let labelledContent = role === "assistant"
       ? content
       : `${recentMessage.author.username}: ${content}`;
 
-    if (labelledContent.length > remainingLength) {
-      continue;
+    if (context.length >= maxConversationMessages || remainingLength <= 0) {
+      break;
+    }
+
+    const allowedLength = Math.min(maxConversationMessageLength, remainingLength);
+    if (labelledContent.length > allowedLength) {
+      labelledContent = `${labelledContent.slice(0, Math.max(0, allowedLength - 3))}...`;
     }
 
     context.unshift({ role, content: labelledContent });

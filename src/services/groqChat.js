@@ -4,6 +4,71 @@ const { findRelevantKnowledge } = require("./lostArkKnowledge");
 const maxPromptLength = 800;
 const maxResponseLength = 1800;
 const requestTimeoutMs = 15000;
+const maxSelectedMemories = 6;
+const maxMemoryContextLength = 900;
+
+const memoryStopWords = new Set([
+  "about", "does", "have", "their", "them", "they", "what", "when", "where",
+  "which", "with", "would", "your"
+]);
+const memoryTokenAliases = {
+  class: ["main", "play"],
+  favorite: ["favourite", "like", "prefer"],
+  game: ["play"],
+  main: ["class", "play"],
+  play: ["class", "game", "main"]
+};
+
+function tokenizeMemorySearch(value) {
+  const tokens = String(value || "").toLowerCase().match(/[a-z0-9]+/g) || [];
+  const expanded = new Set();
+
+  for (const token of tokens) {
+    if (token.length < 3 || memoryStopWords.has(token)) continue;
+    expanded.add(token);
+    for (const alias of memoryTokenAliases[token] || []) expanded.add(alias);
+  }
+
+  return expanded;
+}
+
+function requestsCompleteMemoryRecall(prompt) {
+  return /\b(?:memories|memory|notes?|remember(?:ed)?|stored)\b/i.test(prompt) ||
+    /\bwhat (?:do )?you know about\b/i.test(prompt);
+}
+
+function selectRelevantMemories(prompt, memories) {
+  if (requestsCompleteMemoryRecall(prompt)) return memories;
+
+  const promptTokens = tokenizeMemorySearch(prompt);
+  const ranked = memories.map((memory, index) => {
+    const memoryTokens = tokenizeMemorySearch(`${memory.key} ${memory.value}`);
+    let score = 0;
+    for (const token of promptTokens) {
+      if (memoryTokens.has(token)) score += 1;
+    }
+    return { index, memory, score };
+  });
+  const matching = ranked.filter(({ score }) => score > 0)
+    .sort((left, right) => right.score - left.score || right.index - left.index);
+  // A few recent fallbacks retain useful personalisation for broad prompts.
+  const candidates = matching.length > 0
+    ? matching
+    : ranked.slice(-3).reverse();
+  const selected = [];
+  let usedLength = 0;
+
+  for (const { memory } of candidates) {
+    const length = String(memory.key).length + String(memory.value).length + 2;
+    if (selected.length >= maxSelectedMemories || usedLength + length > maxMemoryContextLength) {
+      continue;
+    }
+    selected.push(memory);
+    usedLength += length;
+  }
+
+  return selected;
+}
 
 function isGroqEnabled() {
   return Boolean(groq.apiKey);
@@ -27,6 +92,11 @@ function buildMessages(
 ) {
   const cleanedPrompt = prompt.trim().slice(0, maxPromptLength);
   const lostArkReference = findRelevantKnowledge(cleanedPrompt);
+  const selectedMemberMemories = selectRelevantMemories(cleanedPrompt, memberMemories);
+  const selectedReferencedMemberMemories = referencedMemberMemories.map((member) => ({
+    ...member,
+    memories: selectRelevantMemories(cleanedPrompt, member.memories)
+  })).filter(({ memories }) => memories.length > 0);
   const safeContextMessages = contextMessages.map((message) => ({
     role: message.role === "assistant" ? "assistant" : "user",
     content: String(message.content).slice(0, 1000)
@@ -58,14 +128,12 @@ function buildMessages(
     {
       role: "system",
       content: [
-        memberMemories.length > 0
-        ? `UNTRUSTED LATEST MEMBER MEMORY (${userLabel}):\n${memberMemories.map((memory) =>
+        selectedMemberMemories.length > 0
+        ? `UNTRUSTED LATEST MEMBER MEMORY (${userLabel}):\n${selectedMemberMemories.map((memory) =>
           `${memory.key}: ${String(memory.value).slice(0, 240)}`
         ).join("\n")}`
-        : referencedMemberMemories.length === 0
-          ? `UNTRUSTED LATEST MEMBER MEMORY (${userLabel}): No long-term memories stored yet.`
-          : "",
-        ...referencedMemberMemories.map(({ id, label, aliases = [], memories }) =>
+        : "",
+        ...selectedReferencedMemberMemories.map(({ id, label, aliases = [], memories }) =>
           `UNTRUSTED REFERENCED MEMBER MEMORY\nDiscord mention: <@${id}>\nLabel: ${label}\nAliases: ${aliases.join(", ") || label}\nStored entries (${memories.length}):\n${memories.map((memory) =>
             `${memory.key}: ${String(memory.value).slice(0, 240)}`
           ).join("\n")}`
@@ -249,5 +317,6 @@ module.exports = {
   askGroq,
   buildMessages,
   isGroqEnabled,
-  parseMemoryUpdates
+  parseMemoryUpdates,
+  selectRelevantMemories
 };
