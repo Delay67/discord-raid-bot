@@ -264,6 +264,13 @@ async function handleBotMention(message) {
 
   try {
     const imageContext = await describeImages(prompt, imageAttachments);
+    if (imageAttachments.length > 0) {
+      console.log("[LLM vision]", {
+        attachmentCount: imageAttachments.length,
+        descriptionLength: imageContext.length,
+        modelProducedDescription: Boolean(imageContext)
+      });
+    }
     const context = await getConversationContext(message);
     const guildId = message.guildId || "direct-messages";
     const memories = getMemberMemories(guildId, message.author.id);
