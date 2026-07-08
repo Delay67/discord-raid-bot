@@ -40,3 +40,39 @@ test("rejects obvious sensitive memory fields", (context) => {
 
   assert.deepEqual(getMemberMemories("guild-a", "user-a", filePath), []);
 });
+
+test("deletes an existing memory by exact normalized key", (context) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "member-memory-"));
+  const filePath = path.join(directory, "memory.json");
+  context.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+
+  upsertMemberMemories("guild-a", "user-a", [
+    { key: "main_class", value: "Bard" },
+    { key: "burger_preference", value: "no onions" }
+  ], filePath);
+  const applied = upsertMemberMemories("guild-a", "user-a", [
+    { operation: "delete", key: "burger preference" }
+  ], filePath);
+
+  assert.equal(applied, 1);
+  assert.deepEqual(getMemberMemories("guild-a", "user-a", filePath), [
+    { key: "main_class", value: "Bard" }
+  ]);
+});
+
+test("ignores deletion requests for keys that do not exist", (context) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "member-memory-"));
+  const filePath = path.join(directory, "memory.json");
+  context.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+
+  upsertMemberMemories("guild-a", "user-a", [
+    { key: "main_class", value: "Bard" }
+  ], filePath);
+
+  assert.equal(upsertMemberMemories("guild-a", "user-a", [
+    { operation: "delete", key: "missing_note" }
+  ], filePath), 0);
+  assert.deepEqual(getMemberMemories("guild-a", "user-a", filePath), [
+    { key: "main_class", value: "Bard" }
+  ]);
+});

@@ -50,25 +50,34 @@ function getGuildMemberIds(guildId, filePath = memoryPath) {
   return members ? Object.keys(members) : [];
 }
 
-function normalizeUpdate(update) {
-  const key = String(update?.key || "")
+function normalizeKey(value) {
+  return String(value || "")
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .slice(0, 50);
+}
+
+function normalizeUpdate(update) {
+  const key = normalizeKey(update?.key);
+  const operation = String(update?.operation || "set").toLowerCase();
+
+  if (!key || blockedKeyPattern.test(key)) return null;
+  if (["delete", "remove"].includes(operation)) {
+    return { key, operation: "delete" };
+  }
+
   const value = String(update?.value || "").replace(/\s+/g, " ").trim()
     .slice(0, maxMemoryValueLength);
 
   if (
-    !key ||
     !value ||
-    blockedKeyPattern.test(key) ||
     blockedValuePatterns.some((pattern) => pattern.test(value))
   ) {
     return null;
   }
-  return { key, value };
+  return { key, operation: "set", value };
 }
 
 function upsertMemberMemories(guildId, userId, updates, filePath = memoryPath) {
@@ -81,18 +90,28 @@ function upsertMemberMemories(guildId, userId, updates, filePath = memoryPath) {
   const record = store.guilds[guildId].members[userId] ||= { memories: {} };
   record.memories ||= {};
 
+  let appliedUpdates = 0;
   for (const update of normalizedUpdates) {
+    if (update.operation === "delete") {
+      if (Object.hasOwn(record.memories, update.key)) {
+        delete record.memories[update.key];
+        appliedUpdates += 1;
+      }
+      continue;
+    }
+
     record.memories[update.key] = {
       updatedAt: new Date().toISOString(),
       value: update.value
     };
+    appliedUpdates += 1;
   }
 
   const entries = Object.entries(record.memories)
     .sort(([, left], [, right]) => right.updatedAt.localeCompare(left.updatedAt));
   record.memories = Object.fromEntries(entries.slice(0, maxMemoriesPerMember));
-  writeStore(store, filePath);
-  return normalizedUpdates.length;
+  if (appliedUpdates > 0) writeStore(store, filePath);
+  return appliedUpdates;
 }
 
 module.exports = {

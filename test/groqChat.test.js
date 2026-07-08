@@ -111,6 +111,17 @@ test("extracts hidden memory updates from the visible answer", () => {
   ]);
 });
 
+test("extracts a hidden memory deletion from the visible answer", () => {
+  const result = parseMemoryUpdates(
+    'Removed it. <memory>{"operation":"delete","key":"burger_preference"}</memory>'
+  );
+
+  assert.equal(result.answer, "Removed it.");
+  assert.deepEqual(result.memoryUpdates, [
+    { operation: "delete", key: "burger_preference" }
+  ]);
+});
+
 test("provides trusted timeout permissions to the LLM", () => {
   const messages = buildMessages("timeout <@42>", "Mod", [], [], [], {
     enabled: true,
