@@ -230,6 +230,17 @@ async function handleBotMention(message) {
   }
 
   const imageAttachments = getVisionImageAttachments(message.attachments.values());
+  if (message.attachments.size > 0) {
+    console.log("[LLM vision attachments]", {
+      accepted: imageAttachments.length,
+      received: message.attachments.size,
+      attachments: [...message.attachments.values()].map((attachment) => ({
+        contentType: attachment.contentType || null,
+        name: attachment.name || null,
+        size: attachment.size || null
+      }))
+    });
+  }
 
   if (!prompt && imageAttachments.length === 0) {
     await message.reply("Mention me with something to answer.");

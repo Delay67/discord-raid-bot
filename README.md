@@ -80,7 +80,7 @@ Mention the bot to ask Groq a short question:
 @delay raid helper why is Serca cursed?
 ```
 
-Attach up to two JPEG, PNG, or WebP images while mentioning the bot to ask about
+Attach up to two images while mentioning the bot to ask about
 screenshots, visible text, or other image content. Images must be no larger than
 20 MiB each. Image understanding uses `GROQ_VISION_MODEL`; text-only requests do
 not call the vision model.

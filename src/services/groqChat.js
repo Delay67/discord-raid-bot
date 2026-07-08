@@ -81,8 +81,8 @@ function getVisionImageAttachments(attachments = []) {
   return [...attachments].filter((attachment) => {
     const contentType = String(attachment.contentType || "").toLowerCase();
     const fileName = String(attachment.name || attachment.url || "").toLowerCase();
-    const supportedType = /^image\/(?:jpeg|png|webp)$/.test(contentType) ||
-      /\.(?:jpe?g|png|webp)(?:\?|$)/.test(fileName);
+    const supportedType = contentType.startsWith("image/") ||
+      /\.(?:avif|gif|jpe?g|png|webp)(?:\?|$)/.test(fileName);
     return supportedType && attachment.url &&
       (!attachment.size || attachment.size <= maxVisionImageBytes);
   }).slice(0, maxVisionImages);
