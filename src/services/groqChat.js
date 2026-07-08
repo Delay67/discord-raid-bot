@@ -9,6 +9,7 @@ const maxMemoryContextLength = 900;
 const maxVisionImages = 2;
 const maxVisionImageBytes = 20 * 1024 * 1024;
 const maxVisionDescriptionLength = 2000;
+const resizedVisionImageDimension = 2048;
 
 const memoryStopWords = new Set([
   "about", "does", "have", "their", "them", "they", "what", "when", "where",
@@ -78,14 +79,30 @@ function isGroqEnabled() {
 }
 
 function getVisionImageAttachments(attachments = []) {
-  return [...attachments].filter((attachment) => {
+  return [...attachments].map((attachment) => {
     const contentType = String(attachment.contentType || "").toLowerCase();
     const fileName = String(attachment.name || attachment.url || "").toLowerCase();
     const supportedType = contentType.startsWith("image/") ||
       /\.(?:avif|gif|jpe?g|png|webp)(?:\?|$)/.test(fileName);
-    return supportedType && attachment.url &&
-      (!attachment.size || attachment.size <= maxVisionImageBytes);
-  }).slice(0, maxVisionImages);
+    if (!supportedType || !attachment.url) return null;
+
+    if (!attachment.size || attachment.size <= maxVisionImageBytes) {
+      return attachment;
+    }
+
+    try {
+      const proxyUrl = new URL(
+        attachment.proxyURL || attachment.url.replace("cdn.discordapp.com", "media.discordapp.net")
+      );
+      proxyUrl.searchParams.set("format", "webp");
+      proxyUrl.searchParams.set("quality", "high");
+      proxyUrl.searchParams.set("width", String(resizedVisionImageDimension));
+      proxyUrl.searchParams.set("height", String(resizedVisionImageDimension));
+      return { ...attachment, optimizedForVision: true, url: proxyUrl.toString() };
+    } catch {
+      return null;
+    }
+  }).filter(Boolean).slice(0, maxVisionImages);
 }
 
 async function describeImages(prompt, attachments) {

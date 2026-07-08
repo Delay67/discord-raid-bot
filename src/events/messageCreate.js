@@ -233,6 +233,7 @@ async function handleBotMention(message) {
   if (message.attachments.size > 0) {
     console.log("[LLM vision attachments]", {
       accepted: imageAttachments.length,
+      optimized: imageAttachments.filter(({ optimizedForVision }) => optimizedForVision).length,
       received: message.attachments.size,
       attachments: [...message.attachments.values()].map((attachment) => ({
         contentType: attachment.contentType || null,

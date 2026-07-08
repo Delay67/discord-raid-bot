@@ -82,8 +82,9 @@ Mention the bot to ask Groq a short question:
 
 Attach up to two images while mentioning the bot to ask about
 screenshots, visible text, or other image content. Images must be no larger than
-20 MiB each. Image understanding uses `GROQ_VISION_MODEL`; text-only requests do
-not call the vision model.
+20 MiB each as delivered to Groq; larger Discord uploads are automatically sent
+through Discord's resized image proxy. Image understanding uses
+`GROQ_VISION_MODEL`; text-only requests do not call the vision model.
 
 Admins can disable or re-enable all mention replies:
 

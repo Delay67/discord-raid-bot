@@ -63,11 +63,24 @@ test("accepts at most two Discord image attachments", () => {
   assert.deepEqual(getVisionImageAttachments(attachments), attachments.slice(0, 2));
 });
 
-test("rejects non-images and oversized vision attachments", () => {
+test("rejects non-images and resizes oversized Discord images through its proxy", () => {
+  const oversized = {
+    contentType: "image/png",
+    name: "huge.png",
+    proxyURL: "https://media.discordapp.net/attachments/1/2/huge.png",
+    size: 21 * 1024 * 1024,
+    url: "https://cdn.discordapp.com/attachments/1/2/huge.png"
+  };
+
   assert.deepEqual(getVisionImageAttachments([
-    { contentType: "image/png", name: "huge.png", size: 21 * 1024 * 1024, url: "https://cdn/huge.png" },
     { contentType: "text/plain", name: "notes.txt", size: 100, url: "https://cdn/notes.txt" }
   ]), []);
+
+  const [optimized] = getVisionImageAttachments([oversized]);
+  assert.equal(optimized.optimizedForVision, true);
+  assert.match(optimized.url, /^https:\/\/media\.discordapp\.net\/attachments\//);
+  assert.match(optimized.url, /format=webp/);
+  assert.match(optimized.url, /width=2048/);
 });
 
 test("sends relevant memories instead of every stored fact", () => {
