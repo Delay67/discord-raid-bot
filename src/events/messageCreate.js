@@ -86,6 +86,54 @@ function getMentionPrompt(message) {
     .trim();
 }
 
+function getMessageImageCandidates(message) {
+  const candidates = [...(message.attachments?.values() || [])];
+
+  for (const embed of message.embeds || []) {
+    for (const media of [embed.image, embed.thumbnail]) {
+      if (media?.url) {
+        candidates.push({
+          contentType: "image/unknown",
+          name: media.url,
+          proxyURL: media.proxyURL,
+          url: media.url
+        });
+      }
+    }
+  }
+
+  for (const sticker of message.stickers?.values() || []) {
+    if (sticker.url) {
+      candidates.push({
+        contentType: "image/unknown",
+        name: sticker.name,
+        url: sticker.url
+      });
+    }
+  }
+
+  return [...new Map(candidates.map((candidate) => [candidate.url, candidate])).values()];
+}
+
+async function getMentionImageCandidates(message) {
+  const candidates = getMessageImageCandidates(message);
+  let referencedMessage = null;
+
+  if (message.reference?.messageId) {
+    try {
+      referencedMessage = await message.fetchReference();
+      candidates.push(...getMessageImageCandidates(referencedMessage));
+    } catch (error) {
+      console.warn("[LLM vision] Could not fetch replied-to message:", error.message);
+    }
+  }
+
+  return {
+    candidates: [...new Map(candidates.map((candidate) => [candidate.url, candidate])).values()],
+    referencedMessageId: referencedMessage?.id || null
+  };
+}
+
 function normalizeMemberName(value) {
   return String(value || "")
     .toLowerCase()
@@ -229,13 +277,16 @@ async function handleBotMention(message) {
     return true;
   }
 
-  const imageAttachments = getVisionImageAttachments(message.attachments.values());
-  if (message.attachments.size > 0) {
+  const { candidates: imageCandidates, referencedMessageId } =
+    await getMentionImageCandidates(message);
+  const imageAttachments = getVisionImageAttachments(imageCandidates);
+  if (imageCandidates.length > 0) {
     console.log("[LLM vision attachments]", {
       accepted: imageAttachments.length,
       optimized: imageAttachments.filter(({ optimizedForVision }) => optimizedForVision).length,
-      received: message.attachments.size,
-      attachments: [...message.attachments.values()].map((attachment) => ({
+      received: imageCandidates.length,
+      referencedMessageId,
+      attachments: imageCandidates.map((attachment) => ({
         contentType: attachment.contentType || null,
         name: attachment.name || null,
         size: attachment.size || null
@@ -493,6 +544,7 @@ async function handleBotMention(message) {
 module.exports = {
   askGroqWithRetry,
   clampTimeoutSeconds,
+  getMessageImageCandidates,
   isRetryableGroqError,
   name: Events.MessageCreate,
   promptReferencesMember,

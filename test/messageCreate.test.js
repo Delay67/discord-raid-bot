@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
   clampTimeoutSeconds,
+  getMessageImageCandidates,
   promptReferencesMember
 } = require("../src/events/messageCreate");
 
@@ -33,4 +34,25 @@ test("hard-caps LLM timeout durations at one minute", () => {
   assert.equal(clampTimeoutSeconds(300), 60);
   assert.equal(clampTimeoutSeconds(30), 30);
   assert.equal(clampTimeoutSeconds("invalid"), 60);
+});
+
+test("collects attachments, embedded images, and stickers from a Discord message", () => {
+  const attachment = {
+    contentType: "image/png",
+    name: "upload.png",
+    url: "https://cdn/upload.png"
+  };
+  const candidates = getMessageImageCandidates({
+    attachments: new Map([["attachment", attachment]]),
+    embeds: [{ image: { url: "https://cdn/embed.webp" } }],
+    stickers: new Map([["sticker", {
+      name: "Mokoko",
+      url: "https://cdn/sticker.png"
+    }]])
+  });
+
+  assert.equal(candidates.length, 3);
+  assert.equal(candidates[0], attachment);
+  assert.equal(candidates[1].url, "https://cdn/embed.webp");
+  assert.equal(candidates[2].url, "https://cdn/sticker.png");
 });

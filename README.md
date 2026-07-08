@@ -85,6 +85,8 @@ screenshots, visible text, or other image content. Images must be no larger than
 20 MiB each as delivered to Groq; larger Discord uploads are automatically sent
 through Discord's resized image proxy. Image understanding uses
 `GROQ_VISION_MODEL`; text-only requests do not call the vision model.
+Mentioning the bot in a reply also analyzes images attached to or embedded in
+the replied-to message.
 
 Admins can disable or re-enable all mention replies:
 
