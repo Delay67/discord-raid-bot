@@ -29,6 +29,7 @@ A Discord bot for looking up which fixed Lost Ark raid groups a player is includ
    REDDIT_PASSWORD=your-reddit-password
    GROQ_API_KEY=your-groq-api-key
    GROQ_MODEL=openai/gpt-oss-120b
+   GROQ_VISION_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
    ```
 
 3. Register slash commands:
@@ -78,6 +79,11 @@ Mention the bot to ask Groq a short question:
 ```text
 @delay raid helper why is Serca cursed?
 ```
+
+Attach up to two JPEG, PNG, or WebP images while mentioning the bot to ask about
+screenshots, visible text, or other image content. Images must be no larger than
+20 MiB each. Image understanding uses `GROQ_VISION_MODEL`; text-only requests do
+not call the vision model.
 
 Admins can disable or re-enable all mention replies:
 

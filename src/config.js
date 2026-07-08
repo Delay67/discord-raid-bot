@@ -28,7 +28,8 @@ module.exports = {
   channelId: process.env.DISCORD_CHANNEL_ID,
   groq: {
     apiKey: process.env.GROQ_API_KEY,
-    model: process.env.GROQ_MODEL || "openai/gpt-oss-120b"
+    model: process.env.GROQ_MODEL || "openai/gpt-oss-120b",
+    visionModel: process.env.GROQ_VISION_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct"
   },
   llmTimeoutRoleId: process.env.LLM_TIMEOUT_ROLE_ID || "1465784380726186149",
   plannedTimesChannelId: process.env.PLANNED_TIMES_CHANNEL_ID || "1265458054623789277",

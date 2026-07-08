@@ -3,7 +3,12 @@ const { channelId, llmTimeoutRoleId, plannedTimesChannelId } = require("../confi
 const { recordMessage, recordRedPanda } = require("../services/activityStats");
 const { isMentionLlmEnabled } = require("../services/botSettings");
 const { deleteMessage } = require("../services/cleanup");
-const { askGroq, isGroqEnabled } = require("../services/groqChat");
+const {
+  askGroq,
+  describeImages,
+  getVisionImageAttachments,
+  isGroqEnabled
+} = require("../services/groqChat");
 const { answerRaidQuestion } = require("../services/raidQuestionAnswer");
 const {
   releaseReservedMedia,
@@ -214,7 +219,7 @@ async function getConversationContext(message) {
 }
 
 async function handleBotMention(message) {
-  const prompt = getMentionPrompt(message);
+  let prompt = getMentionPrompt(message);
 
   if (prompt === null) {
     return false;
@@ -224,10 +229,14 @@ async function handleBotMention(message) {
     return true;
   }
 
-  if (!prompt) {
+  const imageAttachments = getVisionImageAttachments(message.attachments.values());
+
+  if (!prompt && imageAttachments.length === 0) {
     await message.reply("Mention me with something to answer.");
     return true;
   }
+
+  if (!prompt) prompt = "What is in this image?";
 
   if (isRedPandaMediaRequest(prompt)) {
     await replyWithLocalRedPanda(message);
@@ -254,6 +263,7 @@ async function handleBotMention(message) {
   }
 
   try {
+    const imageContext = await describeImages(prompt, imageAttachments);
     const context = await getConversationContext(message);
     const guildId = message.guildId || "direct-messages";
     const memories = getMemberMemories(guildId, message.author.id);
@@ -436,7 +446,8 @@ async function handleBotMention(message) {
         context,
         latestMemberMemories,
         referencedMemberMemories,
-        moderationContext
+        moderationContext,
+        imageContext
       ],
       () => message.channel.sendTyping()
     );
