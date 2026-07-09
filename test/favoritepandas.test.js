@@ -14,11 +14,18 @@ test("creates a single favorite panda message payload without media filenames in
     { media: "https://example.com/third-file-name.jpg", score: 1 }
   ]);
 
-  assert.equal(payload.embeds.length, 4);
+  assert.equal(payload.embeds.length, 3);
   assert.equal(payload.files.length, 0);
 
-  const [leaderboard] = payload.embeds.map((embed) => embed.toJSON());
-  assert.equal(leaderboard.title, "Favorite Red Pandas");
-  assert.equal(leaderboard.fields[0].value, "1. 5 points\n2. 3 points\n3. 1 point");
-  assert.equal(leaderboard.fields[0].value.includes("generic-file-name"), false);
+  const embeds = payload.embeds.map((embed) => embed.toJSON());
+  assert.deepEqual(embeds.map((embed) => embed.title), [
+    "#1 - 5 points",
+    "#2 - 3 points",
+    "#3 - 1 point"
+  ]);
+  const visibleText = embeds
+    .flatMap((embed) => [embed.title, embed.description, ...(embed.fields || []).map((field) => field.value)])
+    .filter(Boolean)
+    .join("\n");
+  assert.equal(visibleText.includes("generic-file-name"), false);
 });

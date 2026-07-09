@@ -30,20 +30,8 @@ function createImageEmbed(leader, index, attachmentName = null) {
   return embed;
 }
 
-function createLeaderboardEmbed(leaders) {
-  return new EmbedBuilder()
-    .setColor(0xd95f43)
-    .setTitle("Favorite Red Pandas")
-    .addFields({
-      name: "Leaderboard",
-      value: leaders
-        .map((leader, index) => `${index + 1}. ${formatScore(leader.score)}`)
-        .join("\n")
-    });
-}
-
 function createImagePayload(leaders) {
-  const embeds = [createLeaderboardEmbed(leaders)];
+  const embeds = [];
   const files = [];
 
   for (const [index, leader] of leaders.entries()) {
