@@ -3,7 +3,9 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { getFavoritePandaLeaders } = require("../services/redPandaStore");
 
+const globalCooldownMs = 30 * 60 * 1000;
 const maxFavoritePandas = 3;
+let cooldownExpiresAt = 0;
 
 function formatScore(score) {
   return `${score} point${score === 1 ? "" : "s"}`;
@@ -82,6 +84,18 @@ module.exports = {
       return;
     }
 
+    const now = Date.now();
+
+    if (cooldownExpiresAt > now) {
+      const retryAt = Math.ceil(cooldownExpiresAt / 1000);
+      await interaction.reply({
+        content: `Favorite pandas can be shown again <t:${retryAt}:R>.`,
+        ephemeral: true
+      });
+      return;
+    }
+
+    cooldownExpiresAt = now + globalCooldownMs;
     await interaction.reply(createImagePayload(leaders));
   }
 };
