@@ -17,6 +17,7 @@ const juniorChance = 0.0033;
 const juniorMediaFile = path.join(localMediaDirectory, "junior.jpg");
 const redPandaBombChance = 0.0067;
 const redPandaBombSize = 5;
+const allowedChannelId = "1524831008531157114";
 const duplicateProtectionMs = 3 * 60 * 60 * 1000;
 const userCooldownMs = 3 * 60 * 1000;
 const userCooldowns = new Map();
@@ -261,7 +262,7 @@ function formatMediaPaths(media) {
 }
 
 module.exports = {
-  allowAnyChannel: true,
+  allowedChannelId,
   data: new SlashCommandBuilder()
     .setName("redpanda")
     .setDescription("Show a random red panda image or gif."),

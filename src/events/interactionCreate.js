@@ -66,6 +66,14 @@ function logButtonUsage(interaction, status, details = {}) {
   console.log(`Button usage: ${JSON.stringify(payload)}`);
 }
 
+function getCommandAllowedChannelId(command) {
+  if (command.allowedChannelId) {
+    return command.allowedChannelId;
+  }
+
+  return command.allowAnyChannel ? null : channelId;
+}
+
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction, client) {
@@ -123,12 +131,14 @@ module.exports = {
       return;
     }
 
-    if (!command.allowAnyChannel && interaction.channelId !== channelId) {
+    const allowedChannelId = getCommandAllowedChannelId(command);
+
+    if (allowedChannelId && interaction.channelId !== allowedChannelId) {
       logCommandUsage(interaction, "blocked-channel", {
-        reason: `Expected ${channelId}`
+        reason: `Expected ${allowedChannelId}`
       });
       await interaction.reply({
-        content: `Please use bot commands in <#${channelId}>.`,
+        content: `Please use bot commands in <#${allowedChannelId}>.`,
         ephemeral: true
       });
       return;
@@ -170,3 +180,5 @@ module.exports = {
     }
   }
 };
+
+module.exports.getCommandAllowedChannelId = getCommandAllowedChannelId;
