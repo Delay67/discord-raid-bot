@@ -73,8 +73,9 @@ async function getLocalMediaFiles(directory) {
 
 async function getRandomLocalMediaFiles(count = 1, excludedMedia = new Set()) {
   try {
+    const juniorMediaPath = path.resolve(juniorMediaFile);
     const files = (await getLocalMediaFiles(localMediaDirectory)).filter(
-      (file) => !excludedMedia.has(file)
+      (file) => !excludedMedia.has(file) && path.resolve(file) !== juniorMediaPath
     );
 
     if (files.length === 0) {
