@@ -1,37 +1,71 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { AttachmentBuilder, EmbedBuilder, SlashCommandBuilder } = require("discord.js");
 const fs = require("node:fs");
 const path = require("node:path");
 const { getFavoritePandaLeaders } = require("../services/redPandaStore");
 
-function getMediaLabel(media) {
-  if (/^https?:\/\//i.test(media)) {
-    return media;
-  }
-
-  return path.basename(media);
-}
+const maxFavoritePandas = 3;
 
 function formatScore(score) {
-  return `${score} frogblush${score === 1 ? "" : "es"}`;
+  return `${score} point${score === 1 ? "" : "s"}`;
 }
 
-async function sendLeader(interaction, leader, index) {
-  const content = `#${index + 1} - ${formatScore(leader.score)} - ${getMediaLabel(leader.media)}`;
+function getAttachmentName(media, index) {
+  const extension = path.extname(media) || ".jpg";
+  return `favorite-panda-${index + 1}${extension}`;
+}
 
-  if (/^https?:\/\//i.test(leader.media)) {
-    await interaction.followUp(`${content}\n${leader.media}`);
-    return;
+function createImageEmbed(leader, index, attachmentName = null) {
+  const embed = new EmbedBuilder()
+    .setColor(0xd95f43)
+    .setTitle(`#${index + 1} - ${formatScore(leader.score)}`);
+
+  if (attachmentName) {
+    embed.setImage(`attachment://${attachmentName}`);
+  } else {
+    embed.setImage(leader.media);
   }
 
-  if (fs.existsSync(leader.media)) {
-    await interaction.followUp({
-      content,
-      files: [leader.media]
+  return embed;
+}
+
+function createLeaderboardEmbed(leaders) {
+  return new EmbedBuilder()
+    .setColor(0xd95f43)
+    .setTitle("Favorite Red Pandas")
+    .addFields({
+      name: "Leaderboard",
+      value: leaders
+        .map((leader, index) => `${index + 1}. ${formatScore(leader.score)}`)
+        .join("\n")
     });
-    return;
+}
+
+function createImagePayload(leaders) {
+  const embeds = [createLeaderboardEmbed(leaders)];
+  const files = [];
+
+  for (const [index, leader] of leaders.entries()) {
+    if (/^https?:\/\//i.test(leader.media)) {
+      embeds.push(createImageEmbed(leader, index));
+      continue;
+    }
+
+    if (!fs.existsSync(leader.media)) {
+      embeds.push(
+        new EmbedBuilder()
+          .setColor(0xd95f43)
+          .setTitle(`#${index + 1} - ${formatScore(leader.score)}`)
+          .setDescription("Local file is no longer available.")
+      );
+      continue;
+    }
+
+    const attachmentName = getAttachmentName(leader.media, index);
+    files.push(new AttachmentBuilder(leader.media, { name: attachmentName }));
+    embeds.push(createImageEmbed(leader, index, attachmentName));
   }
 
-  await interaction.followUp(`${content}\nLocal file is no longer available.`);
+  return { embeds, files };
 }
 
 module.exports = {
@@ -41,26 +75,16 @@ module.exports = {
     .setDescription("Show the top red panda images by frogblush reactions."),
 
   async execute(interaction) {
-    const leaders = getFavoritePandaLeaders(interaction.guildId, 5);
+    const leaders = getFavoritePandaLeaders(interaction.guildId, maxFavoritePandas);
 
     if (leaders.length === 0) {
       await interaction.reply("No favorite red pandas yet.");
       return;
     }
 
-    await interaction.deferReply();
-    await interaction.editReply({
-      content: [
-        "**Favorite Red Pandas**",
-        ...leaders.map(
-          (leader, index) =>
-            `${index + 1}. ${getMediaLabel(leader.media)} - ${formatScore(leader.score)}`
-        )
-      ].join("\n")
-    });
-
-    for (const [index, leader] of leaders.entries()) {
-      await sendLeader(interaction, leader, index);
-    }
+    await interaction.reply(createImagePayload(leaders));
   }
 };
+
+module.exports.createImagePayload = createImagePayload;
+module.exports.formatScore = formatScore;
