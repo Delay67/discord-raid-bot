@@ -5,6 +5,7 @@ const { redPandaMediaDirectory, reddit } = require("../config");
 const { recordRedPanda } = require("../services/activityStats");
 const {
   getRecentlySentMedia,
+  rememberFavoritePandaMessage,
   rememberLastLocalSelection,
   rememberRedPandaBomb,
   rememberSentMedia
@@ -261,6 +262,49 @@ function formatMediaPaths(media) {
   return media.join(", ");
 }
 
+function getEmojiIdentifier(emoji) {
+  if (!emoji) {
+    return null;
+  }
+
+  return emoji.identifier || `${emoji.name}:${emoji.id}`;
+}
+
+async function getFrogblushEmoji(interaction) {
+  const cachedEmoji =
+    interaction.guild?.emojis?.cache?.find((emoji) => emoji.name === "frogblush") ||
+    interaction.client?.emojis?.cache?.find((emoji) => emoji.name === "frogblush");
+
+  if (cachedEmoji) {
+    return getEmojiIdentifier(cachedEmoji);
+  }
+
+  try {
+    const emojis = await interaction.guild?.emojis?.fetch();
+    return getEmojiIdentifier(emojis?.find((emoji) => emoji.name === "frogblush"));
+  } catch (error) {
+    console.warn(`Could not fetch frogblush emoji: ${error.message}`);
+    return null;
+  }
+}
+
+async function trackFavoritePandaMessage(interaction, message, media) {
+  rememberFavoritePandaMessage(interaction, message, media);
+
+  try {
+    const frogblushEmoji = await getFrogblushEmoji(interaction);
+
+    if (!frogblushEmoji) {
+      console.warn("Could not react with frogblush: emoji was not found in this guild.");
+      return;
+    }
+
+    await message.react(frogblushEmoji);
+  } catch (error) {
+    console.warn(`Could not react with frogblush: ${error.message}`);
+  }
+}
+
 module.exports = {
   allowedChannelId,
   data: new SlashCommandBuilder()
@@ -298,11 +342,12 @@ module.exports = {
       rememberLastLocalSelection(interaction, juniorMediaFile);
 
       try {
-        await interaction.editReply({
+        const message = await interaction.editReply({
           content: "Hey! You found me!",
           files: [juniorMediaFile]
         });
         rememberSentMedia([juniorMediaFile]);
+        await trackFavoritePandaMessage(interaction, message, [juniorMediaFile]);
         rememberRedPandaBomb(interaction);
       } finally {
         reservedMedia.delete(juniorMediaFile);
@@ -336,11 +381,12 @@ module.exports = {
       rememberLastLocalSelection(interaction, localMediaFile);
 
       try {
-        await interaction.editReply({
+        const message = await interaction.editReply({
           content: isCompleteRedPandaBomb ? "💥 Red panda bomb!" : undefined,
           files: localMediaFiles
         });
         rememberSentMedia(localMediaFiles);
+        await trackFavoritePandaMessage(interaction, message, localMediaFiles);
         if (isCompleteRedPandaBomb) {
           rememberRedPandaBomb(interaction);
         }
@@ -370,8 +416,9 @@ module.exports = {
 
     reservedMedia.add(mediaUrl);
     try {
-      await interaction.editReply(mediaUrl);
+      const message = await interaction.editReply(mediaUrl);
       rememberSentMedia([mediaUrl]);
+      await trackFavoritePandaMessage(interaction, message, [mediaUrl]);
     } finally {
       reservedMedia.delete(mediaUrl);
     }

@@ -1,6 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { summarizeRedPandaBombs } = require("../src/services/redPandaStore");
+const {
+  summarizeFavoritePandas,
+  summarizeRedPandaBombs
+} = require("../src/services/redPandaStore");
 
 test("summarizes the top three bomb proccers and latest bomb per guild", () => {
   const history = [
@@ -21,4 +24,23 @@ test("summarizes the top three bomb proccers and latest bomb per guild", () => {
     { userId: "c", count: 1 }
   ]);
   assert.equal(stats.latest.userId, "d");
+});
+
+test("summarizes top favorite pandas by score for a guild", () => {
+  const favorites = {
+    scores: {
+      "guild-1:a.jpg": { guildId: "guild-1", media: "a.jpg", score: 3 },
+      "guild-1:b.jpg": { guildId: "guild-1", media: "b.jpg", score: 5 },
+      "guild-1:c.jpg": { guildId: "guild-1", media: "c.jpg", score: 5 },
+      "guild-2:z.jpg": { guildId: "guild-2", media: "z.jpg", score: 10 },
+      "guild-1:zero.jpg": { guildId: "guild-1", media: "zero.jpg", score: 0 }
+    }
+  };
+
+  const leaders = summarizeFavoritePandas(favorites, "guild-1", 2);
+
+  assert.deepEqual(leaders.map(({ media, score }) => ({ media, score })), [
+    { media: "b.jpg", score: 5 },
+    { media: "c.jpg", score: 5 }
+  ]);
 });
