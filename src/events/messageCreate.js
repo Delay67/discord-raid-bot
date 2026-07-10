@@ -1,7 +1,10 @@
 const { Events, MessageType } = require("discord.js");
 const { channelId, llmTimeoutRoleId, plannedTimesChannelId } = require("../config");
 const { recordMessage, recordRedPanda } = require("../services/activityStats");
-const { isMentionLlmEnabled } = require("../services/botSettings");
+const {
+  isMentionLlmEnabled,
+  isUserIgnored
+} = require("../services/botSettings");
 const { deleteMessage } = require("../services/cleanup");
 const {
   askGroq,
@@ -561,7 +564,11 @@ module.exports = {
       recordMessage(message);
     }
 
-    if (!message.system && !message.author.bot) {
+    if (
+      !message.system &&
+      !message.author.bot &&
+      !isUserIgnored(message.guildId, message.author.id)
+    ) {
       await handleBotMention(message);
     }
 

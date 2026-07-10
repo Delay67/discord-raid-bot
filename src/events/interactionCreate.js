@@ -2,6 +2,7 @@ const { Events } = require("discord.js");
 const { channelId } = require("../config");
 const { recordCommand } = require("../services/activityStats");
 const { scheduleInteractionCleanup } = require("../services/cleanup");
+const { isUserIgnored } = require("../services/botSettings");
 const {
   cancelPendingImport,
   confirmPendingImport
@@ -77,6 +78,14 @@ function getCommandAllowedChannelId(command) {
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction, client) {
+    if (
+      interaction.user &&
+      isUserIgnored(interaction.guildId, interaction.user.id) &&
+      interaction.commandName !== "ignore"
+    ) {
+      return;
+    }
+
     if (interaction.isButton() && interaction.customId.startsWith("raids-upload:")) {
       const startedAt = Date.now();
 
