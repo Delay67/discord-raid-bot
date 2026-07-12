@@ -247,7 +247,7 @@ function clearLastSelection() {
   }
 }
 
-function deleteLastLocalSelection() {
+function getLastLocalSelection() {
   const selection = readLastSelection();
 
   if (!selection?.file) {
@@ -265,6 +265,28 @@ function deleteLastLocalSelection() {
     };
   }
 
+  return {
+    ok: true,
+    selection
+  };
+}
+
+function deleteLastLocalSelection(expectedSelectedAt) {
+  const result = getLastLocalSelection();
+
+  if (!result.ok) {
+    return result;
+  }
+
+  const { selection } = result;
+
+  if (expectedSelectedAt && selection.selectedAt !== expectedSelectedAt) {
+    return {
+      ok: false,
+      reason: "The last red panda changed while confirmation was open. Run the command again to review the new file."
+    };
+  }
+
   fs.unlinkSync(selection.file);
   clearLastSelection();
 
@@ -276,6 +298,7 @@ function deleteLastLocalSelection() {
 
 module.exports = {
   deleteLastLocalSelection,
+  getLastLocalSelection,
   getFavoritePandaLeaders,
   getRecentlySentMedia,
   getRedPandaBombStats,

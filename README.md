@@ -127,7 +127,7 @@ Light Blue Serca x1 DPS
 Local red panda media is read from `data/redpandas` by default, or from `REDPANDA_MEDIA_DIR` if it is set in `.env`.
 The bot ignores local files over Discord's 10 MiB upload limit.
 When `/redpanda` sends a local file, the bot logs the exact selected path so disliked files can be deleted later.
-Admins can also delete the last local file the bot posted with `/redpanda-delete-last`.
+Admins can also review and confirm deletion of the last local file the bot posted with `/redpanda-delete-last`.
 
 ## Server Stats
 
