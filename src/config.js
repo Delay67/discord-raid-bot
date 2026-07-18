@@ -24,6 +24,7 @@ function validateEnvironment() {
 }
 
 module.exports = {
+  botTimeZone: process.env.BOT_TIME_ZONE || "Europe/Amsterdam",
   cleanupDelayMs: getCleanupDelayMs(),
   channelId: process.env.DISCORD_CHANNEL_ID,
   groq: {

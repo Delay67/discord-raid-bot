@@ -1,11 +1,26 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
+  buildCurrentTimeContext,
   buildMessages,
   getVisionImageAttachments,
   parseMemoryUpdates,
   selectRelevantMemories
 } = require("../src/services/groqChat");
+
+test("supplies an exact trusted clock in UTC and the configured local timezone", () => {
+  const context = buildCurrentTimeContext(
+    new Date("2026-07-18T20:45:00.000Z"),
+    "Europe/Amsterdam"
+  );
+
+  assert.match(context, /UTC=2026-07-18T20:45:00\.000Z/);
+  assert.match(context, /Europe\/Amsterdam=Saturday,? 18 July 2026 at 22:45:00 CEST/);
+
+  const messages = buildMessages("what time is it currently?", "Ronan");
+  assert.match(messages[0].content, /TRUSTED CURRENT TIME:/);
+  assert.match(messages[0].content, /State the timezone in time answers/);
+});
 
 test("includes general conversation context before the latest request", () => {
   const messages = buildMessages("what did they recommend?", "Ronan", [

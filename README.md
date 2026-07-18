@@ -28,6 +28,7 @@ A Discord bot for looking up which fixed Lost Ark raid groups a player is includ
    REDDIT_USERNAME=your-reddit-username
    REDDIT_PASSWORD=your-reddit-password
    GROQ_API_KEY=your-groq-api-key
+   BOT_TIME_ZONE=Europe/Amsterdam
    GROQ_MODEL=openai/gpt-oss-120b
    GROQ_VISION_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
    ```
