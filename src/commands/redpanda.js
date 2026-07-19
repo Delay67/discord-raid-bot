@@ -3,11 +3,26 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 const { redPandaMediaDirectory, reddit } = require("../config");
 const { recordRedPanda } = require("../services/activityStats");
-const { rememberLastLocalSelection } = require("../services/redPandaStore");
+const {
+  getRecentlySentMedia,
+  rememberFavoritePandaMessage,
+  rememberLastLocalSelection,
+  rememberRedPandaBomb,
+  rememberSentMedia
+} = require("../services/redPandaStore");
 
 const defaultMediaDirectory = path.join(__dirname, "..", "..", "data", "redpandas");
 const localMediaDirectory = redPandaMediaDirectory || defaultMediaDirectory;
 const maxLocalUploadBytes = 10 * 1024 * 1024;
+const juniorChance = 0.0033;
+const juniorMediaFile = path.join(localMediaDirectory, "junior.jpg");
+const redPandaBombChance = 0.0067;
+const redPandaBombSize = 5;
+const allowedChannelId = "1524831008531157114";
+const duplicateProtectionMs = 3 * 60 * 60 * 1000;
+const userCooldownMs = 60 * 1000;
+const userCooldowns = new Map();
+const reservedMedia = new Set();
 const localMediaExtensions = new Set([
   ".gif",
   ".jpg",
@@ -56,22 +71,52 @@ async function getLocalMediaFiles(directory) {
   return files.flat();
 }
 
-async function getRandomLocalMediaFile() {
+async function getRandomLocalMediaFiles(count = 1, excludedMedia = new Set()) {
   try {
-    const files = await getLocalMediaFiles(localMediaDirectory);
+    const juniorMediaPath = path.resolve(juniorMediaFile);
+    const files = (await getLocalMediaFiles(localMediaDirectory)).filter(
+      (file) => !excludedMedia.has(file) && path.resolve(file) !== juniorMediaPath
+    );
 
     if (files.length === 0) {
-      return null;
+      return [];
     }
 
-    return files[Math.floor(Math.random() * files.length)];
+    const shuffledFiles = [...files];
+
+    for (let index = shuffledFiles.length - 1; index > 0; index -= 1) {
+      const randomIndex = Math.floor(Math.random() * (index + 1));
+      [shuffledFiles[index], shuffledFiles[randomIndex]] = [
+        shuffledFiles[randomIndex],
+        shuffledFiles[index]
+      ];
+    }
+
+    return shuffledFiles.slice(0, count);
   } catch (error) {
     if (error.code !== "ENOENT") {
       console.warn(`Could not read red panda media directory: ${error.message}`);
     }
 
-    return null;
+    return [];
   }
+}
+
+async function reserveRandomLocalMediaFiles(count = 1) {
+  const recentlySentMedia = new Set(
+    getRecentlySentMedia(new Date(Date.now() - duplicateProtectionMs)).map(
+      (selection) => selection.media
+    )
+  );
+  reservedMedia.forEach((media) => recentlySentMedia.add(media));
+
+  const files = await getRandomLocalMediaFiles(count, recentlySentMedia);
+  files.forEach((file) => reservedMedia.add(file));
+  return files;
+}
+
+function releaseReservedMedia(files) {
+  files.forEach((file) => reservedMedia.delete(file));
 }
 
 function hasRedditConfig() {
@@ -206,10 +251,6 @@ async function getRedditMediaUrls() {
     }
 
     const mediaUrls = extractRedditMediaUrls(payload);
-    const postCount = payload.data?.children?.length || 0;
-
-    console.log(`Red panda Reddit fetch: ${url} posts=${postCount} media=${mediaUrls.length}`);
-
     if (mediaUrls.length > 0) {
       return mediaUrls;
     }
@@ -218,39 +259,141 @@ async function getRedditMediaUrls() {
   return [];
 }
 
-function logSelectedMedia(interaction, selection) {
-  console.log(
-    `Red panda selected: ${JSON.stringify({
-      ...selection,
-      userId: interaction.user.id,
-      userTag: interaction.user.tag,
-      channelId: interaction.channelId,
-      guildId: interaction.guildId
-    })}`
-  );
+function formatMediaPaths(media) {
+  return media.join(", ");
+}
+
+function getEmojiIdentifier(emoji) {
+  if (!emoji) {
+    return null;
+  }
+
+  return emoji.identifier || `${emoji.name}:${emoji.id}`;
+}
+
+async function getFrogblushEmoji(interaction) {
+  const cachedEmoji =
+    interaction.guild?.emojis?.cache?.find((emoji) => emoji.name === "frogblush") ||
+    interaction.client?.emojis?.cache?.find((emoji) => emoji.name === "frogblush");
+
+  if (cachedEmoji) {
+    return getEmojiIdentifier(cachedEmoji);
+  }
+
+  try {
+    const emojis = await interaction.guild?.emojis?.fetch();
+    return getEmojiIdentifier(emojis?.find((emoji) => emoji.name === "frogblush"));
+  } catch (error) {
+    console.warn(`Could not fetch frogblush emoji: ${error.message}`);
+    return null;
+  }
+}
+
+async function trackFavoritePandaMessage(interaction, message, media) {
+  rememberFavoritePandaMessage(interaction, message, media);
+
+  try {
+    const frogblushEmoji = await getFrogblushEmoji(interaction);
+
+    if (!frogblushEmoji) {
+      console.warn("Could not react with frogblush: emoji was not found in this guild.");
+      return;
+    }
+
+    await message.react(frogblushEmoji);
+  } catch (error) {
+    console.warn(`Could not react with frogblush: ${error.message}`);
+  }
 }
 
 module.exports = {
-  allowAnyChannel: true,
+  allowedChannelId,
   data: new SlashCommandBuilder()
     .setName("redpanda")
     .setDescription("Show a random red panda image or gif."),
 
   async execute(interaction) {
+    const now = Date.now();
+    const cooldownExpiresAt = userCooldowns.get(interaction.user.id) || 0;
+
+    if (cooldownExpiresAt > now) {
+      const retryAt = Math.ceil(cooldownExpiresAt / 1000);
+      await interaction.reply({
+        content: `You can request another red panda <t:${retryAt}:R>.`,
+        ephemeral: true
+      });
+      return;
+    }
+
+    const newCooldownExpiresAt = now + userCooldownMs;
+    userCooldowns.set(interaction.user.id, newCooldownExpiresAt);
+    setTimeout(() => {
+      if (userCooldowns.get(interaction.user.id) === newCooldownExpiresAt) {
+        userCooldowns.delete(interaction.user.id);
+      }
+    }, userCooldownMs);
     await interaction.deferReply();
 
-    const localMediaFile = await getRandomLocalMediaFile();
+    const randomValue = Math.random();
+    interaction.commandLogDetails = { randomValue };
+
+    if (randomValue <= juniorChance) {
+      reservedMedia.add(juniorMediaFile);
+      interaction.commandLogDetails.image = formatMediaPaths([juniorMediaFile]);
+      rememberLastLocalSelection(interaction, juniorMediaFile);
+
+      try {
+        const message = await interaction.editReply({
+          content: "Hey! You found me!",
+          files: [juniorMediaFile]
+        });
+        rememberSentMedia([juniorMediaFile]);
+        await trackFavoritePandaMessage(interaction, message, [juniorMediaFile]);
+        rememberRedPandaBomb(interaction);
+      } finally {
+        reservedMedia.delete(juniorMediaFile);
+      }
+      recordRedPanda(interaction, "local");
+      return;
+    }
+
+    const recentlySentMedia = new Set(
+      getRecentlySentMedia(new Date(now - duplicateProtectionMs)).map(
+        (selection) => selection.media
+      )
+    );
+    reservedMedia.forEach((media) => recentlySentMedia.add(media));
+    const isRedPandaBomb = randomValue <= redPandaBombChance;
+    const requestedMediaCount = isRedPandaBomb ? redPandaBombSize : 1;
+    const selectedMediaFiles = await getRandomLocalMediaFiles(
+      requestedMediaCount,
+      recentlySentMedia
+    );
+    const isCompleteRedPandaBomb =
+      isRedPandaBomb && selectedMediaFiles.length === redPandaBombSize;
+    const localMediaFiles = isCompleteRedPandaBomb
+      ? selectedMediaFiles
+      : selectedMediaFiles.slice(0, 1);
+    const localMediaFile = localMediaFiles[0];
 
     if (localMediaFile) {
-      logSelectedMedia(interaction, {
-        source: "local",
-        file: localMediaFile
-      });
+      localMediaFiles.forEach((file) => reservedMedia.add(file));
+      interaction.commandLogDetails.image = formatMediaPaths(localMediaFiles);
       rememberLastLocalSelection(interaction, localMediaFile);
 
-      await interaction.editReply({
-        files: [localMediaFile]
-      });
+      try {
+        const message = await interaction.editReply({
+          content: isCompleteRedPandaBomb ? "💥 Red panda bomb!" : undefined,
+          files: localMediaFiles
+        });
+        rememberSentMedia(localMediaFiles);
+        await trackFavoritePandaMessage(interaction, message, localMediaFiles);
+        if (isCompleteRedPandaBomb) {
+          rememberRedPandaBomb(interaction);
+        }
+      } finally {
+        localMediaFiles.forEach((file) => reservedMedia.delete(file));
+      }
       recordRedPanda(interaction, "local");
       return;
     }
@@ -260,7 +403,9 @@ module.exports = {
       return;
     }
 
-    const mediaUrls = await getRedditMediaUrls();
+    const mediaUrls = (await getRedditMediaUrls()).filter(
+      (url) => !recentlySentMedia.has(url) && !reservedMedia.has(url)
+    );
 
     if (mediaUrls.length === 0) {
       await interaction.editReply("I could not find a Reddit red panda right now.");
@@ -268,12 +413,19 @@ module.exports = {
     }
 
     const mediaUrl = mediaUrls[Math.floor(Math.random() * mediaUrls.length)];
-    logSelectedMedia(interaction, {
-      source: "reddit",
-      url: mediaUrl
-    });
+    interaction.commandLogDetails.image = formatMediaPaths([mediaUrl]);
 
-    await interaction.editReply(mediaUrl);
+    reservedMedia.add(mediaUrl);
+    try {
+      const message = await interaction.editReply(mediaUrl);
+      rememberSentMedia([mediaUrl]);
+      await trackFavoritePandaMessage(interaction, message, [mediaUrl]);
+    } finally {
+      reservedMedia.delete(mediaUrl);
+    }
     recordRedPanda(interaction, "reddit");
   }
 };
+
+module.exports.releaseReservedMedia = releaseReservedMedia;
+module.exports.reserveRandomLocalMediaFiles = reserveRandomLocalMediaFiles;

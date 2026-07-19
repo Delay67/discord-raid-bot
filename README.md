@@ -28,7 +28,9 @@ A Discord bot for looking up which fixed Lost Ark raid groups a player is includ
    REDDIT_USERNAME=your-reddit-username
    REDDIT_PASSWORD=your-reddit-password
    GROQ_API_KEY=your-groq-api-key
+   BOT_TIME_ZONE=Europe/Amsterdam
    GROQ_MODEL=openai/gpt-oss-120b
+   GROQ_VISION_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
    ```
 
 3. Register slash commands:
@@ -80,6 +82,14 @@ Mention the bot to ask Groq a short question:
 @delay raid helper why is Serca cursed?
 ```
 
+Attach up to two images while mentioning the bot to ask about
+screenshots, visible text, or other image content. Images must be no larger than
+20 MiB each as delivered to Groq; larger Discord uploads are automatically sent
+through Discord's resized image proxy. Image understanding uses
+`GROQ_VISION_MODEL`; text-only requests do not call the vision model.
+Mentioning the bot in a reply also analyzes images attached to or embedded in
+the replied-to message.
+
 Admins can disable or re-enable all mention replies:
 
 ```text
@@ -119,7 +129,7 @@ Light Blue Serca x1 DPS
 Local red panda media is read from `data/redpandas` by default, or from `REDPANDA_MEDIA_DIR` if it is set in `.env`.
 The bot ignores local files over Discord's 10 MiB upload limit.
 When `/redpanda` sends a local file, the bot logs the exact selected path so disliked files can be deleted later.
-Admins can also delete the last local file the bot posted with `/redpanda-delete-last`.
+Admins can also review and confirm deletion of the last local file the bot posted with `/redpanda-delete-last`.
 
 ## Server Stats
 

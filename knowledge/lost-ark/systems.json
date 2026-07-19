@@ -1,0 +1,38 @@
+[
+  {
+    "id": "ark-passive-overview",
+    "topic": "Ark Passive and engravings",
+    "status": "live",
+    "updatedAt": "2025-02-26",
+    "keywords": ["ark passive", "evolution", "enlightenment", "leap", "engraving", "class engraving"],
+    "content": "Ark Passive is the modern character-build framework. Evolution unlocks at combat level 50 and draws points primarily from armor progression; Enlightenment defines class-specific playstyles; Leap unlocks with Hyper Awakening progression. Traditional class engravings were removed and replaced by Ark Passive Enlightenment effects. Combat engravings remain, with up to five selectable by item level 1540. Build details are patch-sensitive, so avoid inventing exact nodes or recommending a setup unless present in verified current data.",
+    "source": "https://www.playlostark.com/en-us/game/releases/call-of-the-wildsoul"
+  },
+  {
+    "id": "ark-grid-overview",
+    "topic": "Ark Grid",
+    "status": "live",
+    "updatedAt": "2026-06-27",
+    "keywords": ["ark grid", "core", "cores", "astrogem", "destiny", "order", "chaos", "sun", "moon", "star"],
+    "content": "Ark Grid is a current endgame progression system using Cores and Astrogems. Horizon Cathedral provides Graced Shards and Ark Grid Cores; crafting NPC Deni can craft selected or random Relic and Ancient Core chests across Order/Chaos and Sun/Star/Moon categories, plus Astrogem chests. Exact class Core combinations are balance-patch-sensitive and should not be guessed.",
+    "source": "https://www.playlostark.com/en-us/game/releases/the-twilight-isle"
+  },
+  {
+    "id": "june-progression-events",
+    "topic": "June 2026 progression events",
+    "status": "live-limited",
+    "updatedAt": "2026-06-10",
+    "keywords": ["express", "powerpass", "event", "twilight road", "mokoko bootcamp", "returning player", "new player"],
+    "content": "The Western version has Kazeros Challenge Express for characters item level 1640-1700, Twilight Road for 1700-1730, Mokoko Bootcamp, and the Twilight Exchange Shop. The June 27 team update moved the end date for Kazeros Challenge Express, Mokoko Bootcamp, and the Twilight Exchange Shop forward to August 19, 2026 because of the planned server merge. Twilight Road and the South Rimeria Event Trixion Pass were originally listed through September 16. Event eligibility and dates should still be checked in game before assigning a character.",
+    "source": "https://www.playlostark.com/en-us/news/articles/june-team-update-2026"
+  },
+  {
+    "id": "weekly-endgame-limits",
+    "topic": "Weekly endgame rewards",
+    "status": "live",
+    "updatedAt": "2026-06-10",
+    "keywords": ["weekly", "gold", "entry", "reward", "bound gold", "raid limit"],
+    "content": "Endgame activities can share weekly gold-earning and bonus-reward limits. Horizon Cathedral gold is character-bound. Exact gold values and eligible-content limits change frequently; answer with the specific verified raid entry when available, otherwise tell the player to check the in-game Content Guide rather than guessing.",
+    "source": "https://www.playlostark.com/en-us/game/releases/the-twilight-isle"
+  }
+]

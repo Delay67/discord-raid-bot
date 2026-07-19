@@ -3,6 +3,7 @@ const { channelId } = require("../config");
 const { recordCommand } = require("../services/activityStats");
 const { scheduleInteractionCleanup } = require("../services/cleanup");
 const { publishSchedule } = require("../services/schedulePublisher");
+const { isUserIgnored } = require("../services/botSettings");
 const {
   cancelPendingImport,
   confirmPendingImport
@@ -58,34 +59,20 @@ async function handleRaidUploadButton(interaction) {
   });
 }
 
-function getCommandOptions(interaction) {
-  return interaction.options.data.map((option) => ({
-    name: option.name,
-    type: option.type,
-    value: option.attachment ? option.attachment.name : option.value
-  }));
-}
-
 function getUserLabel(user) {
   return `${user.tag || user.username} (${user.id})`;
 }
 
-function logCommandUsage(interaction, status, details = {}) {
-  const payload = {
-    channelId: interaction.channelId,
-    command: interaction.commandName,
-    durationMs: details.durationMs,
-    guildId: interaction.guildId,
-    options: getCommandOptions(interaction),
-    status,
-    user: getUserLabel(interaction.user)
-  };
+function logCommandUsage(interaction) {
+  const details = interaction.commandLogDetails;
+  const redPandaDetails =
+    interaction.commandName === "redpanda" && details
+      ? ` | Image: ${details.image || "none"} | Math.random(): ${details.randomValue}`
+      : "";
 
-  if (details.reason) {
-    payload.reason = details.reason;
-  }
-
-  console.log(`Command usage: ${JSON.stringify(payload)}`);
+  console.log(
+    `Command: /${interaction.commandName} | Used by: ${getUserLabel(interaction.user)}${redPandaDetails}`
+  );
 }
 
 function logButtonUsage(interaction, status, details = {}) {
@@ -105,9 +92,25 @@ function logButtonUsage(interaction, status, details = {}) {
   console.log(`Button usage: ${JSON.stringify(payload)}`);
 }
 
+function getCommandAllowedChannelId(command) {
+  if (command.allowedChannelId) {
+    return command.allowedChannelId;
+  }
+
+  return command.allowAnyChannel ? null : channelId;
+}
+
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction, client) {
+    if (
+      interaction.user &&
+      isUserIgnored(interaction.guildId, interaction.user.id) &&
+      interaction.commandName !== "ignore"
+    ) {
+      return;
+    }
+
     if (interaction.isButton() && interaction.customId.startsWith("raids-upload:")) {
       const startedAt = Date.now();
 
@@ -162,12 +165,14 @@ module.exports = {
       return;
     }
 
-    if (!command.allowAnyChannel && interaction.channelId !== channelId) {
+    const allowedChannelId = getCommandAllowedChannelId(command);
+
+    if (allowedChannelId && interaction.channelId !== allowedChannelId) {
       logCommandUsage(interaction, "blocked-channel", {
-        reason: `Expected ${channelId}`
+        reason: `Expected ${allowedChannelId}`
       });
       await interaction.reply({
-        content: `Please use bot commands in <#${channelId}>.`,
+        content: `Please use bot commands in <#${allowedChannelId}>.`,
         ephemeral: true
       });
       return;
@@ -209,3 +214,5 @@ module.exports = {
     }
   }
 };
+
+module.exports.getCommandAllowedChannelId = getCommandAllowedChannelId;

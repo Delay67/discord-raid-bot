@@ -8,6 +8,7 @@
     "backfill:messages": "node scripts/backfill-message-stats.js",
     "stats:migrate-all-time": "node scripts/migrate-all-time-message-stats.js",
     "start": "node src/index.js",
+    "test": "node --test",
     "commands:register": "node scripts/register-commands.js"
   },
   "keywords": [

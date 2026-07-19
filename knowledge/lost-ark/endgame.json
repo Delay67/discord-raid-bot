@@ -1,0 +1,29 @@
+[
+  {
+    "id": "shadow-raid-serca",
+    "topic": "Shadow Raid: Serca",
+    "status": "live",
+    "updatedAt": "2026-04-15",
+    "keywords": ["serca", "serka", "shadow raid", "witch of pain", "corvus", "corbus", "brawl", "brave hearts"],
+    "content": "Shadow Raid: Serca is live Western content: a 4-player, 2-gate raid. Entry item levels are Normal 1710, Hard 1730, and Nightmare 1740. Unlock it after item level 1710, the main quest Inherited Will, and the guide quest [Unlock] Notice: Shadow Raid. It introduces Brawl interactions and Shadow Skills. The shared party revival resource is called Brave Hearts. Normal is the learning difficulty; gear-progression materials drop in Hard and Nightmare, while Nightmare gives additional rewards.",
+    "source": "https://www.playlostark.com/en-us/game/releases/the-shadows-rise"
+  },
+  {
+    "id": "horizon-cathedral",
+    "topic": "Horizon Cathedral",
+    "status": "live",
+    "updatedAt": "2026-06-17",
+    "keywords": ["horizon cathedral", "cathedral", "abyssal dungeon", "graced shard", "deni", "cadarum"],
+    "content": "Horizon Cathedral is a live 4-player Abyssal Dungeon with three stages and two gates per stage. Stage requirements are item level 1700, 1720, and 1750. Players must complete the Cadarum story quest After the Resonance Stops. Stages share entry counts. Gate rewards include Graced Shards, Ark Grid Cores, and character-bound gold. Infinite revives are available with a 10-second cooldown, but a full party wipe fails the attempt.",
+    "source": "https://www.playlostark.com/en-us/game/releases/the-twilight-isle"
+  },
+  {
+    "id": "cadarum-isles",
+    "topic": "Cadarum Isles story region",
+    "status": "live",
+    "updatedAt": "2026-06-10",
+    "keywords": ["cadarum", "twilight isle", "luminas", "inherited will", "destiny new chapter"],
+    "content": "The Cadarum Isles episode is live. Start Journey's Footsteps in Iceblood Plateau (also offered in Elnead, South Kurzan, and Bellion Ruins). Later progression requires item level 1700 and completion of Inherited Will. The story awards the level-6 ship Luminas. Cadarum currently has no Adventurer's Tome, Chaos Gates, Field Bosses, or Trade Skill gathering nodes.",
+    "source": "https://www.playlostark.com/en-us/game/releases/the-twilight-isle"
+  }
+]
