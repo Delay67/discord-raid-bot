@@ -3,10 +3,24 @@ const test = require("node:test");
 const {
   buildCurrentTimeContext,
   buildMessages,
+  convertTimeZone,
   getVisionImageAttachments,
   parseMemoryUpdates,
   selectRelevantMemories
 } = require("../src/services/groqChat");
+
+test("converts Michigan time to Amsterdam using DST-aware timezone data", () => {
+  const result = convertTimeZone({
+    date: "2026-07-20",
+    time: "11:00",
+    fromTimeZone: "America/Detroit",
+    toTimeZone: "Europe/Amsterdam"
+  });
+
+  assert.equal(result.instantUtc, "2026-07-20T15:00:00.000Z");
+  assert.match(result.from, /11:00:00 (?:EDT|GMT-4) \(America\/Detroit\)/);
+  assert.match(result.to, /17:00:00 CEST \(Europe\/Amsterdam\)/);
+});
 
 test("supplies an exact trusted clock in UTC and the configured local timezone", () => {
   const context = buildCurrentTimeContext(
