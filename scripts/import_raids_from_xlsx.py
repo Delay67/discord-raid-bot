@@ -17,7 +17,7 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RAIDS_PATH = ROOT / "data" / "raids.json"
-DEFAULT_SHEET_NAME = "Serca+Cath"
+DEFAULT_SHEET_NAME = "Copy of Serca+Cath"
 
 EXACT_COLOR_NAMES = {
     (0, 255, 255): "Cyan",
@@ -172,13 +172,33 @@ def classify_role(cell):
     return "Support" if b - g > 8 else "DPS"
 
 
-def parse_member_name(value):
+def parse_member(value):
     text = clean_text(value)
 
     if not text:
         return None
 
-    return text.split("-")[0].strip()
+    name, separator, label = text.partition("-")
+
+    member = {
+        "name": name.strip(),
+        "lookupName": normalize_player_name(name),
+    }
+
+    if separator and label.strip():
+        member["label"] = label.strip()
+
+    return member
+
+
+def parse_item_level(value):
+    if value is None:
+        return None
+
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
 
 
 def parse_raid_status(sheet, row, col):
@@ -209,19 +229,17 @@ def parse_raid_block(sheet, row, col):
             break
 
     for member_col in range(col + 1, next_label_col):
-        member_name = parse_member_name(sheet.cell(row=row, column=member_col).value)
+        member = parse_member(sheet.cell(row=row, column=member_col).value)
 
-        if not member_name:
+        if not member:
             continue
 
         role_cell = sheet.cell(row=row + 1, column=member_col)
-        members.append(
-            {
-                "name": member_name,
-                "lookupName": normalize_player_name(member_name),
-                "role": classify_role(role_cell),
-            }
-        )
+        item_level = parse_item_level(sheet.cell(row=row + 2, column=member_col).value)
+        member["role"] = classify_role(role_cell)
+        if item_level is not None:
+            member["itemLevel"] = item_level
+        members.append(member)
 
         if len(members) == 4:
             break
@@ -303,7 +321,7 @@ def write_raids(raids_path, raids):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Import fixed raid groups from the Serca+Cath workbook sheet into data/raids.json."
+        description="Import fixed raid groups from the Copy of Serca+Cath workbook sheet into data/raids.json."
     )
     parser.add_argument("workbook", type=Path, help="Path to the .xlsx workbook")
     parser.add_argument("--sheet", default=DEFAULT_SHEET_NAME, help="Sheet to import")
@@ -321,7 +339,7 @@ def main():
 
     if not raids:
         print("No raids were parsed. Nothing was changed.")
-        print("Make sure the workbook has a sheet named Serca+Cath and visible raid labels like Serca Hard.")
+        print(f"Make sure the workbook has a sheet named {args.sheet} and visible raid labels like Serca Hard.")
         sys.exit(1)
 
     if args.json:
