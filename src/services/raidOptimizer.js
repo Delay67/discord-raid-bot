@@ -28,6 +28,11 @@ function normalizeName(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function isRealColor(color) {
+  const normalized = normalizeName(color);
+  return Boolean(normalized) && normalized !== "unknown";
+}
+
 function canonicalMembers(members) {
   return members
     .map((member) => member.lookupName || normalizeName(member.name))
@@ -54,13 +59,7 @@ function getRoleCounts(raid) {
 }
 
 function isLockedRaid(raid) {
-  const lockedNightmareColors = new Set(["light yellow", "red", "magenta"]);
-
-  return (
-    raid.name === "Serca" &&
-    raid.difficulty === "Nightmare" &&
-    lockedNightmareColors.has(normalizeName(raid.originalColor || raid.color))
-  );
+  return isRealColor(raid.originalColor || raid.color);
 }
 
 function isCathedral3Eligible(member, raid) {
@@ -317,7 +316,7 @@ function getColorPool(raids) {
   return [...new Set([
     ...raids.map((raid) => raid.color),
     ...COLOR_POOL
-  ])].filter(Boolean);
+  ])].filter(isRealColor);
 }
 
 function getAllowedColorsForRaid(raids, raidIndex, colorPool) {
@@ -358,9 +357,15 @@ function getMovableSlots(raids) {
 }
 
 function getRecolorSlots(raids) {
-  return raids.map((raid, raidIndex) => ({
-    raidIndex
-  }));
+  return raids
+    .map((raid, raidIndex) => ({
+      raid,
+      raidIndex
+    }))
+    .filter((slot) => !slot.raid.locked)
+    .map((slot) => ({
+      raidIndex: slot.raidIndex
+    }));
 }
 
 function canSwap(leftSlot, rightSlot, raids) {
@@ -563,7 +568,7 @@ function alignColorsWithPlayerGroups(raids, colorPool) {
       ...group.map((raid) => raid.originalColor),
       ...group.map((raid) => raid.color),
       ...colorPool
-    ].filter(Boolean);
+    ].filter(isRealColor);
     const color = preferredColors.find((candidate) => !usedColors.has(candidate));
 
     if (!color) {

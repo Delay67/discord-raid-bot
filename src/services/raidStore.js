@@ -187,9 +187,10 @@ function completeRaids({ color, raidName, completedBy }) {
     }
 
     completedCount += 1;
+    const { uncompletedAt, uncompletedBy, ...rest } = raid;
 
     return {
-      ...raid,
+      ...rest,
       status: "DONE",
       completedBy,
       completedAt
@@ -203,6 +204,50 @@ function completeRaids({ color, raidName, completedBy }) {
   return {
     completedCount,
     matchedCount
+  };
+}
+
+function uncompleteRaids({ color, raidName, uncompletedBy }) {
+  const normalizedColor = color.trim().toLowerCase();
+  const normalizedRaidName = raidName?.trim().toLowerCase();
+  const raids = readRaids();
+  let matchedCount = 0;
+  let uncompletedCount = 0;
+  const uncompletedAt = new Date().toISOString();
+
+  const updatedRaids = raids.map((raid) => {
+    const matchesColor = raid.color.toLowerCase() === normalizedColor;
+    const matchesRaidName =
+      !normalizedRaidName || raid.name.toLowerCase() === normalizedRaidName;
+
+    if (!matchesColor || !matchesRaidName) {
+      return raid;
+    }
+
+    matchedCount += 1;
+
+    if ((raid.status || "TODO") !== "DONE") {
+      return raid;
+    }
+
+    uncompletedCount += 1;
+    const { completedAt, completedBy, ...rest } = raid;
+
+    return {
+      ...rest,
+      status: "TODO",
+      uncompletedBy,
+      uncompletedAt
+    };
+  });
+
+  if (uncompletedCount > 0) {
+    writeRaids(updatedRaids);
+  }
+
+  return {
+    matchedCount,
+    uncompletedCount
   };
 }
 
@@ -254,5 +299,6 @@ module.exports = {
   lookupRaids,
   normalizePlayerName,
   readRaids,
-  resetRaidsToTodo
+  resetRaidsToTodo,
+  uncompleteRaids
 };

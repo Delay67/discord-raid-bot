@@ -89,6 +89,9 @@ def rgb_from_color(color):
 
 
 def rgb_from_cell(cell):
+    if cell.fill.fill_type is None:
+        return None
+
     color = cell.fill.fgColor
     return rgb_from_color(color)
 
