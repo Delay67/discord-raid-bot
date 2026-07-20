@@ -217,7 +217,7 @@ def parse_raid_status(sheet, row, col):
     return "TODO"
 
 
-def parse_raid_block(sheet, row, col):
+def parse_raid_block(sheet, formula_sheet, row, col):
     raid_name, difficulty = parse_raid_label(sheet.cell(row=row, column=col).value)
 
     if not raid_name:
@@ -232,7 +232,20 @@ def parse_raid_block(sheet, row, col):
             break
 
     for member_col in range(col + 1, next_label_col):
-        member = parse_member(sheet.cell(row=row, column=member_col).value)
+        # Rows beneath a raid contain formulas whose cached values are class names
+        # (for example, Shadowhunter or Bard). They are raid details, not players.
+        if formula_sheet.cell(row=row, column=member_col).data_type == "f":
+            continue
+
+        member_value = clean_text(sheet.cell(row=row, column=member_col).value)
+
+        # Player entries use the "player-character" format. Requiring that
+        # separator also prevents adjacent detail labels such as Serca1,
+        # Serca2, and Reclear from turning a detail row into a raid.
+        if "-" not in member_value:
+            continue
+
+        member = parse_member(member_value)
 
         if not member:
             continue
@@ -267,6 +280,7 @@ def parse_workbook(workbook_path, sheet_name, debug=False):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
         workbook = load_workbook(workbook_path, data_only=True)
+        formula_workbook = load_workbook(workbook_path, data_only=False)
 
     load_theme_rgbs(workbook)
 
@@ -276,6 +290,7 @@ def parse_workbook(workbook_path, sheet_name, debug=False):
         sys.exit(1)
 
     sheet = workbook[sheet_name]
+    formula_sheet = formula_workbook[sheet_name]
     raids = []
 
     for row in range(1, sheet.max_row + 1):
@@ -285,7 +300,7 @@ def parse_workbook(workbook_path, sheet_name, debug=False):
             if not is_raid_label(value):
                 continue
 
-            raid = parse_raid_block(sheet, row, col)
+            raid = parse_raid_block(sheet, formula_sheet, row, col)
 
             if raid:
                 raids.append(raid)
