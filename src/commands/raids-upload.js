@@ -41,12 +41,6 @@ function createPreviewAttachment(preview) {
   });
 }
 
-function createScheduleAttachment(scheduleImage) {
-  return new AttachmentBuilder(scheduleImage, {
-    name: "schedule-preview.png"
-  });
-}
-
 function formatPreviewMessage({ attachmentName, raids, summary }) {
   return [
     `Parsed ${raids.length} raid(s) from \`${attachmentName}\`.`,
@@ -55,7 +49,7 @@ function formatPreviewMessage({ attachmentName, raids, summary }) {
     "```text",
     summary,
     "```",
-    "The generated schedule image is attached below. Open `raid-import-preview.txt` for the full parsed preview, then confirm or cancel."
+    "Open `raid-import-preview.txt` for the full parsed preview, then confirm or cancel."
   ].join("\n");
 }
 
@@ -109,10 +103,7 @@ module.exports = {
           raids: pendingImport.raids,
           summary
         }),
-        files: [
-          createScheduleAttachment(pendingImport.scheduleImage),
-          createPreviewAttachment(preview)
-        ],
+        files: [createPreviewAttachment(preview)],
         components: [createConfirmationButtons(pendingImport.importId)]
       });
     } catch (error) {

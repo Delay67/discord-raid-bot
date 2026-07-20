@@ -13,7 +13,7 @@ except ImportError:
     sys.exit(1)
 
 
-DEFAULT_SHEET_NAME = "Copy of Serca+Cath"
+DEFAULT_SHEET_NAME = "Serca+Cath"
 DEFAULT_ROW_HEIGHT = 15.75
 DEFAULT_COLUMN_WIDTH = 12.63
 RENDER_SCALE = 4

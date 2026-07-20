@@ -2,7 +2,6 @@ const { Events } = require("discord.js");
 const { channelId } = require("../config");
 const { recordCommand } = require("../services/activityStats");
 const { scheduleInteractionCleanup } = require("../services/cleanup");
-const { publishSchedule } = require("../services/schedulePublisher");
 const { isUserIgnored } = require("../services/botSettings");
 const {
   cancelPendingImport,
@@ -30,27 +29,6 @@ async function handleRaidUploadButton(interaction) {
 
   if (action === "confirm") {
     content = `Imported ${result.importedCount} raid(s) from the workbook.`;
-
-    try {
-      const cleanupResult = await publishSchedule(
-        interaction.client,
-        {
-          attachment: result.scheduleImagePath,
-          contentType: "image/png",
-          name: "schedule.png"
-        },
-        interaction.user.id
-      );
-
-      content += [
-        " Generated and pinned the schedule image.",
-        ` Deleted ${cleanupResult.deletedCount} earlier schedule post(s) from this week.`,
-        ` Unpinned ${cleanupResult.unpinnedCount} older schedule post(s).`
-      ].join("");
-    } catch (error) {
-      console.error("Workbook imported, but the generated schedule could not be posted:", error);
-      content += " The schedule image was generated, but I could not post it in the planned times channel.";
-    }
   }
 
   await interaction.editReply({

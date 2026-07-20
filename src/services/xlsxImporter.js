@@ -8,9 +8,7 @@ const dataDirectory = path.join(rootDirectory, "data");
 const pendingDirectory = path.join(dataDirectory, "pending-imports");
 const raidsPath = path.join(dataDirectory, "raids.json");
 const workbookPath = path.join(dataDirectory, "staticsheet.xlsx");
-const scheduleImagePath = path.join(dataDirectory, "schedule.png");
 const importerPath = path.join(rootDirectory, "scripts", "import_raids_from_xlsx.py");
-const rendererPath = path.join(rootDirectory, "scripts", "render_schedule_from_xlsx.py");
 const pendingImports = new Map();
 const pendingLifetimeMs = 10 * 60 * 1000;
 
@@ -86,15 +84,8 @@ async function parseWorkbook(candidateWorkbookPath) {
   return JSON.parse(stdout);
 }
 
-async function renderWorkbook(candidateWorkbookPath, targetImagePath) {
-  await runImporter([rendererPath, candidateWorkbookPath, targetImagePath]);
-}
-
 async function removePendingFiles(pendingImport) {
-  await Promise.all([
-    fs.rm(pendingImport.workbookPath, { force: true }),
-    fs.rm(pendingImport.scheduleImagePath, { force: true })
-  ]);
+  await fs.rm(pendingImport.workbookPath, { force: true });
 }
 
 function cleanupExpiredImports() {
@@ -115,19 +106,14 @@ async function createPendingImport(attachment, userId) {
 
   const importId = crypto.randomUUID();
   const pendingWorkbookPath = path.join(pendingDirectory, `${importId}.xlsx`);
-  const pendingScheduleImagePath = path.join(pendingDirectory, `${importId}.png`);
 
   await saveWorkbookFromAttachment(attachment, pendingWorkbookPath);
 
   let raids;
   try {
     raids = await parseWorkbook(pendingWorkbookPath);
-    await renderWorkbook(pendingWorkbookPath, pendingScheduleImagePath);
   } catch (error) {
-    await Promise.all([
-      fs.rm(pendingWorkbookPath, { force: true }),
-      fs.rm(pendingScheduleImagePath, { force: true })
-    ]);
+    await fs.rm(pendingWorkbookPath, { force: true });
     throw error;
   }
 
@@ -136,7 +122,6 @@ async function createPendingImport(attachment, userId) {
     createdAt: Date.now(),
     expiresAt: Date.now() + pendingLifetimeMs,
     raids,
-    scheduleImagePath: pendingScheduleImagePath,
     userId,
     workbookPath: pendingWorkbookPath
   };
@@ -145,8 +130,7 @@ async function createPendingImport(attachment, userId) {
 
   return {
     importId,
-    raids,
-    scheduleImage: await fs.readFile(pendingScheduleImagePath)
+    raids
   };
 }
 
@@ -171,7 +155,6 @@ async function confirmPendingImport(importId, userId) {
 
   await fs.mkdir(dataDirectory, { recursive: true });
   await fs.copyFile(pendingImport.workbookPath, workbookPath);
-  await fs.copyFile(pendingImport.scheduleImagePath, scheduleImagePath);
   await fs.writeFile(
     raidsPath,
     `${JSON.stringify(pendingImport.raids, null, 2)}\n`,
@@ -182,8 +165,7 @@ async function confirmPendingImport(importId, userId) {
 
   return {
     importedCount: pendingImport.raids.length,
-    ok: true,
-    scheduleImagePath
+    ok: true
   };
 }
 

@@ -17,7 +17,7 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RAIDS_PATH = ROOT / "data" / "raids.json"
-DEFAULT_SHEET_NAME = "Copy of Serca+Cath"
+DEFAULT_SHEET_NAME = "Serca+Cath"
 
 EXACT_COLOR_NAMES = {
     (0, 255, 255): "Cyan",
