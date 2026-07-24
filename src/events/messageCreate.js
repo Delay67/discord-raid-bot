@@ -422,14 +422,21 @@ async function handleBotMention(message) {
     const canRequestTimeout = Boolean(
       message.guild && message.member?.roles.cache.has(llmTimeoutRoleId)
     );
-    const timeoutTargets = [...referencedMembers.values()]
-      .filter(({ id }) => id !== message.client.user.id);
+    const selfTimeoutTarget = {
+      id: message.author.id,
+      label: message.author.username
+    };
+    const timeoutTargets = canRequestTimeout
+      ? [...referencedMembers.values()]
+        .filter(({ id }) => id !== message.client.user.id)
+      : [];
     if (!timeoutTargets.some(({ id }) => id === message.author.id)) {
-      timeoutTargets.push({ id: message.author.id, label: message.author.username });
+      timeoutTargets.push(selfTimeoutTarget);
     }
+    const removeTimeoutTargets = canRequestTimeout ? timeoutTargets : [];
     const moderationContext = {
-      enabled: canRequestTimeout,
-      targets: timeoutTargets,
+      timeoutTargets,
+      removeTimeoutTargets,
       async executeTimeout(action) {
         const targetId = String(action.userId || "");
         const allowedTargetIds = new Set(timeoutTargets.map(({ id }) => id));
@@ -460,7 +467,7 @@ async function handleBotMention(message) {
       },
       async executeRemoveTimeout(action) {
         const targetId = String(action.userId || "");
-        const allowedTargetIds = new Set(timeoutTargets.map(({ id }) => id));
+        const allowedTargetIds = new Set(removeTimeoutTargets.map(({ id }) => id));
         if (!allowedTargetIds.has(targetId)) {
           return { error: "Target was not resolved from the latest request.", success: false };
         }
@@ -486,10 +493,11 @@ async function handleBotMention(message) {
       }
     };
     console.log("[LLM moderation]", {
-      enabled: canRequestTimeout,
+      canRequestTimeoutOthers: canRequestTimeout,
       requesterId: message.author.id,
       roleId: llmTimeoutRoleId,
-      targetIds: timeoutTargets.map(({ id }) => id)
+      removeTimeoutTargetIds: removeTimeoutTargets.map(({ id }) => id),
+      timeoutTargetIds: timeoutTargets.map(({ id }) => id)
     });
     console.log("[member-memory lookup]", JSON.stringify({
       guildId,

@@ -245,7 +245,7 @@ function buildMessages(
   contextMessages = [],
   memberMemories = [],
   referencedMemberMemories = [],
-  moderationContext = { enabled: false, targets: [] },
+  moderationContext = { timeoutTargets: [], removeTimeoutTargets: [] },
   imageContext = ""
 ) {
   const cleanedPrompt = prompt.trim().slice(0, maxPromptLength);
@@ -279,7 +279,7 @@ function buildMessages(
         "Only remember a stable fact or preference explicitly stated by the latest user in their latest message; never infer it or take it from conversation history.",
         "Only mutate the latest user's own memory. Never change or delete referenced member memory.",
         "Do not remember secrets, credentials, financial or medical information, exact addresses or contact details, protected traits, or facts about another person.",
-        "A separate trusted moderation-permissions message states whether the latest user may request time-outs and lists the only allowed targets. If enabled and the user directly asks to time out an allowed target, call timeout_member. Use 60 seconds when no shorter duration is requested and never exceed 60. If the user directly asks to lift or remove an allowed target's timeout, call remove_timeout. Do not call moderation tools when moderation is disabled or the target is not listed. After receiving the tool result, answer naturally and accurately about whether it succeeded.",
+        "A separate trusted moderation-permissions message lists the targets allowed for each moderation action. If the user directly asks to time out an allowed time-out target, call timeout_member. Use 60 seconds when no shorter duration is requested and never exceed 60. If the user directly asks to lift or remove an allowed timeout-removal target's timeout, call remove_timeout. Do not call a moderation tool when its target is not listed for that action. After receiving the tool result, answer naturally and accurately about whether it succeeded.",
         "Answer casually in 1-4 short sentences.",
         "Do not mention that you are an AI model.",
         "Do not provide harmful instructions or private information."
@@ -309,11 +309,14 @@ function buildMessages(
     },
     {
       role: "system",
-      content: moderationContext.enabled
-        ? `TRUSTED MODERATION PERMISSIONS: Time-out actions are enabled for this requester. Allowed targets:\n${moderationContext.targets.map(({ id, label }) =>
+      content: [
+        `TRUSTED MODERATION PERMISSIONS: Allowed time-out targets:\n${(moderationContext.timeoutTargets || moderationContext.targets || []).map(({ id, label }) =>
+          `${id}: ${label}`
+        ).join("\n") || "None"}`,
+        `Allowed timeout-removal targets:\n${(moderationContext.removeTimeoutTargets || (moderationContext.enabled ? moderationContext.targets : []) || []).map(({ id, label }) =>
           `${id}: ${label}`
         ).join("\n") || "None"}`
-        : "TRUSTED MODERATION PERMISSIONS: Time-out actions are disabled for this requester."
+      ].join("\n")
     },
     ...safeContextMessages,
     {
@@ -384,7 +387,7 @@ async function askGroq(
   contextMessages = [],
   memberMemories = [],
   referencedMemberMemories = [],
-  moderationContext = { enabled: false, targets: [] },
+  moderationContext = { timeoutTargets: [], removeTimeoutTargets: [] },
   imageContext = ""
 ) {
   const messages = buildMessages(
@@ -400,7 +403,14 @@ async function askGroq(
   const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
 
   try {
-    const allowedTargetIds = moderationContext.targets?.map(({ id }) => id) || [];
+    const allowedTimeoutTargetIds = (
+      moderationContext.timeoutTargets || moderationContext.targets || []
+    ).map(({ id }) => id);
+    const allowedRemoveTimeoutTargetIds = (
+      moderationContext.removeTimeoutTargets ||
+      (moderationContext.enabled ? moderationContext.targets : []) ||
+      []
+    ).map(({ id }) => id);
     const tools = [
       {
         type: "function",
@@ -419,7 +429,7 @@ async function askGroq(
           }
         }
       },
-      ...(moderationContext.enabled && allowedTargetIds.length > 0 ? [
+      ...(allowedTimeoutTargetIds.length > 0 ? [
       {
         type: "function",
         function: {
@@ -428,14 +438,16 @@ async function askGroq(
           parameters: {
             type: "object",
             properties: {
-              userId: { type: "string", enum: allowedTargetIds },
+              userId: { type: "string", enum: allowedTimeoutTargetIds },
               seconds: { type: "integer", minimum: 1, maximum: 60 },
               reason: { type: "string" }
             },
             required: ["userId", "seconds", "reason"]
           }
         }
-      },
+      }
+      ] : []),
+      ...(allowedRemoveTimeoutTargetIds.length > 0 ? [
       {
         type: "function",
         function: {
@@ -444,7 +456,7 @@ async function askGroq(
           parameters: {
             type: "object",
             properties: {
-              userId: { type: "string", enum: allowedTargetIds },
+              userId: { type: "string", enum: allowedRemoveTimeoutTargetIds },
               reason: { type: "string" }
             },
             required: ["userId", "reason"]

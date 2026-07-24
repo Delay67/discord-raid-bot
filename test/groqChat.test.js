@@ -204,7 +204,7 @@ test("provides trusted timeout permissions to the LLM", () => {
     targets: [{ id: "42", label: "Target" }]
   });
 
-  assert.match(messages[3].content, /Time-out actions are enabled/);
+  assert.match(messages[3].content, /Allowed time-out targets/);
   assert.match(messages[3].content, /42: Target/);
   assert.match(messages[0].content, /call timeout_member/);
   assert.match(messages[0].content, /call remove_timeout/);
@@ -212,5 +212,16 @@ test("provides trusted timeout permissions to the LLM", () => {
 
 test("disables timeout tools when the requester lacks permission", () => {
   const messages = buildMessages("timeout someone", "User");
-  assert.match(messages[3].content, /Time-out actions are disabled/);
+  assert.match(messages[3].content, /Allowed time-out targets:\nNone/);
+  assert.match(messages[3].content, /Allowed timeout-removal targets:\nNone/);
+});
+
+test("allows a requester to time themselves out without timeout-removal permission", () => {
+  const messages = buildMessages("timeout me", "User", [], [], [], {
+    timeoutTargets: [{ id: "7", label: "User" }],
+    removeTimeoutTargets: []
+  });
+
+  assert.match(messages[3].content, /Allowed time-out targets:\n7: User/);
+  assert.match(messages[3].content, /Allowed timeout-removal targets:\nNone/);
 });
