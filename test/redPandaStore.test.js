@@ -26,21 +26,28 @@ test("summarizes the top three bomb proccers and latest bomb per guild", () => {
   assert.equal(stats.latest.userId, "d");
 });
 
-test("summarizes top favorite pandas by score for a guild", () => {
+test("summarizes top favorite pandas over a rolling five-day window", () => {
   const favorites = {
-    scores: {
-      "guild-1:a.jpg": { guildId: "guild-1", media: "a.jpg", score: 3 },
-      "guild-1:b.jpg": { guildId: "guild-1", media: "b.jpg", score: 5 },
-      "guild-1:c.jpg": { guildId: "guild-1", media: "c.jpg", score: 5 },
-      "guild-2:z.jpg": { guildId: "guild-2", media: "z.jpg", score: 10 },
-      "guild-1:zero.jpg": { guildId: "guild-1", media: "zero.jpg", score: 0 }
-    }
+    events: [
+      { guildId: "guild-1", media: "old.jpg", reactedAt: "2026-07-21T11:59:59Z" },
+      { guildId: "guild-1", media: "a.jpg", reactedAt: "2026-07-22T12:00:00Z" },
+      { guildId: "guild-1", media: "b.jpg", reactedAt: "2026-07-25T12:00:00Z" },
+      { guildId: "guild-1", media: "b.jpg", reactedAt: "2026-07-27T11:00:00Z" },
+      { guildId: "guild-1", media: "future.jpg", reactedAt: "2026-07-27T13:00:00Z" },
+      { guildId: "guild-2", media: "z.jpg", reactedAt: "2026-07-27T11:00:00Z" },
+      { guildId: "guild-1", media: "invalid.jpg", reactedAt: "not-a-date" }
+    ]
   };
 
-  const leaders = summarizeFavoritePandas(favorites, "guild-1", 2);
+  const leaders = summarizeFavoritePandas(
+    favorites,
+    "guild-1",
+    2,
+    new Date("2026-07-27T12:00:00Z")
+  );
 
   assert.deepEqual(leaders.map(({ media, score }) => ({ media, score })), [
-    { media: "b.jpg", score: 5 },
-    { media: "c.jpg", score: 5 }
+    { media: "b.jpg", score: 2 },
+    { media: "a.jpg", score: 1 }
   ]);
 });

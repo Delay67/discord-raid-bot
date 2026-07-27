@@ -46,6 +46,7 @@ BOT_TIME_ZONE=Europe/Amsterdam
 - `/server-stats period:week` — Show activity stats
 - `/topchatter period:week` — Leaderboard of most active chatters
 - `/toppanda period:week` — Leaderboard of red panda senders
+- `/favoritepandas` — Top frogblushed red pandas from the rolling past 5 days
 
 **AI & Admin:**
 - `@bot message` — Ask the bot a question (uses Groq LLM)
@@ -84,3 +85,14 @@ python scripts/import_raids_from_image.py path/to/schedule.png
 - Bot replies are auto-deleted after `CLEANUP_DELAY_MS` (default: 5 minutes)
 - For mention replies to work, enable `Message Content Intent` in Discord Developer Portal
 - Red panda media is read from `data/redpandas` or `REDPANDA_MEDIA_DIR`
+
+## Favorite Panda Scores
+
+On the bot host, print the top 10 favorite red pandas with:
+
+```bash
+python3 scripts/top_favorite_pandas.py
+```
+
+Use `--guild-id SERVER_ID` to restrict the results to one Discord server. Run
+`python3 scripts/top_favorite_pandas.py --help` for the remaining options.

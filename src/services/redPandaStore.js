@@ -6,6 +6,7 @@ const lastSelectionPath = path.join(dataDirectory, "redpanda-last.json");
 const selectionHistoryPath = path.join(dataDirectory, "redpanda-history.json");
 const bombHistoryPath = path.join(dataDirectory, "redpanda-bombs.json");
 const favoritesPath = path.join(dataDirectory, "redpanda-favorites.json");
+const favoriteWindowMs = 5 * 24 * 60 * 60 * 1000;
 
 function ensureDataDirectory() {
   if (!fs.existsSync(dataDirectory)) {
@@ -102,12 +103,13 @@ function rememberRedPandaBomb(interaction) {
 
 function readFavorites() {
   if (!fs.existsSync(favoritesPath)) {
-    return { messages: {}, scores: {} };
+    return { events: [], messages: {}, scores: {} };
   }
 
   try {
     const favorites = JSON.parse(fs.readFileSync(favoritesPath, "utf8"));
     return {
+      events: Array.isArray(favorites?.events) ? favorites.events : [],
       messages: favorites?.messages && typeof favorites.messages === "object"
         ? favorites.messages
         : {},
@@ -117,7 +119,7 @@ function readFavorites() {
     };
   } catch (error) {
     console.warn(`Could not read red panda favorite history: ${error.message}`);
-    return { messages: {}, scores: {} };
+    return { events: [], messages: {}, scores: {} };
   }
 }
 
@@ -183,6 +185,7 @@ function recordFavoritePandaReaction(reaction, user) {
   }
 
   message.countedUserIds.push(userId);
+  const reactedAt = new Date().toISOString();
 
   for (const item of message.media || []) {
     const key = getFavoriteScoreKey(message.guildId, item);
@@ -192,6 +195,13 @@ function recordFavoritePandaReaction(reaction, user) {
       score: 0
     };
     favorites.scores[key].score += 1;
+    favorites.events.push({
+      guildId: message.guildId,
+      media: item,
+      messageId,
+      reactedAt,
+      userId
+    });
   }
 
   writeFavorites(favorites);
@@ -230,9 +240,27 @@ function getRedPandaBombStats(guildId) {
   return summarizeRedPandaBombs(readBombHistory(), guildId);
 }
 
-function summarizeFavoritePandas(favorites, guildId, limit = 5) {
-  return Object.values(favorites.scores || {})
-    .filter((entry) => entry.guildId === guildId && entry.score > 0)
+function summarizeFavoritePandas(favorites, guildId, limit = 5, date = new Date()) {
+  const cutoff = date.getTime() - favoriteWindowMs;
+  const scores = new Map();
+
+  for (const event of favorites.events || []) {
+    const reactedAt = new Date(event.reactedAt).getTime();
+    if (
+      event.guildId !== guildId ||
+      !event.media ||
+      !Number.isFinite(reactedAt) ||
+      reactedAt < cutoff ||
+      reactedAt > date.getTime()
+    ) {
+      continue;
+    }
+
+    scores.set(event.media, (scores.get(event.media) || 0) + 1);
+  }
+
+  return [...scores.entries()]
+    .map(([media, score]) => ({ guildId, media, score }))
     .sort((left, right) => right.score - left.score || left.media.localeCompare(right.media))
     .slice(0, limit);
 }

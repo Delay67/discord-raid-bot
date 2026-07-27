@@ -62,13 +62,13 @@ module.exports = {
   allowAnyChannel: true,
   data: new SlashCommandBuilder()
     .setName("favoritepandas")
-    .setDescription("Show the top red panda images by frogblush reactions."),
+    .setDescription("Show the top red pandas from the past 5 days."),
 
   async execute(interaction) {
     const leaders = getFavoritePandaLeaders(interaction.guildId, maxFavoritePandas);
 
     if (leaders.length === 0) {
-      await interaction.reply("No favorite red pandas yet.");
+      await interaction.reply("No red pandas received a frogblush in the past 5 days.");
       return;
     }
 
