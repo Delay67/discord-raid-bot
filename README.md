@@ -48,6 +48,9 @@ BOT_TIME_ZONE=Europe/Amsterdam
 - `/toppanda period:week` — Leaderboard of red panda senders
 - `/favoritepandas` — Top frogblushed red pandas from the rolling past 5 days
 
+Favorite reaction data records each reacting user's ID, display label, and
+per-image reaction count in `data/redpanda-favorites.json`.
+
 **AI & Admin:**
 - `@bot message` — Ask the bot a question (uses Groq LLM)
 - `@bot image` — Analyze up to 2 images with your question (up to 20 MiB each)

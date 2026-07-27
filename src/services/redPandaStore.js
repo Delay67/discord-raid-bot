@@ -132,6 +132,10 @@ function getFavoriteScoreKey(guildId, media) {
   return `${guildId || "dm"}:${media}`;
 }
 
+function getFavoriteUserLabel(user) {
+  return user.globalName || user.username || user.tag || user.id;
+}
+
 function rememberFavoritePandaMessage(interaction, message, media) {
   if (!message?.id || media.length === 0) {
     return;
@@ -186,6 +190,7 @@ function recordFavoritePandaReaction(reaction, user) {
 
   message.countedUserIds.push(userId);
   const reactedAt = new Date().toISOString();
+  const userLabel = getFavoriteUserLabel(user);
 
   for (const item of message.media || []) {
     const key = getFavoriteScoreKey(message.guildId, item);
@@ -194,14 +199,32 @@ function recordFavoritePandaReaction(reaction, user) {
       media: item,
       score: 0
     };
-    favorites.scores[key].score += 1;
+    const score = favorites.scores[key];
+    score.score += 1;
+    score.users ||= {};
+    score.users[userId] ||= {
+      count: 0,
+      label: userLabel
+    };
+    score.users[userId].count += 1;
+    score.users[userId].label = userLabel;
     favorites.events.push({
       guildId: message.guildId,
       media: item,
       messageId,
       reactedAt,
-      userId
+      userId,
+      userLabel
     });
+    console.log(
+      `Favorite panda reaction: ${JSON.stringify({
+        guildId: message.guildId,
+        media: item,
+        userId,
+        userLabel,
+        userReactionCount: score.users[userId].count
+      })}`
+    );
   }
 
   writeFavorites(favorites);
