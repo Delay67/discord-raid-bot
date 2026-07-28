@@ -81,7 +81,10 @@ async function saveWorkbookFromAttachment(attachment, targetPath) {
 
 async function parseWorkbook(candidateWorkbookPath) {
   const { stdout } = await runImporter([importerPath, candidateWorkbookPath, "--json"]);
-  return JSON.parse(stdout);
+  const parsed = JSON.parse(stdout);
+  return Array.isArray(parsed)
+    ? { raids: parsed, kazerosReminders: [] }
+    : parsed;
 }
 
 async function removePendingFiles(pendingImport) {
@@ -109,9 +112,9 @@ async function createPendingImport(attachment, userId) {
 
   await saveWorkbookFromAttachment(attachment, pendingWorkbookPath);
 
-  let raids;
+  let parsed;
   try {
-    raids = await parseWorkbook(pendingWorkbookPath);
+    parsed = await parseWorkbook(pendingWorkbookPath);
   } catch (error) {
     await fs.rm(pendingWorkbookPath, { force: true });
     throw error;
@@ -121,7 +124,8 @@ async function createPendingImport(attachment, userId) {
     attachmentName: attachment.name,
     createdAt: Date.now(),
     expiresAt: Date.now() + pendingLifetimeMs,
-    raids,
+    raids: parsed.raids,
+    kazerosReminders: parsed.kazerosReminders || [],
     mode: "replace",
     userId,
     workbookPath: pendingWorkbookPath
@@ -131,7 +135,8 @@ async function createPendingImport(attachment, userId) {
 
   return {
     importId,
-    raids
+    raids: parsed.raids,
+    kazerosReminders: parsed.kazerosReminders || []
   };
 }
 
@@ -176,6 +181,7 @@ async function confirmPendingImport(importId, userId) {
     const { writePreparedRaids } = require("./raidPeriodStore");
     targetDate = writePreparedRaids(pendingImport.raids, {
       attachmentName: pendingImport.attachmentName,
+      kazerosReminders: pendingImport.kazerosReminders,
       preparedBy: userId
     });
   } else {
@@ -185,6 +191,8 @@ async function confirmPendingImport(importId, userId) {
       `${JSON.stringify(pendingImport.raids, null, 2)}\n`,
       "utf8"
     );
+    const { writeCurrentKazerosReminders } = require("./raidPeriodStore");
+    writeCurrentKazerosReminders(pendingImport.kazerosReminders);
   }
   await removePendingFiles(pendingImport);
   pendingImports.delete(importId);

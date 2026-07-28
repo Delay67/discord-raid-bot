@@ -69,6 +69,10 @@ per-image reaction count in `data/redpanda-favorites.json`.
   reset to TODO
 - **Week history:** `/lookup`, `/combo`, `/overlap`, and `/raid-list` include a
   selector for the current week, a prepared next week, and archived Wednesday dates
+- **Kazeros reminders:** The first timed entry under each day on the `Kazeros`
+  workbook sheet pings its named player columns and any names in `Extras` 30
+  minutes before the start time. Discord IDs are configured privately through
+  `KAZEROS_DISCORD_IDS`.
 
 ## Importing Raids
 

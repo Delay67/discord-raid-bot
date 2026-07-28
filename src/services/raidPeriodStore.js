@@ -7,6 +7,7 @@ const raidsPath = path.join(dataDirectory, "raids.json");
 const preparedPath = path.join(dataDirectory, "raids-prepared.json");
 const archiveDirectory = path.join(dataDirectory, "raid-archives");
 const rolloverStatePath = path.join(dataDirectory, "raid-rollover.json");
+const kazerosRemindersPath = path.join(dataDirectory, "kazeros-reminders.json");
 const timeZone = "Europe/Amsterdam";
 
 function ensureDirectories() {
@@ -91,6 +92,14 @@ function writePreparedRaids(raids, details = {}, now = new Date()) {
   return targetDate;
 }
 
+function readCurrentKazerosReminders() {
+  return readJson(kazerosRemindersPath, []);
+}
+
+function writeCurrentKazerosReminders(reminders) {
+  writeJson(kazerosRemindersPath, reminders || []);
+}
+
 function clearPreparedRaids() {
   try {
     fs.unlinkSync(preparedPath);
@@ -166,6 +175,7 @@ function runRaidWeekRollover(now = new Date()) {
     prepared?.targetDate <= weekDate && Array.isArray(prepared?.raids);
   const nextRaids = resetToTodo(usePrepared ? prepared.raids : currentRaids, "weekly-rollover");
   writeJson(raidsPath, nextRaids);
+  writeCurrentKazerosReminders(usePrepared ? prepared.kazerosReminders : []);
   if (usePrepared) {
     clearPreparedRaids();
   }
@@ -185,8 +195,10 @@ module.exports = {
   getCurrentRaidWeekDate,
   getNextRaidWeekDate,
   readPreparedRaids,
+  readCurrentKazerosReminders,
   readRaidsForPeriod,
   runRaidWeekRollover,
   timeZone,
+  writeCurrentKazerosReminders,
   writePreparedRaids
 };

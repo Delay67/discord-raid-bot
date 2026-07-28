@@ -4,6 +4,7 @@ import math
 import re
 import sys
 import time
+from datetime import datetime, time as datetime_time
 import warnings
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -18,6 +19,8 @@ except ImportError:
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RAIDS_PATH = ROOT / "data" / "raids.json"
 DEFAULT_SHEET_NAME = "Serca+Cath"
+KAZEROS_SHEET_NAME = "Kazeros"
+WEEKDAYS = ("Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Monday", "Tuesday")
 
 EXACT_COLOR_NAMES = {
     (0, 255, 255): "Cyan",
@@ -317,7 +320,98 @@ def parse_workbook(workbook_path, sheet_name, debug=False):
         raid["createdAt"] = created_at
         del raid["_sourceCell"]
 
-    return raids
+    return raids, parse_kazeros_reminders(workbook)
+
+
+def parse_kazeros_time(value):
+    if isinstance(value, datetime):
+        return value.strftime("%H:%M")
+    if isinstance(value, datetime_time):
+        return value.strftime("%H:%M")
+    if isinstance(value, (int, float)):
+        minutes = round((value % 1) * 24 * 60)
+        return f"{minutes // 60 % 24:02d}:{minutes % 60:02d}"
+
+    text = clean_text(value)
+    match = re.search(r"\b([01]?\d|2[0-3]):([0-5]\d)\b", text)
+    return f"{int(match.group(1)):02d}:{match.group(2)}" if match else None
+
+
+def parse_kazeros_reminders(workbook):
+    if KAZEROS_SHEET_NAME not in workbook.sheetnames:
+        return []
+
+    sheet = workbook[KAZEROS_SHEET_NAME]
+    header_row = None
+    time_col = None
+
+    for row in range(1, sheet.max_row + 1):
+        for col in range(1, sheet.max_column + 1):
+            if clean_text(sheet.cell(row=row, column=col).value).lower() == "time":
+                header_row = row
+                time_col = col
+                break
+        if header_row:
+            break
+
+    if not header_row or not time_col or time_col >= sheet.max_column:
+        return []
+
+    raid_col = time_col + 1
+    member_columns = []
+    extras_col = None
+    for col in range(raid_col + 1, sheet.max_column + 1):
+        header = clean_text(sheet.cell(row=header_row, column=col).value)
+        if header.lower() == "extras":
+            extras_col = col
+            continue
+        if header.lower() in {"supports", "count"}:
+            break
+        if header:
+            member_columns.append((col, header))
+
+    reminders = []
+    current_day = None
+    day_has_entry = False
+
+    for row in range(header_row, sheet.max_row + 1):
+        raid_value = clean_text(sheet.cell(row=row, column=raid_col).value)
+        matched_day = next((day for day in WEEKDAYS if raid_value.lower() == day.lower()), None)
+
+        if matched_day:
+            current_day = matched_day
+            day_has_entry = False
+            continue
+
+        if not current_day or day_has_entry:
+            continue
+
+        start_time = parse_kazeros_time(sheet.cell(row=row, column=time_col).value)
+        if not start_time or not raid_value:
+            continue
+
+        members = [
+            name
+            for col, name in member_columns
+            if clean_text(sheet.cell(row=row, column=col).value)
+        ]
+        if extras_col:
+            extras = clean_text(sheet.cell(row=row, column=extras_col).value)
+            members.extend(
+                name.strip()
+                for name in re.split(r"[,;\n]+", extras)
+                if name.strip()
+            )
+        if members:
+            reminders.append({
+                "weekday": current_day,
+                "startTime": start_time,
+                "raid": raid_value,
+                "members": members,
+            })
+        day_has_entry = True
+
+    return reminders
 
 
 def preview_raids(raids):
@@ -353,7 +447,7 @@ def main():
         print(f"Workbook not found: {args.workbook}")
         sys.exit(1)
 
-    raids = parse_workbook(args.workbook, args.sheet, debug=args.debug)
+    raids, kazeros_reminders = parse_workbook(args.workbook, args.sheet, debug=args.debug)
 
     if not raids:
         print("No raids were parsed. Nothing was changed.")
@@ -361,7 +455,7 @@ def main():
         sys.exit(1)
 
     if args.json:
-        print(json.dumps(raids))
+        print(json.dumps({"raids": raids, "kazerosReminders": kazeros_reminders}))
         return
 
     preview_raids(raids)

@@ -42,13 +42,32 @@ function createPreviewAttachment(preview) {
   });
 }
 
-function formatPreviewMessage({ attachmentName, raids, summary }) {
+function subtractThirtyMinutes(time) {
+  const [hour, minute] = time.split(":").map(Number);
+  const total = (hour * 60 + minute - 30 + 24 * 60) % (24 * 60);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+function formatKazerosPreview(reminders) {
+  if (reminders.length === 0) {
+    return "No Kazeros reminders found.";
+  }
+  return reminders.map((reminder) =>
+    `${reminder.weekday} ${subtractThirtyMinutes(reminder.startTime)} — ${reminder.raid} starts at ${reminder.startTime}: ${reminder.members.join(", ")}`
+  ).join("\n");
+}
+
+function formatPreviewMessage({ attachmentName, raids, summary, kazerosReminders }) {
   return [
     `Parsed ${raids.length} raid(s) from \`${attachmentName}\`.`,
     "",
     "Summary by color:",
     "```text",
     summary,
+    "```",
+    "Kazeros 30-minute reminders:",
+    "```text",
+    formatKazerosPreview(kazerosReminders),
     "```",
     "Open `raid-import-preview.txt` for the full parsed preview, then confirm or cancel."
   ].join("\n");
@@ -81,7 +100,7 @@ function createImportModeSelect(importId, selectedMode = "replace") {
         },
         {
           default: selectedMode === "prepare",
-          description: "Save for next Wednesday at 10:00",
+          description: "Replace the prepared setup for next Wednesday",
           label: "Prepare",
           value: "prepare"
         }
@@ -124,7 +143,8 @@ module.exports = {
         content: formatPreviewMessage({
           attachmentName: attachment.name,
           raids: pendingImport.raids,
-          summary
+          summary,
+          kazerosReminders: pendingImport.kazerosReminders
         }),
         files: [createPreviewAttachment(preview)],
         components: [
