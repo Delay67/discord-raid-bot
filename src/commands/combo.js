@@ -5,6 +5,8 @@ const {
   getPlayerSuggestions,
   normalizePlayerName
 } = require("../services/raidStore");
+const { readRaidsForPeriod } = require("../services/raidPeriodStore");
+const { createPeriodSelector } = require("../services/raidPeriodSelect");
 
 function parseNames(value) {
   return value
@@ -89,22 +91,24 @@ module.exports = {
     const name = interaction.options.getString("name", true);
     const withNames = parseNames(interaction.options.getString("with", true));
     const allNames = [name, ...withNames];
-    const results = findComboRaids(allNames);
-
-    if (results.length === 0) {
-      await interaction.reply(`No raids found with ${allNames.join(", ")}.`);
-      return;
-    }
-
-    await interaction.reply({
-      embeds: [
-        buildRaidResultsEmbed({
-          title: `${name} Combo`,
+    const render = (raids, period) => {
+      const results = findComboRaids(allNames, raids);
+      const suffix = period === "current" ? "Current Week" : period === "next" ? "Next Week" : period;
+      if (results.length === 0) {
+        return { content: `No raids found with ${allNames.join(", ")} — ${suffix}.`, embeds: [] };
+      }
+      return {
+        content: "",
+        embeds: [buildRaidResultsEmbed({
+          title: `${name} Combo — ${suffix}`,
           description: `With ${withNames.join(", ")}`,
           results: groupComboResults(results, name),
           getLine: formatComboResult
-        })
-      ]
-    });
+        })]
+      };
+    };
+    const payload = render(readRaidsForPeriod("current"), "current");
+    payload.components = [createPeriodSelector(render)];
+    await interaction.reply(payload);
   }
 };

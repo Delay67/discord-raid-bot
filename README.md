@@ -28,7 +28,7 @@ BOT_TIME_ZONE=Europe/Amsterdam
 - `/raid-add color:Red raid:Serca difficulty:Nightmare dps:player-class,player2` — Add a raid
 - `/raid-list` — Show all raids
 - `/raid-clear` — Clear all raids
-- `/raids-upload file:workbook.xlsx` — Import raids from Excel workbook
+- `/raids-upload file:workbook.xlsx` — Replace current raids or prepare next week's raids
 - `/complete color:Orange raid:Serca` — Mark a raid as done
 - `/raid-suggest options:3 search:3 variety:3` — Generate alternative raid group layouts
 
@@ -64,7 +64,11 @@ per-image reaction count in `data/redpanda-favorites.json`.
 - **Schedule management:** Upload Excel workbooks or images to manage raids
 - **Activity stats:** Track message counts and red panda sends by server/time period
 - **AI chat:** Ask Groq about raids or analyze images
-- **Auto-reset:** Raids reset to TODO every Wednesday at 09:00 Amsterdam time
+- **Weekly rollover:** Every Wednesday at 10:00 Amsterdam time, current raids are
+  archived, prepared raids become current (when present), and all current raids
+  reset to TODO
+- **Week history:** `/lookup`, `/combo`, `/overlap`, and `/raid-list` include a
+  selector for the current week, a prepared next week, and archived Wednesday dates
 
 ## Importing Raids
 

@@ -1,6 +1,8 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { buildRaidResultsEmbed } = require("../services/raidEmbeds");
 const { getPlayerSuggestions, lookupRaids } = require("../services/raidStore");
+const { readRaidsForPeriod } = require("../services/raidPeriodStore");
+const { createPeriodSelector } = require("../services/raidPeriodSelect");
 
 function groupLookupResults(results) {
   const grouped = new Map();
@@ -60,21 +62,23 @@ module.exports = {
 
   async execute(interaction) {
     const name = interaction.options.getString("name", true);
-    const results = lookupRaids(name);
-
-    if (results.length === 0) {
-      await interaction.reply(`No raids found for ${name}.`);
-      return;
-    }
-
-    await interaction.reply({
-      embeds: [
-        buildRaidResultsEmbed({
-          title: `${name} Raids`,
+    const render = (raids, period) => {
+      const results = lookupRaids(name, raids);
+      const suffix = period === "current" ? "Current Week" : period === "next" ? "Next Week" : period;
+      if (results.length === 0) {
+        return { content: `No raids found for ${name} — ${suffix}.`, embeds: [] };
+      }
+      return {
+        content: "",
+        embeds: [buildRaidResultsEmbed({
+          title: `${name} Raids — ${suffix}`,
           results: groupLookupResults(results),
           getLine: formatLookupResult
-        })
-      ]
-    });
+        })]
+      };
+    };
+    const payload = render(readRaidsForPeriod("current"), "current");
+    payload.components = [createPeriodSelector(render)];
+    await interaction.reply(payload);
   }
 };

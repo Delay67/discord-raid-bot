@@ -4,7 +4,8 @@ const {
   ButtonBuilder,
   ButtonStyle,
   PermissionFlagsBits,
-  SlashCommandBuilder
+  SlashCommandBuilder,
+  StringSelectMenuBuilder
 } = require("discord.js");
 const { createPendingImport } = require("../services/xlsxImporter");
 
@@ -66,6 +67,28 @@ function createConfirmationButtons(importId) {
   );
 }
 
+function createImportModeSelect(importId, selectedMode = "replace") {
+  return new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId(`raids-upload:mode:${importId}`)
+      .setPlaceholder("Choose how to apply this workbook")
+      .addOptions(
+        {
+          default: selectedMode === "replace",
+          description: "Replace current raids and reset the week",
+          label: "Replace",
+          value: "replace"
+        },
+        {
+          default: selectedMode === "prepare",
+          description: "Save for next Wednesday at 10:00",
+          label: "Prepare",
+          value: "prepare"
+        }
+      )
+  );
+}
+
 module.exports = {
   skipCleanup: true,
   data: new SlashCommandBuilder()
@@ -104,7 +127,10 @@ module.exports = {
           summary
         }),
         files: [createPreviewAttachment(preview)],
-        components: [createConfirmationButtons(pendingImport.importId)]
+        components: [
+          createImportModeSelect(pendingImport.importId),
+          createConfirmationButtons(pendingImport.importId)
+        ]
       });
     } catch (error) {
       console.error(error);
@@ -114,3 +140,6 @@ module.exports = {
     }
   }
 };
+
+module.exports.createConfirmationButtons = createConfirmationButtons;
+module.exports.createImportModeSelect = createImportModeSelect;

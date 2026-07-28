@@ -251,9 +251,9 @@ function uncompleteRaids({ color, raidName, uncompletedBy }) {
   };
 }
 
-function lookupRaids(playerName) {
+function lookupRaids(playerName, sourceRaids = null) {
   const normalizedName = normalizePlayerName(playerName);
-  const raids = readRaids();
+  const raids = sourceRaids || readRaids();
 
   return raids
     .map((raid) => {
@@ -278,9 +278,9 @@ function lookupRaids(playerName) {
     .filter(Boolean);
 }
 
-function findComboRaids(playerNames) {
+function findComboRaids(playerNames, sourceRaids = null) {
   const normalizedNames = playerNames.map(normalizePlayerName);
-  const raids = readRaids();
+  const raids = sourceRaids || readRaids();
 
   return raids.filter((raid) => {
     const raidMemberNames = new Set(raid.members.map((member) => member.lookupName));

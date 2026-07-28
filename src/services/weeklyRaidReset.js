@@ -1,8 +1,8 @@
-const { resetRaidsToTodo } = require("./raidStore");
+const { runRaidWeekRollover } = require("./raidPeriodStore");
 
 const resetTimeZone = "Europe/Amsterdam";
 const resetWeekday = 3;
-const resetHour = 9;
+const resetHour = 10;
 const resetMinute = 0;
 
 function getTimeZoneParts(date) {
@@ -65,14 +65,15 @@ function getNextResetDate(now = new Date()) {
 }
 
 function startWeeklyRaidResetScheduler() {
+  const startupResult = runRaidWeekRollover();
+  console.log(`Raid week rollover startup check: ${JSON.stringify(startupResult)}`);
+
   function scheduleNextReset() {
     const nextReset = getNextResetDate();
     const delayMs = nextReset.getTime() - Date.now();
     const timeout = setTimeout(() => {
-      const result = resetRaidsToTodo({ resetBy: "weekly-reset" });
-      console.log(
-        `Weekly raid reset ran: ${result.resetCount}/${result.totalCount} raid(s) set to TODO.`
-      );
+      const result = runRaidWeekRollover();
+      console.log(`Weekly raid rollover ran: ${JSON.stringify(result)}`);
       scheduleNextReset();
     }, delayMs);
 

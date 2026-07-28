@@ -122,6 +122,7 @@ async function createPendingImport(attachment, userId) {
     createdAt: Date.now(),
     expiresAt: Date.now() + pendingLifetimeMs,
     raids,
+    mode: "replace",
     userId,
     workbookPath: pendingWorkbookPath
   };
@@ -132,6 +133,22 @@ async function createPendingImport(attachment, userId) {
     importId,
     raids
   };
+}
+
+function setPendingImportMode(importId, userId, mode) {
+  cleanupExpiredImports();
+  const pendingImport = pendingImports.get(importId);
+  if (!pendingImport) {
+    return { ok: false, message: "That raid import expired. Upload the workbook again." };
+  }
+  if (pendingImport.userId !== userId) {
+    return { ok: false, message: "Only the user who uploaded this workbook can change it." };
+  }
+  if (!["replace", "prepare"].includes(mode)) {
+    return { ok: false, message: "Unknown import mode." };
+  }
+  pendingImport.mode = mode;
+  return { mode, ok: true };
 }
 
 async function confirmPendingImport(importId, userId) {
@@ -154,18 +171,29 @@ async function confirmPendingImport(importId, userId) {
   }
 
   await fs.mkdir(dataDirectory, { recursive: true });
-  await fs.copyFile(pendingImport.workbookPath, workbookPath);
-  await fs.writeFile(
-    raidsPath,
-    `${JSON.stringify(pendingImport.raids, null, 2)}\n`,
-    "utf8"
-  );
+  let targetDate = null;
+  if (pendingImport.mode === "prepare") {
+    const { writePreparedRaids } = require("./raidPeriodStore");
+    targetDate = writePreparedRaids(pendingImport.raids, {
+      attachmentName: pendingImport.attachmentName,
+      preparedBy: userId
+    });
+  } else {
+    await fs.copyFile(pendingImport.workbookPath, workbookPath);
+    await fs.writeFile(
+      raidsPath,
+      `${JSON.stringify(pendingImport.raids, null, 2)}\n`,
+      "utf8"
+    );
+  }
   await removePendingFiles(pendingImport);
   pendingImports.delete(importId);
 
   return {
     importedCount: pendingImport.raids.length,
-    ok: true
+    mode: pendingImport.mode,
+    ok: true,
+    targetDate
   };
 }
 
@@ -199,5 +227,6 @@ module.exports = {
   cancelPendingImport,
   confirmPendingImport,
   createPendingImport,
+  setPendingImportMode,
   workbookPath
 };

@@ -5,8 +5,11 @@ const { scheduleInteractionCleanup } = require("../services/cleanup");
 const { isUserIgnored } = require("../services/botSettings");
 const {
   cancelPendingImport,
-  confirmPendingImport
+  confirmPendingImport,
+  setPendingImportMode
 } = require("../services/xlsxImporter");
+const { createConfirmationButtons, createImportModeSelect } = require("../commands/raids-upload");
+const { handlePeriodSelection } = require("../services/raidPeriodSelect");
 
 async function handleRaidUploadButton(interaction) {
   await interaction.deferUpdate();
@@ -28,12 +31,30 @@ async function handleRaidUploadButton(interaction) {
   let content = "Raid import cancelled.";
 
   if (action === "confirm") {
-    content = `Imported ${result.importedCount} raid(s) from the workbook.`;
+    content = result.mode === "prepare"
+      ? `Prepared ${result.importedCount} raid(s) for ${result.targetDate}. They will become current Wednesday at 10:00 Amsterdam time.`
+      : `Imported ${result.importedCount} raid(s) from the workbook.`;
   }
 
   await interaction.editReply({
     content,
     components: []
+  });
+}
+
+async function handleRaidUploadMode(interaction) {
+  const importId = interaction.customId.split(":")[2];
+  const result = setPendingImportMode(importId, interaction.user.id, interaction.values[0]);
+  if (!result.ok) {
+    await interaction.reply({ content: result.message, ephemeral: true });
+    return;
+  }
+  await interaction.deferUpdate();
+  await interaction.editReply({
+    components: [
+      createImportModeSelect(importId, result.mode),
+      createConfirmationButtons(importId)
+    ]
   });
 }
 
@@ -111,6 +132,16 @@ module.exports = {
           });
         }
       }
+      return;
+    }
+
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith("raids-upload:mode:")) {
+      await handleRaidUploadMode(interaction);
+      return;
+    }
+
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith("raid-period:")) {
+      await handlePeriodSelection(interaction);
       return;
     }
 

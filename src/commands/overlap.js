@@ -4,13 +4,15 @@ const {
   normalizePlayerName,
   readRaids
 } = require("../services/raidStore");
+const { readRaidsForPeriod } = require("../services/raidPeriodStore");
+const { createPeriodSelector } = require("../services/raidPeriodSelect");
 
-function getOverlapResults(playerName) {
+function getOverlapResults(playerName, raids) {
   const normalizedPlayerName = normalizePlayerName(playerName);
   const overlaps = new Map();
   let matchedRaids = 0;
 
-  for (const raid of readRaids()) {
+  for (const raid of raids) {
     const hasPlayer = raid.members.some(
       (member) => member.lookupName === normalizedPlayerName
     );
@@ -84,26 +86,28 @@ module.exports = {
 
   async execute(interaction) {
     const name = interaction.options.getString("name", true);
-    const results = getOverlapResults(name);
-
-    if (results.matchedRaids === 0) {
-      await interaction.reply(`No raids found for ${name}.`);
-      return;
-    }
-
-    await interaction.reply({
-      embeds: [
-        new EmbedBuilder()
+    const render = (raids, period) => {
+      const results = getOverlapResults(name, raids);
+      const suffix = period === "current" ? "Current Week" : period === "next" ? "Next Week" : period;
+      if (results.matchedRaids === 0) {
+        return { content: `No raids found for ${name} — ${suffix}.`, embeds: [] };
+      }
+      return {
+        content: "",
+        embeds: [new EmbedBuilder()
           .setColor(0x8f7df5)
-          .setTitle(`${name} Overlap`)
+          .setTitle(`${name} Overlap — ${suffix}`)
           .setDescription(`Found ${results.matchedRaids} raid(s) for ${name}.`)
           .addFields({
             name: "Most Grouped With",
             value: results.overlaps.length > 0
               ? results.overlaps.slice(0, 15).map(formatOverlap).join("\n")
               : "No overlapping members found."
-          })
-      ]
-    });
+          })]
+      };
+    };
+    const payload = render(readRaidsForPeriod("current"), "current");
+    payload.components = [createPeriodSelector(render)];
+    await interaction.reply(payload);
   }
 };
