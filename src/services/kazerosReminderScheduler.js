@@ -1,6 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { channelId } = require("../config");
+const { plannedTimesChannelId } = require("../config");
 const {
   getCurrentRaidWeekDate,
   readCurrentKazerosReminders,
@@ -70,7 +70,7 @@ function parseDiscordIdMap(value = process.env.KAZEROS_DISCORD_IDS) {
 }
 
 async function sendReminder(client, reminder, weekDate) {
-  const channel = await client.channels.fetch(channelId);
+  const channel = await client.channels.fetch(plannedTimesChannelId);
   if (!channel?.isTextBased()) {
     throw new Error("The configured Discord channel cannot receive Kazeros reminders.");
   }
@@ -97,7 +97,7 @@ async function sendReminder(client, reminder, weekDate) {
 
   await channel.send({
     allowedMentions: { users: resolved.map((member) => member.id) },
-    content: `${roster}\n**${reminder.raid}** starts in 30 minutes at ${reminder.startTime} Amsterdam time.${unresolvedNote}`
+    content: `${roster}\n**${reminder.raid}** starts in 30 minutes at ${reminder.startTime}.${unresolvedNote}`
   });
 
   return `${weekDate}:${reminder.weekday}:${reminder.startTime}:${reminder.raid}`;
