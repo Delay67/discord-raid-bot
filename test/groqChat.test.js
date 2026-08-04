@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
+  appendSadPenguinEmote,
   buildCurrentTimeContext,
   buildMessages,
   convertTimeZone,
@@ -8,6 +9,17 @@ const {
   parseMemoryUpdates,
   selectRelevantMemories
 } = require("../src/services/groqChat");
+
+test("adds a random sad penguin emote only when requested", () => {
+  assert.equal(
+    appendSadPenguinEmote("That hurt.", true, () => 0.4),
+    "That hurt. :pinkguin:"
+  );
+  assert.equal(
+    appendSadPenguinEmote("Hello!", false, () => 0.4),
+    "Hello!"
+  );
+});
 
 test("converts Michigan time to Amsterdam using DST-aware timezone data", () => {
   const result = convertTimeZone({
@@ -185,6 +197,22 @@ test("extracts hidden memory updates from the visible answer", () => {
   assert.deepEqual(result.memoryUpdates, [
     { key: "favorite_color", value: "blue" }
   ]);
+});
+
+test("extracts the hidden sad-penguin decision from the visible answer", () => {
+  const result = parseMemoryUpdates(
+    "That's a bit harsh. <sad_penguin>true</sad_penguin>"
+  );
+
+  assert.equal(result.answer, "That's a bit harsh.");
+  assert.equal(result.addSadPenguin, true);
+});
+
+test("does not request an emote for a normal response", () => {
+  const result = parseMemoryUpdates("Sounds good! <sad_penguin>false</sad_penguin>");
+
+  assert.equal(result.answer, "Sounds good!");
+  assert.equal(result.addSadPenguin, false);
 });
 
 test("extracts a hidden memory deletion from the visible answer", () => {
