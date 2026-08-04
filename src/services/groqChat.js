@@ -368,7 +368,7 @@ function appendSadPenguinEmote(answer, shouldAppend, random = Math.random) {
 
   const index = Math.floor(random() * sadPenguinEmotes.length);
   const emote = sadPenguinEmotes[Math.max(0, Math.min(index, sadPenguinEmotes.length - 1))];
-  return `${answer} ${emote}`;
+  return `${emote} ${answer}`;
 }
 
 async function requestCompletion(messages, signal, tools) {
