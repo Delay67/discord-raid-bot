@@ -13,7 +13,7 @@ const {
 test("adds a random sad penguin emote only when requested", () => {
   assert.equal(
     appendSadPenguinEmote("That hurt.", true, () => 0.4),
-    ":pinkguin: That hurt."
+    "<:pinkguin:1502235815869415545> That hurt."
   );
   assert.equal(
     appendSadPenguinEmote("Hello!", false, () => 0.4),

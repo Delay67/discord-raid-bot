@@ -11,11 +11,11 @@ const maxVisionImageBytes = 20 * 1024 * 1024;
 const maxVisionDescriptionLength = 2000;
 const resizedVisionImageDimension = 2048;
 const sadPenguinEmotes = [
-  ":sadpenguin:",
-  ":sandpenguin:",
-  ":pinkguin:",
-  ":cavepenguin:",
-  ":forestpenguin:"
+  "<:sadpenguin:1454660669415755850>",
+  "<:sandpenguin:1450600758318862528>",
+  "<:pinkguin:1502235815869415545>",
+  "<:cavepenguin:1534190860105941094>",
+  "<:forestpenguin:1486094290781474836>"
 ];
 
 const memoryStopWords = new Set([
