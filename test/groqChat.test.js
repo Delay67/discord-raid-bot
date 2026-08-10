@@ -124,6 +124,14 @@ test("rejects non-images and resizes oversized Discord images through its proxy"
   assert.match(optimized.url, /width=2048/);
 });
 
+test("rejects GIF attachments before sending them to the vision model", () => {
+  assert.deepEqual(getVisionImageAttachments([
+    { contentType: "image/gif", name: "animated", size: 100, url: "https://cdn/attachment" },
+    { contentType: "image/png", name: "mislabelled.gif", size: 100, url: "https://cdn/attachment" },
+    { contentType: "image/png", name: "unknown", size: 100, url: "https://cdn/animated.gif?size=1024" }
+  ]), []);
+});
+
 test("sends relevant memories instead of every stored fact", () => {
   const memories = [
     { key: "favorite_color", value: "blue" },

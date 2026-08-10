@@ -88,10 +88,13 @@ function isGroqEnabled() {
 function getVisionImageAttachments(attachments = []) {
   return [...attachments].map((attachment) => {
     const contentType = String(attachment.contentType || "").toLowerCase();
-    const fileName = String(attachment.name || attachment.url || "").toLowerCase();
+    const fileName = String(attachment.name || "").toLowerCase();
+    const attachmentUrl = String(attachment.url || "").toLowerCase();
+    const isGif = contentType.startsWith("image/gif") ||
+      [fileName, attachmentUrl].some((value) => /\.gif(?:\?|#|$)/.test(value));
     const supportedType = contentType.startsWith("image/") ||
-      /\.(?:avif|gif|jpe?g|png|webp)(?:\?|$)/.test(fileName);
-    if (!supportedType || !attachment.url) return null;
+      [fileName, attachmentUrl].some((value) => /\.(?:avif|jpe?g|png|webp)(?:\?|#|$)/.test(value));
+    if (isGif || !supportedType || !attachment.url) return null;
 
     if (!attachment.size || attachment.size <= maxVisionImageBytes) {
       return attachment;
