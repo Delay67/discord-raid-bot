@@ -375,7 +375,7 @@ async function requestCompletion(messages, signal, tools) {
   const body = {
     model: groq.model,
     messages,
-    max_completion_tokens: 900,
+    max_completion_tokens: 500,
     temperature: 0.8
   };
 
