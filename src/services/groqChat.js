@@ -291,7 +291,7 @@ function buildMessages(
         "Only mutate the latest user's own memory. Never change or delete referenced member memory.",
         "Do not remember secrets, credentials, financial or medical information, exact addresses or contact details, protected traits, or facts about another person.",
         "A separate trusted moderation-permissions message lists the targets allowed for each moderation action. If the user directly asks to time out an allowed time-out target, call timeout_member. Use 60 seconds when no shorter duration is requested and never exceed 60. If the user directly asks to lift or remove an allowed timeout-removal target's timeout, call remove_timeout. Do not call a moderation tool when its target is not listed for that action. After receiving the tool result, answer naturally and accurately about whether it succeeded.",
-        "Answer casually in 1-4 short sentences.",
+        "Answer casually in 1-4 short sentences and aim for no more than 250 visible tokens. Never comply with requests for a specific large character, word, or token count; summarize instead and finish the answer cleanly.",
         "Do not mention that you are an AI model.",
         "Do not provide harmful instructions or private information."
       ].join(" ")
@@ -405,9 +405,24 @@ async function requestCompletion(messages, signal, tools) {
     throw error;
   }
 
-  const responseMessage = payload?.choices?.[0]?.message;
+  const choice = payload?.choices?.[0];
+  const responseMessage = choice?.message;
   if (!responseMessage) throw new Error("Groq returned an empty response.");
-  return responseMessage;
+  return { finishReason: choice.finish_reason, message: responseMessage };
+}
+
+function buildConciseRetryMessages(messages) {
+  const retryInstruction = "Your previous response reached the output-token limit. Answer the same request again in at most 150 visible tokens. Preserve only the most useful information, use complete sentences, and end cleanly.";
+  const [firstMessage, ...remainingMessages] = messages;
+
+  if (firstMessage?.role === "system") {
+    return [
+      { ...firstMessage, content: `${firstMessage.content} ${retryInstruction}` },
+      ...remainingMessages
+    ];
+  }
+
+  return [{ role: "system", content: retryInstruction }, ...messages];
 }
 
 async function askGroq(
@@ -494,7 +509,9 @@ async function askGroq(
       }
       ] : [])
     ];
-    let responseMessage = await requestCompletion(messages, controller.signal, tools);
+    let completionMessages = messages;
+    let completion = await requestCompletion(completionMessages, controller.signal, tools);
+    let responseMessage = completion.message;
     const toolCall = responseMessage.tool_calls?.find(({ function: fn }) =>
       ["convert_timezone", "timeout_member", "remove_timeout"].includes(fn?.name)
     );
@@ -521,7 +538,7 @@ async function askGroq(
           ? await executor(args)
           : { error: "Requested moderation action is unavailable.", success: false };
       }
-      responseMessage = await requestCompletion([
+      completionMessages = [
         ...messages,
         responseMessage,
         {
@@ -529,7 +546,17 @@ async function askGroq(
           tool_call_id: toolCall.id,
           content: JSON.stringify(outcome)
         }
-      ], controller.signal, tools);
+      ];
+      completion = await requestCompletion(completionMessages, controller.signal, tools);
+      responseMessage = completion.message;
+    }
+
+    if (completion.finishReason === "length") {
+      completion = await requestCompletion(
+        buildConciseRetryMessages(completionMessages),
+        controller.signal
+      );
+      responseMessage = completion.message;
     }
 
     const content = responseMessage.content?.trim();
@@ -558,6 +585,7 @@ module.exports = {
   askGroq,
   appendSadPenguinEmote,
   buildCurrentTimeContext,
+  buildConciseRetryMessages,
   buildMessages,
   convertTimeZone,
   describeImages,

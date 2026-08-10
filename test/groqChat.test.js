@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
   appendSadPenguinEmote,
+  buildConciseRetryMessages,
   buildCurrentTimeContext,
   buildMessages,
   convertTimeZone,
@@ -9,6 +10,17 @@ const {
   parseMemoryUpdates,
   selectRelevantMemories
 } = require("../src/services/groqChat");
+
+test("adds a stronger concise instruction when a completion hits its token limit", () => {
+  const messages = [
+    { role: "system", content: "Original rules." },
+    { role: "user", content: "Write a very long answer." }
+  ];
+  const retried = buildConciseRetryMessages(messages);
+
+  assert.match(retried[0].content, /at most 150 visible tokens/i);
+  assert.equal(retried[1], messages[1]);
+});
 
 test("adds a random sad penguin emote only when requested", () => {
   assert.equal(
