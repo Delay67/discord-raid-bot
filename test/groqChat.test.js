@@ -81,6 +81,14 @@ test("does not promote context messages to system instructions", () => {
   assert.match(messages[0].content, /untrusted context/);
 });
 
+test("removes leaked sad-penguin metadata from conversation context", () => {
+  const messages = buildMessages("hello", "Ronan", [
+    { role: "assistant", content: "Activated<sad\\_penguin>false</sad\\_penguin>" }
+  ]);
+
+  assert.equal(messages.at(-2).content, "Activated");
+});
+
 test("injects member memory as untrusted context", () => {
   const messages = buildMessages("what should I play?", "Ronan", [], [
     { key: "main_class", value: "Gunlancer" }
@@ -233,6 +241,18 @@ test("does not request an emote for a normal response", () => {
 
   assert.equal(result.answer, "Sounds good!");
   assert.equal(result.addSadPenguin, false);
+});
+
+test("strips Markdown-escaped and truncated sad-penguin metadata", () => {
+  const escaped = parseMemoryUpdates(
+    "Activated<sad\\_penguin>false</sad\\_penguin>"
+  );
+  const truncated = parseMemoryUpdates("Still here. <sad_penguin>true");
+
+  assert.equal(escaped.answer, "Activated");
+  assert.equal(escaped.addSadPenguin, false);
+  assert.equal(truncated.answer, "Still here.");
+  assert.equal(truncated.addSadPenguin, true);
 });
 
 test("extracts a hidden memory deletion from the visible answer", () => {

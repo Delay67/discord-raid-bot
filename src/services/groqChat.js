@@ -267,7 +267,7 @@ function buildMessages(
   })).filter(({ memories }) => memories.length > 0);
   const safeContextMessages = contextMessages.map((message) => ({
     role: message.role === "assistant" ? "assistant" : "user",
-    content: String(message.content).slice(0, 1000)
+    content: stripSadPenguinMetadata(String(message.content)).slice(0, 1000)
   }));
 
   return [
@@ -340,7 +340,6 @@ function buildMessages(
 function parseMemoryUpdates(content) {
   const updates = [];
   const memoryPattern = /<memory>([\s\S]*?)<\/memory>/gi;
-  const sadPenguinPattern = /<sad_penguin>\s*(true|false)\s*<\/sad_penguin>/gi;
   let addSadPenguin = false;
 
   for (const match of content.matchAll(memoryPattern)) {
@@ -352,18 +351,27 @@ function parseMemoryUpdates(content) {
     }
   }
 
-  for (const match of content.matchAll(sadPenguinPattern)) {
-    addSadPenguin ||= match[1].toLowerCase() === "true";
+  for (const match of content.matchAll(sadPenguinMetadataPattern)) {
+    addSadPenguin ||= match[1]?.toLowerCase() === "true";
   }
 
   return {
     answer: content
       .replace(memoryPattern, "")
-      .replace(sadPenguinPattern, "")
+      .replace(sadPenguinMetadataPattern, "")
       .trim(),
     addSadPenguin,
     memoryUpdates: updates.slice(0, 3)
   };
+}
+
+// Models sometimes Markdown-escape the underscore. Discord hides that escape
+// when rendering, but it must still be accepted and removed from the raw text.
+// The closing tag is optional so truncated metadata cannot leak either.
+const sadPenguinMetadataPattern = /<\s*sad\\?_penguin\s*>\s*(?:(true|false)\s*)?(?:<\s*\\?\/\s*sad\\?_penguin\s*>)?|<\s*\\?\/\s*sad\\?_penguin\s*>/gi;
+
+function stripSadPenguinMetadata(content) {
+  return content.replace(sadPenguinMetadataPattern, "").trim();
 }
 
 function appendSadPenguinEmote(answer, shouldAppend, random = Math.random) {
