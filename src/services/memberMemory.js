@@ -5,6 +5,7 @@ const dataDirectory = path.join(__dirname, "..", "..", "data");
 const memoryPath = path.join(dataDirectory, "member-memory.json");
 const maxMemoriesPerMember = 30;
 const maxMemoryValueLength = 240;
+const maxLoggedValueLength = 80;
 const blockedKeyPattern = /(?:address|bank|card|contact|credential|diagnosis|email|health|medical|password|phone|secret|token)/i;
 const blockedValuePatterns = [
   /\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/i,
@@ -80,7 +81,33 @@ function normalizeUpdate(update) {
   return { key, operation: "set", value };
 }
 
-function upsertMemberMemories(guildId, userId, updates, filePath = memoryPath) {
+function compactLoggedValue(value) {
+  const text = String(value || "");
+  return text.length > maxLoggedValueLength
+    ? `${text.slice(0, maxLoggedValueLength - 3)}...`
+    : text;
+}
+
+function logMemoryMutation(logger, { guildId, userId, source, ...mutation }) {
+  logger("[member-memory]", JSON.stringify({
+    guildId,
+    userId,
+    source,
+    ...mutation
+  }));
+}
+
+function upsertMemberMemories(
+  guildId,
+  userId,
+  updates,
+  filePathOrOptions = memoryPath,
+  suppliedOptions = {}
+) {
+  const filePath = typeof filePathOrOptions === "string" ? filePathOrOptions : memoryPath;
+  const options = typeof filePathOrOptions === "string" ? suppliedOptions : filePathOrOptions;
+  const source = String(options?.source || "unspecified");
+  const logger = options?.logger || console.log;
   const normalizedUpdates = updates.map(normalizeUpdate).filter(Boolean);
   if (!guildId || !userId || normalizedUpdates.length === 0) return 0;
 
@@ -91,26 +118,54 @@ function upsertMemberMemories(guildId, userId, updates, filePath = memoryPath) {
   record.memories ||= {};
 
   let appliedUpdates = 0;
+  const mutations = [];
   for (const update of normalizedUpdates) {
     if (update.operation === "delete") {
       if (Object.hasOwn(record.memories, update.key)) {
+        const oldValue = record.memories[update.key].value;
         delete record.memories[update.key];
         appliedUpdates += 1;
+        mutations.push({
+          action: "deleted",
+          key: update.key,
+          oldValue: compactLoggedValue(oldValue)
+        });
       }
       continue;
     }
 
+    const previous = record.memories[update.key];
+    if (previous?.value === update.value) continue;
     record.memories[update.key] = {
       updatedAt: new Date().toISOString(),
       value: update.value
     };
     appliedUpdates += 1;
+    mutations.push({
+      action: previous ? "updated" : "added",
+      key: update.key,
+      ...(previous ? { oldValue: compactLoggedValue(previous.value) } : {}),
+      value: compactLoggedValue(update.value)
+    });
   }
 
   const entries = Object.entries(record.memories)
     .sort(([, left], [, right]) => right.updatedAt.localeCompare(left.updatedAt));
+  for (const [key, memory] of entries.slice(maxMemoriesPerMember)) {
+    mutations.push({
+      action: "deleted",
+      key,
+      oldValue: compactLoggedValue(memory.value),
+      reason: "capacity"
+    });
+  }
   record.memories = Object.fromEntries(entries.slice(0, maxMemoriesPerMember));
-  if (appliedUpdates > 0) writeStore(store, filePath);
+  if (appliedUpdates > 0) {
+    writeStore(store, filePath);
+    for (const mutation of mutations) {
+      logMemoryMutation(logger, { guildId, userId, source, ...mutation });
+    }
+  }
   return appliedUpdates;
 }
 

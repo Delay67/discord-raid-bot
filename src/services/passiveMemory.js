@@ -35,7 +35,12 @@ async function curateBatch({ guildId, userId, messages }) {
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok) throw new Error(payload?.error?.message || `Memory curator failed (${response.status})`);
-    return upsertMemberMemories(guildId, userId, parsePassiveMemoryUpdates(payload?.choices?.[0]?.message?.content));
+    return upsertMemberMemories(
+      guildId,
+      userId,
+      parsePassiveMemoryUpdates(payload?.choices?.[0]?.message?.content),
+      { source: "passive" }
+    );
   } finally { clearTimeout(timeout); }
 }
 

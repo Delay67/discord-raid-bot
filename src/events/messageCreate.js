@@ -536,7 +536,8 @@ async function handleBotMention(message) {
     upsertMemberMemories(
       guildId,
       message.author.id,
-      result.memoryUpdates
+      result.memoryUpdates,
+      { source: "explicit" }
     );
     await message.reply(result.answer);
   } catch (error) {

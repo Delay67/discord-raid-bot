@@ -76,3 +76,27 @@ test("ignores deletion requests for keys that do not exist", (context) => {
     { key: "main_class", value: "Bard" }
   ]);
 });
+
+test("logs added, updated, and deleted memories with their source", (context) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "member-memory-"));
+  const filePath = path.join(directory, "memory.json");
+  const logs = [];
+  const options = { logger: (...parts) => logs.push(parts.join(" ")), source: "passive" };
+  context.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+
+  upsertMemberMemories("guild-a", "user-a", [
+    { key: "main_class", value: "Bard" }
+  ], filePath, options);
+  upsertMemberMemories("guild-a", "user-a", [
+    { key: "main_class", value: "Artist" }
+  ], filePath, options);
+  upsertMemberMemories("guild-a", "user-a", [
+    { operation: "delete", key: "main_class" }
+  ], filePath, options);
+
+  assert.match(logs[0], /"action":"added"/);
+  assert.match(logs[1], /"action":"updated"/);
+  assert.match(logs[1], /"oldValue":"Bard"/);
+  assert.match(logs[2], /"action":"deleted"/);
+  assert.ok(logs.every((line) => line.includes('"source":"passive"')));
+});
