@@ -288,6 +288,54 @@ test("extracts a hidden memory deletion from the visible answer", () => {
   ]);
 });
 
+test("handles delete_memory in one Groq request", async () => {
+  const originalFetch = global.fetch;
+  const requestBodies = [];
+  global.fetch = async (_url, options) => {
+    requestBodies.push(JSON.parse(options.body));
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [{
+          finish_reason: "tool_calls",
+          message: {
+            tool_calls: [{
+              id: "delete-1",
+              type: "function",
+              function: {
+                name: "delete_memory",
+                arguments: '{"key":"burger_preference"}'
+              }
+            }]
+          }
+        }]
+      })
+    };
+  };
+
+  try {
+    const result = await require("../src/services/groqChat").askGroq(
+      "Forget my burger preference.",
+      "Ronan",
+      [],
+      [{ key: "burger_preference", value: "no onions" }]
+    );
+    const deleteTool = requestBodies[0].tools.find(({ function: fn }) =>
+      fn.name === "delete_memory"
+    );
+
+    assert.equal(requestBodies.length, 1);
+    assert.deepEqual(deleteTool.function.parameters.properties.key.enum, ["burger_preference"]);
+    assert.equal(result.answer, "Removed it.");
+    assert.deepEqual(result.memoryUpdates, [
+      { operation: "delete", key: "burger_preference" }
+    ]);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
 test("provides trusted timeout permissions to the LLM", () => {
   const messages = buildMessages("timeout <@42>", "Mod", [], [], [], {
     enabled: true,
