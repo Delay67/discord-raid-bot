@@ -31,16 +31,23 @@ test("distinguishes announced roadmap content from live content", () => {
   assert.match(context, /not live/i);
 });
 
-test("retrieves the class-power tier list for broad strength questions", () => {
+test("retrieves opinion-based class-power tiers for broad strength questions", () => {
   const context = findRelevantKnowledge("what are the strongest classes and current DPS tiers?");
-  assert.match(context, /Class power tier list/);
-  assert.match(context, /S: Order of the Emperor/);
+  assert.match(context, /Relative class and spec damage strength/);
+  assert.match(context, /S tier: Order of the Emperor/);
+  assert.match(context, /approximate opinion-based placements/i);
 });
 
 test("retrieves class-power context for a specific spec", () => {
   const context = findRelevantKnowledge("how strong is Lunar Voice?");
   assert.match(context, /Lunar Voice/);
-  assert.match(context, /S: Order of the Emperor/);
+  assert.match(context, /S tier: Order of the Emperor/);
+});
+
+test("maps parent classes to both damage specs", () => {
+  const context = findRelevantKnowledge("how OP is Gunlancer and where would you put it?");
+  assert.match(context, /Gunlancer = Lone Knight or Combat Readiness/);
+  assert.match(context, /compare both specs/i);
 });
 
 test("returns a safe fallback for unrelated questions", () => {

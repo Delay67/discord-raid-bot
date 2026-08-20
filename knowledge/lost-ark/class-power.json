@@ -1,13 +1,17 @@
 [
   {
     "id": "class-power-serca-g2-nightmare-2026-06",
-    "topic": "Class power tier list",
+    "topic": "Relative class and spec damage strength",
     "status": "community-estimate",
     "updatedAt": "2026-08-20",
     "keywords": [
       "class power", "class strength", "class ranking", "spec power", "spec strength",
       "tier list", "dps tier", "damage tier", "best class", "strongest class", "weakest class",
-      "meta dps", "dps", "damage",
+      "meta dps", "dps", "damage", "gunlancer", "berserker", "destroyer", "slayer",
+      "arcanist", "souleater", "breaker", "deathblade", "wardancer", "reaper", "striker",
+      "soulfist", "scrapper", "shadowhunter", "sorceress", "gunslinger", "sharpshooter",
+      "wildsoul", "summoner", "machinist", "deadeye", "glaivier", "artillerist", "aeromancer",
+      "guardianknight", "paladin", "bard",
       "order of the emperor", "full moon harvester", "berserker's technique", "brawl king storm",
       "remaining energy", "first intention", "predator", "lunar voice", "hellfire successor",
       "deathblow", "energy overflow", "mayhem", "empress's grace", "taijutsu", "esoteric flurry",
@@ -20,7 +24,7 @@
       "perfect suppression", "firepower enhancement", "phantom beast awakening", "drizzle",
       "pistoleer", "true courage", "combat readiness"
     ],
-    "content": "S: Order of the Emperor; Full Moon Harvester; Berserker's Technique; Brawl King Storm; Remaining Energy; First Intention; Predator; Lunar Voice. A: Hellfire Successor; Deathblow; Energy Overflow; Mayhem; Empress's Grace; Taijutsu; Esoteric Flurry; Hunger; Demonic Impulse; Shock Training; Night's Edge; Igniter; Peacemaker. B: Time to Hunt; Death Strike; Ferality; Master Summoner; Evolutionary Legacy; Robust Spirit; Punisher; Enhanced Weapon; Surge; Pinnacle; Asura's Path; Dreadful Roar; Arthetinean Skill. C: Reflux; Control; Gravity Training; Esoteric Skill Enhancement; Judgment; Rage Hammer; Lone Knight; Barrage Enhancement; Shining Knight; Wind Fury; Loyal Companion; Communication Overflow. D: Perfect Suppression; Firepower Enhancement; Phantom Beast Awakening; Drizzle; Pistoleer; True Courage; Combat Readiness.",
+    "content": "Use these as approximate opinion-based placements, not an official or fixed list. S tier: Order of the Emperor; Full Moon Harvester; Berserker's Technique; Brawl King Storm; Remaining Energy; First Intention; Predator; Lunar Voice. A tier: Hellfire Successor; Deathblow; Energy Overflow; Mayhem; Empress's Grace; Taijutsu; Esoteric Flurry; Hunger; Demonic Impulse; Shock Training; Night's Edge; Igniter; Peacemaker. B tier: Time to Hunt; Death Strike; Ferality; Master Summoner; Evolutionary Legacy; Robust Spirit; Punisher; Enhanced Weapon; Surge; Pinnacle; Asura's Path; Dreadful Roar; Arthetinean Skill. C tier: Reflux; Control; Gravity Training; Esoteric Skill Enhancement; Judgment; Rage Hammer; Lone Knight; Barrage Enhancement; Shining Knight; Wind Fury; Loyal Companion; Communication Overflow. D tier: Perfect Suppression; Firepower Enhancement; Phantom Beast Awakening; Drizzle; Pistoleer; True Courage; Combat Readiness. Parent-class mappings: Gunlancer = Lone Knight or Combat Readiness; Berserker = Berserker's Technique or Mayhem; Destroyer = Gravity Training or Rage Hammer; Slayer = Predator or Punisher; Arcanist = Order of the Emperor or Empress's Grace; Souleater = Full Moon Harvester or Night's Edge; Breaker = Brawl King Storm or Asura's Path; Deathblade = Remaining Energy or Surge; Wardancer = First Intention or Esoteric Skill Enhancement; Reaper = Lunar Voice or Hunger; Striker = Deathblow or Esoteric Flurry; Soulfist = Energy Overflow or Robust Spirit; Scrapper = Taijutsu or Shock Training; Shadowhunter = Demonic Impulse or Perfect Suppression; Sorceress = Igniter or Reflux; Gunslinger = Peacemaker or Time to Hunt; Sharpshooter = Death Strike or Loyal Companion; Wildsoul = Ferality or Phantom Beast Awakening; Summoner = Master Summoner or Communication Overflow; Machinist = Evolutionary Legacy or Arthetinean Skill; Deadeye = Enhanced Weapon or Pistoleer; Glaivier = Pinnacle or Control; Artillerist = Barrage Enhancement or Firepower Enhancement; Aeromancer = Wind Fury or Drizzle. When asked about a parent class, compare both specs instead of assigning the parent one exact placement.",
     "source": "https://lostark.bible/"
   }
 ]
