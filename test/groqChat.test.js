@@ -326,11 +326,57 @@ test("handles delete_memory in one Groq request", async () => {
     );
 
     assert.equal(requestBodies.length, 1);
-    assert.deepEqual(deleteTool.function.parameters.properties.key.enum, ["burger_preference"]);
+    assert.equal(deleteTool.function.parameters.properties.key.enum, undefined);
+    assert.match(
+      deleteTool.function.parameters.properties.key.description,
+      /burger_preference/
+    );
     assert.equal(result.answer, "Removed it.");
     assert.deepEqual(result.memoryUpdates, [
       { operation: "delete", key: "burger_preference" }
     ]);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("rejects an unknown delete_memory key locally without another request", async () => {
+  const originalFetch = global.fetch;
+  let requestCount = 0;
+  global.fetch = async () => {
+    requestCount += 1;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [{
+          finish_reason: "tool_calls",
+          message: {
+            tool_calls: [{
+              id: "delete-unknown",
+              type: "function",
+              function: {
+                name: "delete_memory",
+                arguments: '{"key":"favorite_food"}'
+              }
+            }]
+          }
+        }]
+      })
+    };
+  };
+
+  try {
+    const result = await require("../src/services/groqChat").askGroq(
+      "Forget my favorite food.",
+      "Ronan",
+      [],
+      [{ key: "preferred_name", value: "Ronan" }]
+    );
+
+    assert.equal(requestCount, 1);
+    assert.equal(result.answer, "I couldn't find that memory.");
+    assert.deepEqual(result.memoryUpdates, []);
   } finally {
     global.fetch = originalFetch;
   }

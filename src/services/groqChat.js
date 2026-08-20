@@ -499,7 +499,10 @@ async function askGroq(
           parameters: {
             type: "object",
             properties: {
-              key: { type: "string", enum: allowedMemoryKeys }
+              key: {
+                type: "string",
+                description: `Exact existing key. Available keys: ${allowedMemoryKeys.join(", ")}`
+              }
             },
             required: ["key"]
           }
@@ -556,14 +559,12 @@ async function askGroq(
       } catch {
         // The executor will return a useful validation failure.
       }
-      if (
-        toolCall.function.name === "delete_memory" &&
-        allowedMemoryKeys.includes(args.key)
-      ) {
+      if (toolCall.function.name === "delete_memory") {
+        const keyExists = allowedMemoryKeys.includes(args.key);
         return {
           addSadPenguin: false,
-          answer: "Removed it.",
-          memoryUpdates: [{ operation: "delete", key: args.key }]
+          answer: keyExists ? "Removed it." : "I couldn't find that memory.",
+          memoryUpdates: keyExists ? [{ operation: "delete", key: args.key }] : []
         };
       }
       let outcome;
