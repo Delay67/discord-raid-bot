@@ -252,6 +252,19 @@ test("does not request an emote for a normal response", () => {
   assert.equal(result.addSadPenguin, false);
 });
 
+test("instructs the model to refuse interactive changes to another member's notes", () => {
+  const messages = buildMessages("update @Delay's notes", "Faal", [], [], [{
+    id: "123456789",
+    label: "Delay",
+    aliases: ["Delay"],
+    memories: [{ key: "pet", value: "small dog" }]
+  }]);
+
+  assert.match(messages[0].content, /asks to add, update, or delete another member's notes/i);
+  assert.match(messages[0].content, /refuse that request/i);
+  assert.match(messages[0].content, /never claim.*notes were changed/i);
+});
+
 test("strips Markdown-escaped and truncated sad-penguin metadata", () => {
   const escaped = parseMemoryUpdates(
     "Activated<sad\\_penguin>false</sad\\_penguin>"
