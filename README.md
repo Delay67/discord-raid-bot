@@ -78,15 +78,15 @@ per-image reaction count in `data/redpanda-favorites.json`.
 
 **From Excel (recommended):**
 ```bash
-python -m pip install -r scripts/requirements.txt
-python scripts/import_raids_from_xlsx.py path/to/schedule.xlsx
+python -m pip install -r scripts/active/requirements.txt
+python scripts/active/import_raids_from_xlsx.py path/to/schedule.xlsx
 ```
 Or use `/raids-upload` in Discord.
 
 **From Screenshot (fallback, needs OCR):**
 ```bash
 # Windows: winget install UB-Mannheim.TesseractOCR
-python scripts/import_raids_from_image.py path/to/schedule.png
+python scripts/active/import_raids_from_image.py path/to/schedule.png
 ```
 
 ## Configuration Notes
@@ -102,8 +102,8 @@ python scripts/import_raids_from_image.py path/to/schedule.png
 On the bot host, print the top 10 favorite red pandas with:
 
 ```bash
-python3 scripts/top_favorite_pandas.py
+python3 scripts/active/top_favorite_pandas.py
 ```
 
 Use `--guild-id SERVER_ID` to restrict the results to one Discord server. Run
-`python3 scripts/top_favorite_pandas.py --help` for the remaining options.
+`python3 scripts/active/top_favorite_pandas.py --help` for the remaining options.

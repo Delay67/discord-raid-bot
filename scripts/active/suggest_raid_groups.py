@@ -25,11 +25,11 @@ from import_raids_from_xlsx import (
 try:
     from openpyxl import load_workbook
 except ImportError:
-    print("Missing dependency: openpyxl. Run: python -m pip install -r scripts/requirements.txt")
+    print("Missing dependency: openpyxl. Run: python -m pip install -r scripts/active/requirements.txt")
     sys.exit(1)
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 COLOR_POOL = [
     "Red",
     "Orange",

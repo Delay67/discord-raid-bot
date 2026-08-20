@@ -12,11 +12,11 @@ from pathlib import Path
 try:
     from openpyxl import load_workbook
 except ImportError:
-    print("Missing dependency: openpyxl. Run: python -m pip install -r scripts/requirements.txt")
+    print("Missing dependency: openpyxl. Run: python -m pip install -r scripts/active/requirements.txt")
     sys.exit(1)
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RAIDS_PATH = ROOT / "data" / "raids.json"
 DEFAULT_SHEET_NAME = "Serca+Cath"
 KAZEROS_SHEET_NAME = "Kazeros"

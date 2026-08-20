@@ -1,4 +1,4 @@
-const { migrateAllTimeMessageStats } = require("../src/services/activityStats");
+const { migrateAllTimeMessageStats } = require("../../src/services/activityStats");
 
 const results = migrateAllTimeMessageStats();
 

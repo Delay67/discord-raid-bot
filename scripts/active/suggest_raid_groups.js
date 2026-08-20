@@ -4,10 +4,10 @@ const path = require("node:path");
 const {
   buildSuggestions,
   formatSuggestionsReport
-} = require("../src/services/raidOptimizer");
+} = require("../../src/services/raidOptimizer");
 
-const rootDirectory = path.join(__dirname, "..");
-const importerPath = path.join(rootDirectory, "scripts", "import_raids_from_xlsx.py");
+const rootDirectory = path.join(__dirname, "..", "..");
+const importerPath = path.join(__dirname, "import_raids_from_xlsx.py");
 
 function parseArgs(argv) {
   const args = {

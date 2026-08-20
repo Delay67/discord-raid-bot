@@ -4,11 +4,11 @@ const {
   GatewayIntentBits,
   PermissionsBitField
 } = require("discord.js");
-const { token, validateEnvironment } = require("../src/config");
+const { token, validateEnvironment } = require("../../src/config");
 const {
   getPeriodKey,
   replaceMessageStats
-} = require("../src/services/activityStats");
+} = require("../../src/services/activityStats");
 
 const periods = ["week", "month", "year", "all"];
 const backfillGuildId = "977982426989101077";

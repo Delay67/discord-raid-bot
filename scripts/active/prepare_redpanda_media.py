@@ -7,7 +7,7 @@ from pathlib import Path
 from PIL import Image, ImageSequence
 
 
-DEFAULT_MEDIA_DIR = Path(__file__).resolve().parents[1] / "data" / "redpandas"
+DEFAULT_MEDIA_DIR = Path(__file__).resolve().parents[2] / "data" / "redpandas"
 GIF_EXTENSIONS = {".gif"}
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 VIDEO_EXTENSIONS = {".m4v", ".mov", ".mp4", ".webm"}

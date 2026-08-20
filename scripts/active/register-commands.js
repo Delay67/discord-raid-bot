@@ -1,6 +1,6 @@
 const { REST, Routes } = require("discord.js");
-const { token, validateEnvironment } = require("../src/config");
-const { getCommandData } = require("../src/loaders/commands");
+const { token, validateEnvironment } = require("../../src/config");
+const { getCommandData } = require("../../src/loaders/commands");
 
 validateEnvironment();
 

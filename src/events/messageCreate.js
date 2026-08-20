@@ -26,6 +26,7 @@ const {
   getMemberMemories,
   upsertMemberMemories
 } = require("../services/memberMemory");
+const { queuePassiveMemory } = require("../services/passiveMemory");
 
 const mentionCooldownMs = 15000;
 const mentionCooldownRetryDelayMs = 5000;
@@ -577,6 +578,7 @@ module.exports = {
       !message.author.bot &&
       !isUserIgnored(message.guildId, message.author.id)
     ) {
+      queuePassiveMemory(message);
       await handleBotMention(message);
     }
 

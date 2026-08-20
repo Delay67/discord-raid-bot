@@ -11,7 +11,7 @@ from typing import Any
 
 
 DEFAULT_DATA_FILE = (
-    Path(__file__).resolve().parents[1] / "data" / "redpanda-favorites.json"
+    Path(__file__).resolve().parents[2] / "data" / "redpanda-favorites.json"
 )
 
 

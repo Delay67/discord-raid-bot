@@ -10,11 +10,11 @@ from pathlib import Path
 try:
     from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 except ImportError:
-    print("Missing dependency: Pillow. Run: python -m pip install -r scripts/requirements.txt")
+    print("Missing dependency: Pillow. Run: python -m pip install -r scripts/active/requirements.txt")
     sys.exit(1)
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RAIDS_PATH = ROOT / "data" / "raids.json"
 PYTESSERACT = None
 
@@ -52,7 +52,7 @@ def get_pytesseract():
     try:
         import pytesseract
     except ImportError:
-        print("Missing dependency: pytesseract. Run: python -m pip install -r scripts/requirements.txt")
+        print("Missing dependency: pytesseract. Run: python -m pip install -r scripts/active/requirements.txt")
         sys.exit(1)
 
     PYTESSERACT = pytesseract

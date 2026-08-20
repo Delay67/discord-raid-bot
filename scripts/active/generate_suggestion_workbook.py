@@ -7,7 +7,7 @@ try:
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 except ImportError:
-    print("Missing dependency. Run: python -m pip install -r scripts/requirements.txt")
+    print("Missing dependency. Run: python -m pip install -r scripts/active/requirements.txt")
     sys.exit(1)
 
 from render_schedule_from_xlsx import render_schedule
