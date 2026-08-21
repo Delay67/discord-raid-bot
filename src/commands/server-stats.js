@@ -54,7 +54,7 @@ module.exports = {
               name: "Totals",
               value: [
                 `Messages: ${stats.messages.total}`,
-                `LLM interactions: ${stats.llmInteractions.total}`,
+                `Delay Junior interactions: ${stats.llmInteractions.total}`,
                 `Red pandas served: ${stats.redpandas.total}`
               ].join("\n")
             },
@@ -62,7 +62,7 @@ module.exports = {
               name: "Top Bot Interactors",
               value: formatTopUsers(
                 stats.llmInteractions.users,
-                "No LLM interactions tracked yet."
+                "No Delay Junior interactions tracked yet."
               ),
               inline: true
             },

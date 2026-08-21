@@ -138,12 +138,12 @@ async function main() {
   let total = 0;
   for (const channel of channels) total += await scanChannel(channel, client.user.id, stats);
 
-  console.log(`Found ${total} historical LLM interactions.`);
+  console.log(`Found ${total} historical Delay Junior interactions.`);
   if (args.dryRun) {
     console.log("Dry run complete. activity-stats.json was not changed.");
   } else {
     replaceLlmInteractionStats(args.guildId, stats);
-    console.log("Backfill complete. Replaced only LLM interaction stats.");
+    console.log("Backfill complete. Replaced only Delay Junior interaction stats.");
   }
 
   await client.destroy();
