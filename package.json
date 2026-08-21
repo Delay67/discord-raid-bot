@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "type": "commonjs",
   "scripts": {
+    "backfill:llm-interactions": "node scripts/one-time/backfill-llm-interactions.js",
     "backfill:messages": "node scripts/one-time/backfill-message-stats.js",
     "stats:migrate-all-time": "node scripts/one-time/migrate-all-time-message-stats.js",
     "start": "node src/index.js",

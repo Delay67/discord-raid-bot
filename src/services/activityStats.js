@@ -66,6 +66,10 @@ function createBucket() {
       total: 0,
       users: {}
     },
+    llmInteractions: {
+      total: 0,
+      users: {}
+    },
     messages: {
       total: 0,
       users: {}
@@ -126,6 +130,14 @@ function recordMessage(message) {
   updateCurrentBuckets(message.guildId, (bucket) => {
     bucket.messages.total += 1;
     incrementUser(bucket.messages.users, message.author);
+  });
+}
+
+function recordLlmInteraction(message) {
+  updateCurrentBuckets(message.guildId, (bucket) => {
+    bucket.llmInteractions ||= { total: 0, users: {} };
+    bucket.llmInteractions.total += 1;
+    incrementUser(bucket.llmInteractions.users, message.author);
   });
 }
 
@@ -228,6 +240,8 @@ function getCurrentStats(period, guildId) {
   const guildStats = stats.guilds[guildId] || { periods: {} };
   const bucket = guildStats.periods[period]?.[key] || createBucket();
 
+  const llmInteractions = bucket.llmInteractions || createBucket().llmInteractions;
+
   return {
     commands: {
       byName: sortCounts(bucket.commands.byName),
@@ -236,6 +250,10 @@ function getCurrentStats(period, guildId) {
     },
     guildId,
     key,
+    llmInteractions: {
+      total: llmInteractions.total,
+      users: sortUsers(llmInteractions.users)
+    },
     messages: {
       total: bucket.messages.total,
       users: sortUsers(bucket.messages.users)
@@ -247,6 +265,26 @@ function getCurrentStats(period, guildId) {
       users: sortUsers(bucket.redpandas.users)
     }
   };
+}
+
+function replaceLlmInteractionStats(guildId, interactionStatsByPeriod) {
+  const stats = readStats();
+  const guildStats = getGuildStats(stats, guildId);
+
+  for (const period of periods) {
+    guildStats.periods[period] ||= {};
+
+    for (const bucket of Object.values(guildStats.periods[period])) {
+      bucket.llmInteractions = { total: 0, users: {} };
+    }
+
+    for (const [key, llmInteractions] of Object.entries(interactionStatsByPeriod[period] || {})) {
+      const bucket = getBucket(stats, guildId, period, key);
+      bucket.llmInteractions = llmInteractions;
+    }
+  }
+
+  writeStats(stats);
 }
 
 function replaceMessageStats(guildId, messageStatsByPeriod) {
@@ -316,7 +354,9 @@ module.exports = {
   getTopPandaStats,
   migrateAllTimeMessageStats,
   recordCommand,
+  recordLlmInteraction,
   recordMessage,
   recordRedPanda,
+  replaceLlmInteractionStats,
   replaceMessageStats
 };

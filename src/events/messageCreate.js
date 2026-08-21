@@ -1,6 +1,10 @@
 const { Events, MessageType } = require("discord.js");
 const { channelId, llmTimeoutRoleId, plannedTimesChannelId } = require("../config");
-const { recordMessage, recordRedPanda } = require("../services/activityStats");
+const {
+  recordLlmInteraction,
+  recordMessage,
+  recordRedPanda
+} = require("../services/activityStats");
 const {
   isMentionLlmEnabled,
   isUserIgnored
@@ -77,12 +81,17 @@ async function replyWithLocalRedPanda(message) {
   }
 }
 
-function getMentionPrompt(message) {
+function getLlmPrompt(message, referencedMessage) {
   const botUser = message.client.user;
 
-  if (!botUser || !message.mentions.users.has(botUser.id)) {
+  if (!botUser) {
     return null;
   }
+
+  const mentionsBot = message.mentions.users.has(botUser.id);
+  const repliesToBot = referencedMessage?.author?.id === botUser.id;
+
+  if (!mentionsBot && !repliesToBot) return null;
 
   return message.content
     .replaceAll(`<@${botUser.id}>`, "")
@@ -119,17 +128,10 @@ function getMessageImageCandidates(message) {
   return [...new Map(candidates.map((candidate) => [candidate.url, candidate])).values()];
 }
 
-async function getMentionImageCandidates(message) {
+async function getMentionImageCandidates(message, referencedMessage) {
   const candidates = getMessageImageCandidates(message);
-  let referencedMessage = null;
-
-  if (message.reference?.messageId) {
-    try {
-      referencedMessage = await message.fetchReference();
-      candidates.push(...getMessageImageCandidates(referencedMessage));
-    } catch (error) {
-      console.warn("[LLM vision] Could not fetch replied-to message:", error.message);
-    }
+  if (referencedMessage) {
+    candidates.push(...getMessageImageCandidates(referencedMessage));
   }
 
   return {
@@ -271,18 +273,29 @@ async function getConversationContext(message) {
 }
 
 async function handleBotMention(message) {
-  let prompt = getMentionPrompt(message);
+  let referencedMessage = null;
+  if (message.reference?.messageId) {
+    try {
+      referencedMessage = await message.fetchReference();
+    } catch (error) {
+      console.warn("[LLM reply] Could not fetch replied-to message:", error.message);
+    }
+  }
+
+  let prompt = getLlmPrompt(message, referencedMessage);
 
   if (prompt === null) {
     return false;
   }
+
+  recordLlmInteraction(message);
 
   if (!isMentionLlmEnabled()) {
     return true;
   }
 
   const { candidates: imageCandidates, referencedMessageId } =
-    await getMentionImageCandidates(message);
+    await getMentionImageCandidates(message, referencedMessage);
   const imageAttachments = getVisionImageAttachments(imageCandidates);
   if (imageCandidates.length > 0) {
     console.log("[LLM vision attachments]", {
@@ -557,6 +570,7 @@ async function handleBotMention(message) {
 module.exports = {
   askGroqWithRetry,
   clampTimeoutSeconds,
+  getLlmPrompt,
   getMessageImageCandidates,
   isRetryableGroqError,
   name: Events.MessageCreate,

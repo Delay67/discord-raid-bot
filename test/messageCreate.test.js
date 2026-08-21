@@ -2,9 +2,36 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
   clampTimeoutSeconds,
+  getLlmPrompt,
   getMessageImageCandidates,
   promptReferencesMember
 } = require("../src/events/messageCreate");
+
+function createLlmMessage(content, mentionedUserIds = []) {
+  return {
+    client: { user: { id: "bot-user" } },
+    content,
+    mentions: { users: new Map(mentionedUserIds.map((id) => [id, { id }])) }
+  };
+}
+
+test("accepts both explicit mentions and direct replies as LLM prompts", () => {
+  assert.equal(
+    getLlmPrompt(createLlmMessage("<@bot-user> hello", ["bot-user"]), null),
+    "hello"
+  );
+  assert.equal(
+    getLlmPrompt(createLlmMessage("follow up"), { author: { id: "bot-user" } }),
+    "follow up"
+  );
+});
+
+test("does not treat replies to other users as LLM prompts", () => {
+  assert.equal(
+    getLlmPrompt(createLlmMessage("hello"), { author: { id: "someone-else" } }),
+    null
+  );
+});
 
 const kolax = {
   displayName: "Kolax the Great",

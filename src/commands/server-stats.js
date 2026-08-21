@@ -25,7 +25,7 @@ module.exports = {
   allowAnyChannel: true,
   data: new SlashCommandBuilder()
     .setName("server-stats")
-    .setDescription("Show server activity stats and red panda numbers.")
+    .setDescription("Show server activity, bot interaction, and red panda stats.")
     .addStringOption((option) =>
       option
         .setName("period")
@@ -54,8 +54,17 @@ module.exports = {
               name: "Totals",
               value: [
                 `Messages: ${stats.messages.total}`,
+                `LLM interactions: ${stats.llmInteractions.total}`,
                 `Red pandas served: ${stats.redpandas.total}`
               ].join("\n")
+            },
+            {
+              name: "Top Bot Interactors",
+              value: formatTopUsers(
+                stats.llmInteractions.users,
+                "No LLM interactions tracked yet."
+              ),
+              inline: true
             },
             {
               name: "Top Chatters",
