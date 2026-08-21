@@ -59,7 +59,7 @@ module.exports = {
               ].join("\n")
             },
             {
-              name: "Top Bot Interactors",
+              name: "Top DJ Interactors",
               value: formatTopUsers(
                 stats.llmInteractions.users,
                 "No Delay Junior interactions tracked yet."
