@@ -252,12 +252,16 @@ def parse_raid_block(sheet, formula_sheet, row, col):
         if formula_sheet.cell(row=row, column=member_col).data_type == "f":
             continue
 
-        member_value = clean_text(sheet.cell(row=row, column=member_col).value)
+        member_cell = sheet.cell(row=row, column=member_col)
+        member_value = clean_text(member_cell.value)
+        item_level = parse_item_level(sheet.cell(row=row + 2, column=member_col).value)
 
         # Player entries use the "player-character" format. Requiring that
         # separator also prevents adjacent detail labels such as Serca1,
-        # Serca2, and Reclear from turning a detail row into a raid.
-        if "-" not in member_value:
+        # Serca2, and Reclear from turning a detail row into a raid. Some
+        # roster entries are single-name players, though, so also allow a
+        # plain name when it has a valid item level beneath it.
+        if "-" not in member_value and item_level is None:
             continue
 
         member = parse_member(member_value)
@@ -266,7 +270,6 @@ def parse_raid_block(sheet, formula_sheet, row, col):
             continue
 
         role_cell = sheet.cell(row=row + 1, column=member_col)
-        item_level = parse_item_level(sheet.cell(row=row + 2, column=member_col).value)
         member["role"] = classify_role(role_cell)
         if item_level is not None:
             member["itemLevel"] = item_level
