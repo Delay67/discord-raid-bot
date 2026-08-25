@@ -15,12 +15,18 @@ const COLOR_POOL = [
   "Green",
   "Light Green",
   "Cyan",
+  "Sky Blue",
   "Light Blue",
+  "Cornflower Blue",
   "Purple",
   "Pink",
   "Magenta",
+  "Light Red",
+  "Dark Red",
+  "Deep Orange",
   "Brown",
   "Gray",
+  "Light Gray",
   "Brick Red"
 ];
 

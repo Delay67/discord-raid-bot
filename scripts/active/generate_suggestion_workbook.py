@@ -23,13 +23,19 @@ COLOR_HEX = {
     "Green": "34A853",
     "Light Green": "93C47D",
     "Cyan": "00FFFF",
+    "Sky Blue": "9FC5E8",
     "Light Blue": "C9DAF8",
+    "Cornflower Blue": "A4C2F4",
     "Purple": "674EA7",
     "Pink": "F4C7C3",
     "Magenta": "FF00FF",
+    "Light Red": "EA9999",
+    "Dark Red": "990000",
+    "Deep Orange": "CC4125",
     "Brown": "85200C",
     "Brick Red": "85200C",
     "Gray": "999999",
+    "Light Gray": "B7B7B7",
 }
 
 BLACK = "000000"

@@ -78,7 +78,7 @@ def run(command, *, env=None):
 
 
 def import_raids(workbook, sheet_name, raids_json):
-    importer = ROOT / "scripts" / "import_raids_from_xlsx.py"
+    importer = ROOT / "scripts" / "active" / "import_raids_from_xlsx.py"
     run(
         [
             sys.executable,

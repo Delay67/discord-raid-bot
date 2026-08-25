@@ -8,6 +8,7 @@ const rootDirectory = path.join(__dirname, "..", "..");
 const generatorPath = path.join(
   rootDirectory,
   "scripts",
+  "active",
   "generate_suggestion_workbook.py"
 );
 
