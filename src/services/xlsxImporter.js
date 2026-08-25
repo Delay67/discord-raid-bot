@@ -8,7 +8,12 @@ const dataDirectory = path.join(rootDirectory, "data");
 const pendingDirectory = path.join(dataDirectory, "pending-imports");
 const raidsPath = path.join(dataDirectory, "raids.json");
 const workbookPath = path.join(dataDirectory, "staticsheet.xlsx");
-const importerPath = path.join(rootDirectory, "scripts", "import_raids_from_xlsx.py");
+const importerPath = path.join(
+  rootDirectory,
+  "scripts",
+  "active",
+  "import_raids_from_xlsx.py"
+);
 const pendingImports = new Map();
 const pendingLifetimeMs = 10 * 60 * 1000;
 
