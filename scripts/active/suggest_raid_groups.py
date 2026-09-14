@@ -33,20 +33,18 @@ ROOT = Path(__file__).resolve().parents[2]
 COLOR_POOL = [
     "Red",
     "Orange",
-    "Amber",
     "Gold",
-    "Light Yellow",
+    "Yellow",
     "Lime",
     "Green",
-    "Light Green",
+    "Forest",
     "Cyan",
-    "Light Blue",
-    "Purple",
-    "Pink",
+    "Blue",
+    "Indigo",
     "Magenta",
     "Brown",
     "Gray",
-    "Brick Red",
+    "Brick",
 ]
 
 

@@ -1,21 +1,18 @@
 const colorOrder = [
   "Red",
   "Orange",
-  "Amber",
   "Gold",
-  "Light Yellow",
+  "Yellow",
   "Lime",
   "Green",
-  "Light Green",
+  "Forest",
   "Cyan",
-  "Light Blue",
   "Blue",
-  "Purple",
-  "Pink",
+  "Indigo",
   "Magenta",
   "Brown",
-  "Brick Red",
-  "Gray"
+  "Gray",
+  "Brick"
 ];
 
 const raidOrder = ["Serca", "Cathedral"];

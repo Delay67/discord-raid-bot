@@ -26,51 +26,34 @@ EXACT_COLOR_NAMES = {
     (0, 255, 255): "Cyan",
     (52, 168, 83): "Green",
     (66, 133, 244): "Blue",
-    (103, 78, 167): "Purple",
     (127, 96, 0): "Brown",
-    (133, 32, 12): "Brick Red",
-    (147, 196, 125): "Light Green",
-    (153, 0, 0): "Dark Red",
-    (153, 0, 255): "Purple",
+    (133, 32, 12): "Brick",
     (153, 153, 153): "Gray",
-    (159, 197, 232): "Sky Blue",
     (163, 232, 85): "Lime",
-    (164, 194, 244): "Cornflower Blue",
-    (183, 183, 183): "Light Gray",
-    (201, 218, 248): "Light Blue",
-    (204, 65, 37): "Deep Orange",
+    (34, 139, 34): "Forest",
     (224, 102, 102): "Red",
-    (234, 153, 153): "Light Red",
-    (244, 199, 195): "Pink",
     (251, 188, 4): "Gold",
+    (75, 0, 130): "Indigo",
     (255, 0, 255): "Magenta",
     (255, 153, 0): "Orange",
-    (255, 229, 153): "Light Yellow",
+    (255, 229, 153): "Yellow",
 }
 
 COLOR_PALETTE = {
-    "Red": (224, 92, 96),
+    "Red": (224, 102, 102),
     "Orange": (255, 153, 0),
-    "Amber": (251, 188, 4),
-    "Gold": (247, 203, 77),
-    "Light Yellow": (255, 229, 153),
+    "Gold": (251, 188, 4),
+    "Yellow": (255, 229, 153),
     "Lime": (163, 232, 85),
-    "Green": (100, 180, 90),
-    "Light Green": (147, 196, 125),
-    "Cyan": (0, 210, 220),
-    "Sky Blue": (159, 197, 232),
-    "Light Blue": (201, 218, 248),
-    "Cornflower Blue": (164, 194, 244),
+    "Green": (52, 168, 83),
+    "Forest": (34, 139, 34),
+    "Cyan": (0, 255, 255),
     "Blue": (66, 133, 244),
-    "Purple": (120, 80, 170),
-    "Pink": (238, 90, 185),
+    "Indigo": (75, 0, 130),
     "Magenta": (255, 0, 255),
-    "Light Red": (234, 153, 153),
-    "Dark Red": (153, 0, 0),
-    "Deep Orange": (204, 65, 37),
-    "Brown": (140, 50, 25),
-    "Gray": (150, 150, 150),
-    "Light Gray": (183, 183, 183),
+    "Brown": (127, 96, 0),
+    "Brick": (133, 32, 12),
+    "Gray": (153, 153, 153),
 }
 
 KNOWN_RAIDS = ("Serca", "Cathedral")
@@ -159,6 +142,11 @@ def nearest_color_name(rgb):
     return best_name
 
 
+def color_name_from_text(value):
+    text = clean_text(value)
+    return text if text in COLOR_PALETTE else None
+
+
 def parse_raid_label(value):
     text = clean_text(value)
     match = re.match(r"^(Serca|Cathedral)\b\s*(.*)$", text, flags=re.IGNORECASE)
@@ -181,12 +169,23 @@ def is_raid_label(value):
 
 
 def classify_role(cell):
+    text = clean_text(cell.value).lower()
+    if text in {"dps", "support", "flex"}:
+        if text == "dps":
+            return "DPS"
+        if text == "support":
+            return "Support"
+        return "Flex"
+
     rgb = rgb_from_cell(cell)
 
     if rgb is None:
         return "DPS"
 
-    _, g, b = rgb
+    r, g, b = rgb
+    if r >= 220 and g >= 190 and b <= 210 and r - b >= 25 and g - b >= 20:
+        return "Flex"
+
     return "Support" if b - g > 8 else "DPS"
 
 
@@ -281,9 +280,12 @@ def parse_raid_block(sheet, formula_sheet, row, col):
     if not members:
         return None
 
+    text_color = color_name_from_text(sheet.cell(row=row + 1, column=col).value)
+    fill_color = nearest_color_name(rgb_from_cell(sheet.cell(row=row, column=col)))
+
     return {
         "id": "",
-        "color": nearest_color_name(rgb_from_cell(sheet.cell(row=row, column=col))),
+        "color": text_color or fill_color,
         "name": raid_name,
         "difficulty": difficulty,
         "status": parse_raid_status(sheet, row, col),

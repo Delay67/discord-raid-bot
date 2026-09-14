@@ -16,31 +16,24 @@ from render_schedule_from_xlsx import render_schedule
 COLOR_HEX = {
     "Red": "E06666",
     "Orange": "FF9900",
-    "Amber": "F9AB00",
     "Gold": "FBBC04",
-    "Light Yellow": "FFE599",
+    "Yellow": "FFE599",
     "Lime": "A3E855",
     "Green": "34A853",
-    "Light Green": "93C47D",
+    "Forest": "228B22",
     "Cyan": "00FFFF",
-    "Sky Blue": "9FC5E8",
-    "Light Blue": "C9DAF8",
-    "Cornflower Blue": "A4C2F4",
-    "Purple": "674EA7",
-    "Pink": "F4C7C3",
+    "Blue": "4285F4",
+    "Indigo": "4B0082",
     "Magenta": "FF00FF",
-    "Light Red": "EA9999",
-    "Dark Red": "990000",
-    "Deep Orange": "CC4125",
-    "Brown": "85200C",
-    "Brick Red": "85200C",
+    "Brown": "7F6000",
+    "Brick": "85200C",
     "Gray": "999999",
-    "Light Gray": "B7B7B7",
 }
 
 BLACK = "000000"
 HEADER_BLUE = "9FC5E8"
 DPS_GREEN = "D9EAD3"
+FLEX_YELLOW = "FFF2CC"
 SUPPORT_PURPLE = "D9D2E9"
 LANE_COUNT = 2
 PANEL_WIDTH = 11
@@ -78,9 +71,10 @@ def member_role_label(member):
 
 def ordered_members(raid):
     members = list(raid.get("members") or [])
+    role_order = {"DPS": 0, "Flex": 1, "Support": 2}
     return sorted(
         enumerate(members),
-        key=lambda item: (item[1].get("role") == "Support", item[0]),
+        key=lambda item: (role_order.get(item[1].get("role"), 0), item[0]),
     )
 
 
@@ -103,7 +97,13 @@ def write_raid_block(sheet, start_row, start_column, raid):
         members.append({})
 
     for member_offset, member in enumerate(members, start=1):
-        role_fill = SUPPORT_PURPLE if member.get("role") == "Support" else DPS_GREEN
+        role = member.get("role")
+        if role == "Support":
+            role_fill = SUPPORT_PURPLE
+        elif role == "Flex":
+            role_fill = FLEX_YELLOW
+        else:
+            role_fill = DPS_GREEN
         values = [
             member_display_name(member),
             member_role_label(member),

@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -11,7 +12,7 @@ DEFAULT_WORKBOOK = ROOT / "data" / "staticsheet.xlsx"
 DEFAULT_RAIDS_JSON = ROOT / "data" / "raids.json"
 DEFAULT_OUTPUT_DIR = ROOT / "data"
 DEFAULT_SHEET_NAME = "Serca+Cath"
-DEFAULT_OUTPUT_PREFIX = "raid-suggestions-serca-cath"
+DEFAULT_OUTPUT_PREFIX = None
 
 
 NODE_SCRIPT = r"""
@@ -31,7 +32,10 @@ const {
   const result = buildSuggestions({
     raids,
     count: options.count,
+    fallbackAttempts: options.fallbackAttempts,
     iterations: options.iterations,
+    lockMode: options.lockMode,
+    preferredAttempts: options.preferredAttempts,
     variety: options.variety
   });
   const report = formatSuggestionsReport(result);
@@ -45,7 +49,6 @@ const {
   if (!result.suggestions.length) {
     console.log("");
     console.log(`No suggestion images were generated. Report saved to ${reportPath}`);
-    process.exitCode = 2;
     return;
   }
 
@@ -98,9 +101,12 @@ def generate_suggestions(args):
     env["RAID_SUGGESTION_OPTIONS"] = json.dumps(
         {
             "count": args.options,
+            "fallbackAttempts": args.fallback_attempts,
             "iterations": args.iterations,
+            "lockMode": args.lock_mode,
             "outputDir": str(args.output_dir),
             "outputPrefix": args.output_prefix,
+            "preferredAttempts": args.preferred_attempts,
             "raidsPath": str(args.raids_json),
             "variety": args.variety,
         }
@@ -141,7 +147,10 @@ def parse_args():
     parser.add_argument(
         "--output-prefix",
         default=DEFAULT_OUTPUT_PREFIX,
-        help=f"Output filename prefix. Default: {DEFAULT_OUTPUT_PREFIX}",
+        help=(
+            "Output filename prefix. Default: raid-suggestions-<sheet-name>, "
+            "for example raid-suggestions-serca-cath"
+        ),
     )
     parser.add_argument(
         "--options",
@@ -156,6 +165,27 @@ def parse_args():
         help="Optimizer iterations per attempt. Higher is slower but searches harder. Default: 120000",
     )
     parser.add_argument(
+        "--preferred-attempts",
+        type=int,
+        default=None,
+        help="Override the number of strict unique-layout attempts. Default: optimizer heuristic.",
+    )
+    parser.add_argument(
+        "--fallback-attempts",
+        type=int,
+        default=None,
+        help="Override the number of relaxed fallback attempts. Default: optimizer heuristic.",
+    )
+    parser.add_argument(
+        "--lock-mode",
+        choices=("colored-nightmare", "all-colored", "none"),
+        default="colored-nightmare",
+        help=(
+            "Which imported colored raids are locked. Default: colored-nightmare "
+            "locks colored Serca Nightmare groups only."
+        ),
+    )
+    parser.add_argument(
         "--variety",
         type=int,
         default=3,
@@ -164,11 +194,18 @@ def parse_args():
     return parser.parse_args()
 
 
+def slugify_sheet_name(sheet_name):
+    slug = re.sub(r"[^a-z0-9]+", "-", sheet_name.lower()).strip("-")
+    return slug or "sheet"
+
+
 def main():
     args = parse_args()
     args.workbook = args.workbook.resolve()
     args.raids_json = args.raids_json.resolve()
     args.output_dir = args.output_dir.resolve()
+    if not args.output_prefix:
+        args.output_prefix = f"raid-suggestions-{slugify_sheet_name(args.sheet)}"
 
     if not args.workbook.exists():
         print(f"Workbook not found: {args.workbook}", file=sys.stderr)
