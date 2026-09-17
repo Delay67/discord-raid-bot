@@ -1,5 +1,6 @@
 const { Events } = require("discord.js");
 const { recordFavoritePandaReaction } = require("../services/redPandaStore");
+const { handlePlanReaction } = require("../services/raidPlans");
 
 function isFrogblushReaction(reaction) {
   return reaction?.emoji?.name === "frogblush";
@@ -23,6 +24,11 @@ module.exports = {
   async execute(reaction, user) {
     const fullReaction = await fetchPartial(reaction);
     const fullUser = await fetchPartial(user);
+    try {
+      await handlePlanReaction(fullReaction, fullUser);
+    } catch (error) {
+      console.error("Plan reaction failed:", error);
+    }
 
     if (!isFrogblushReaction(fullReaction)) {
       return;

@@ -2,6 +2,7 @@ const { Events } = require("discord.js");
 const { updateLlmPresence } = require("../services/botPresence");
 const { startWeeklyRaidResetScheduler } = require("../services/weeklyRaidReset");
 const { startKazerosReminderScheduler } = require("../services/kazerosReminderScheduler");
+const { startPlanScheduler } = require("../services/raidPlans");
 
 module.exports = {
   name: Events.ClientReady,
@@ -11,5 +12,6 @@ module.exports = {
     updateLlmPresence(client);
     startWeeklyRaidResetScheduler();
     startKazerosReminderScheduler(client);
+    startPlanScheduler(client);
   }
 };

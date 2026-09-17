@@ -34,6 +34,7 @@ module.exports = {
   },
   llmTimeoutRoleId: process.env.LLM_TIMEOUT_ROLE_ID || "1465784380726186149",
   plannedTimesChannelId: process.env.PLANNED_TIMES_CHANNEL_ID || "1265458054623789277",
+  raidPlansChannelId: process.env.RAID_PLANS_CHANNEL_ID || "1550172613668503682",
   redPandaMediaDirectory: process.env.REDPANDA_MEDIA_DIR,
   reddit: {
     clientId: process.env.REDDIT_CLIENT_ID,
