@@ -45,6 +45,7 @@ function discord() {
   let nextId = 1;
   const messages = new Collection();
   const sent = [];
+  const dms = [];
   const deleted = [];
   const fetched = [];
   const channel = {
@@ -93,6 +94,11 @@ function discord() {
     }
   };
   const client = {
+    users: {
+      async fetch(id) {
+        return { send: async payload => { dms.push({ userId: id, ...payload }); } };
+      }
+    },
     channels: {
       async fetch(id) {
         assert.equal(id, channelId);
@@ -100,7 +106,8 @@ function discord() {
       }
     }
   };
-  return { client, channel, messages, sent, deleted, fetched };
+  channel.client = client;
+  return { client, channel, messages, sent, dms, deleted, fetched };
 }
 
 function vote(message, emoji, id, bot = false, type = ReactionType.Normal) {
@@ -330,7 +337,7 @@ test("a failed summary update preserves the confirmation for retry before deleti
   assert.deepEqual(fake.deleted, [message.id]);
 });
 
-test("a member's X deletes the proposal and mentions only its creator in the failure notice", async () => {
+test("a member's X deletes the proposal and DMs only its creator without a channel notice", async () => {
   const fake = discord();
   const message = await create(fake);
   await react(message, "❌", ids.bob);
@@ -338,16 +345,63 @@ test("a member's X deletes the proposal and mentions only its creator in the fai
   assert.equal(plan.status, "rejected");
   assert.equal(plan.rejectedBy, ids.bob);
   assert.equal(fake.messages.has(message.id), false);
-  assert.equal(fake.sent.length, 3);
-  const notice = fake.sent[2];
-  assert.match(notice.content, new RegExp(`<@${ids.creator}>`));
+  assert.equal(fake.sent.length, 2);
+  assert.equal(fake.dms.length, 1);
+  const notice = fake.dms[0];
+  assert.equal(notice.userId, ids.creator);
   assert.match(notice.content, new RegExp(`<@${ids.bob}>`));
   assert.match(notice.content, /failed/);
-  assert.deepEqual(notice.payload.allowedMentions, { parse: [], users: [ids.creator] });
+  assert.deepEqual(notice.allowedMentions, { parse: [] });
   assert.doesNotMatch(fake.messages.get(state().summary.messageIds[0]).content, /after thursday kazeros/);
   await react(message, "❌", ids.bob);
   await service.checkPlans(fake.client, now);
-  assert.equal(fake.sent.length, 3, "replayed reactions must not send another failure notice");
+  assert.equal(fake.sent.length, 2);
+  assert.equal(fake.dms.length, 1, "replayed reactions must not send another failure DM");
+});
+
+test("blocked DMs still cancel and delete the plan without posting publicly or retrying forever", async t => {
+  t.mock.method(console, "warn", () => {});
+  const fake = discord();
+  const message = await create(fake);
+  let attempts = 0;
+  fake.client.users.fetch = async () => ({
+    send: async () => {
+      attempts++;
+      throw Object.assign(new Error("Cannot send messages to this user"), { code: 50007 });
+    }
+  });
+  await react(message, "❌", ids.bob);
+  assert.equal(fake.messages.has(message.id), false);
+  assert.equal(state().plans[message.id].status, "rejected");
+  assert.equal(state().plans[message.id].notificationFailed, 50007);
+  assert.equal(state().plans[message.id].settled, true);
+  assert.notEqual(state().plans[message.id].notified, true);
+  await service.checkPlans(fake.client, now);
+  assert.equal(attempts, 1);
+  assert.equal(fake.sent.length, 2);
+});
+
+test("temporary DM errors delete the proposal immediately and retry privately after restart", async () => {
+  const fake = discord();
+  const message = await create(fake);
+  const fetchUser = fake.client.users.fetch;
+  fake.client.users.fetch = async () => ({ send: async () => { throw new Error("Temporary DM outage"); } });
+  await assert.rejects(react(message, "❌", ids.bob), /Temporary DM outage/);
+  assert.equal(fake.messages.has(message.id), false);
+  assert.equal(state().plans[message.id].status, "rejected");
+  assert.notEqual(state().plans[message.id].settled, true);
+  assert.equal(fake.sent.length, 2);
+  fake.client.users.fetch = fetchUser;
+  delete require.cache[require.resolve("../src/services/raidPlans")];
+  service = require("../src/services/raidPlans");
+  await service.checkPlans(fake.client, now);
+  assert.equal(fake.dms.length, 1);
+  assert.equal(fake.dms[0].userId, ids.creator);
+  assert.equal(state().plans[message.id].notified, true);
+  assert.equal(state().plans[message.id].settled, true);
+  await service.checkPlans(fake.client, now);
+  assert.equal(fake.dms.length, 1);
+  assert.equal(fake.sent.length, 2);
 });
 
 test("the creator can confirm with juststop without being a roster member or collecting checkmarks", async () => {
@@ -460,7 +514,8 @@ test("a roster member's offline X takes priority over a simultaneous creator ove
   assert.equal(state().plans[message.id].rejectedBy, ids.bob);
   assert.equal(fake.messages.has(message.id), false);
   assert.doesNotMatch(fake.messages.get(state().summary.messageIds[0]).content, /after thursday kazeros/);
-  assert.deepEqual(fake.sent.at(-1).payload.allowedMentions, { parse: [], users: [ids.creator] });
+  assert.equal(fake.dms.at(-1).userId, ids.creator);
+  assert.deepEqual(fake.dms.at(-1).allowedMentions, { parse: [] });
 });
 
 test("creator overrides cannot revive rejected, expired, or stale pending plans", async () => {

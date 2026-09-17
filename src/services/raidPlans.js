@@ -1,6 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { escapeMarkdown, ReactionType } = require("discord.js");
+const { escapeMarkdown, ReactionType, RESTJSONErrorCodes } = require("discord.js");
 const { raidPlansChannelId } = require("../config");
 const {
   getCurrentRaidWeekDate,
@@ -176,16 +176,29 @@ async function settle(channel, state, plan, now = new Date()) {
   if (plan.status === "confirmed" || plan.status === "unplanned") {
     await publishSummary(channel, state, getCurrentRaidWeekDate(now));
   }
+  // Cancellation must remove the proposal even if the creator cannot receive DMs.
+  await deleteMessage(channel, plan.messageId);
   if (plan.status === "rejected" && !plan.notified) {
     const payload = {
-      content: `<@${plan.creatorId}> Your plan for **${escapeMarkdown(plan.label)}** failed: <@${plan.rejectedBy}> reacted ❌.\n${escapeMarkdown(plan.description)}`,
-      allowedMentions: { parse: [], users: [plan.creatorId] }
+      content: `Your plan for **${escapeMarkdown(plan.label)}** failed: <@${plan.rejectedBy}> reacted ❌.\n${escapeMarkdown(plan.description)}`,
+      allowedMentions: { parse: [] }
     };
-    await channel.send(payload);
-    plan.notified = true;
+    try {
+      const creator = await channel.client.users.fetch(plan.creatorId);
+      await creator.send(payload);
+      plan.notified = true;
+    } catch (error) {
+      const cannotDeliver = [
+        RESTJSONErrorCodes.CannotSendMessagesToThisUser,
+        RESTJSONErrorCodes.CannotSendMessagesToThisUserDueToHavingNoMutualGuilds,
+        RESTJSONErrorCodes.UnknownUser
+      ].includes(error.code);
+      if (!cannotDeliver) throw error; // The scheduler retries temporary failures.
+      plan.notificationFailed = error.code;
+      console.warn(`Could not DM rejection for plan ${plan.messageId}: ${error.message}`);
+    }
     save(state);
   }
-  await deleteMessage(channel, plan.messageId);
   plan.settled = true;
   save(state);
 }

@@ -73,8 +73,9 @@ original pending plan count for ✅ and ❌; other users' votes are ignored.
 Normally everyone, including the creator if they are in the run, must confirm.
 Once all members currently have ✅ selected, the bot adds the run and description
 to **Confirmed Times** and deletes the pending message. Any member's ❌ rejects the
-plan, deletes its message, and posts a channel notice mentioning the creator and
-identifying the member who rejected it.
+plan, deletes its message, and sends the creator a private DM identifying the
+member who rejected it. If Discord blocks the DM, the plan is still cancelled;
+the bot does not post a public fallback notice.
 
 The original plan creator can react with `:juststop:` to immediately add a pending
 plan to **Confirmed Times** without waiting for checkmarks, even if the creator is
