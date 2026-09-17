@@ -90,6 +90,12 @@ multiple confirmed plans for the same color, this removes all of those plans.
 Other people's plans and pending proposals are left alone. `/unplan` works in any
 server channel and replies privately.
 
+`/complete color:Red` crosses out matching entries in **Confirmed Times**, keeping
+them visible as completed. With `raid:Serca` or `raid:Cathedral`, a combined plan
+is crossed out only once all raids it covers are complete. `/uncomplete` removes
+the strikethrough when a covered raid returns to TODO. These updates also survive
+restarts and recreation of the summary message.
+
 The same **Confirmed Times** message is cleared every Wednesday at 10:00 Amsterdam
 time, and previous-week pending plans expire. The bot creates the message on
 startup if needed; it catches up after downtime and saves plan state in

@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { getColorSuggestions, uncompleteRaids } = require("../services/raidStore");
+const { refreshConfirmedTimes } = require("../services/raidPlans");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -57,12 +58,14 @@ module.exports = {
         content: `All ${result.matchedCount} matching ${target} were already TODO.`,
         ephemeral: true
       });
-      return;
+    } else {
+      await interaction.reply({
+        content: `Marked ${result.uncompletedCount} of ${result.matchedCount} matching ${target} TODO.`,
+        ephemeral: true
+      });
     }
-
-    await interaction.reply({
-      content: `Marked ${result.uncompletedCount} of ${result.matchedCount} matching ${target} TODO.`,
-      ephemeral: true
+    await refreshConfirmedTimes(interaction.client, interaction.guildId).catch(error => {
+      console.error("Could not refresh Confirmed Times after /uncomplete:", error);
     });
   }
 };

@@ -100,10 +100,30 @@ function resolveMembers(raids) {
   return [...members];
 }
 
-function summaryPages(state, week) {
+function isPlanComplete(plan, raids) {
+  const color = String(plan.color || "").trim().toLowerCase();
+  // Older saved plans only have their raid names in the display label.
+  const names = plan.raidNames || (plan.raid ? [plan.raid] :
+    String(plan.label || "").split(" — ").slice(1).join(" — ").split(" & "));
+  return names.length > 0 && names.every(name => {
+    const matches = raids.filter(raid =>
+      raid.color.trim().toLowerCase() === color &&
+      raid.name.trim().toLowerCase() === name.trim().toLowerCase()
+    );
+    return matches.length > 0 && matches.every(raid => raid.status === "DONE");
+  });
+}
+
+function summaryPages(state, week, raids = readRaidsForPeriod("current")) {
   const header = `**Confirmed Times — week of ${week}**\n\n`;
   const entries = Object.values(state.plans).filter(plan => plan.week === week && plan.status === "confirmed")
-    .map(plan => `**${escapeMarkdown(plan.label)}:** ${escapeMarkdown(plan.description)}\n${plan.members.map(id => `<@${id}>`).join(" ")}\n`);
+    .map(plan => {
+      const details = `**${escapeMarkdown(plan.label)}:** ${escapeMarkdown(plan.description)}`;
+      const members = plan.members.map(id => `<@${id}>`).join(" ");
+      return isPlanComplete(plan, raids)
+        ? `~~${details}~~\n~~${members}~~\n`
+        : `${details}\n${members}\n`;
+    });
   const pages = [header];
   for (const entry of entries) {
     if ((pages[pages.length - 1] + entry + "\n").length > 2000) pages.push(header);
@@ -244,7 +264,10 @@ function createPlan(client, input, now) {
     if (content.length > 2000) throw planError("This plan is too long for Discord. Please shorten the description.");
     await publishSummary(channel, state, week);
     const message = await channel.send({ content, allowedMentions: { parse: [], users: members } });
-    state.plans[message.id] = { ...input, label, members, week, messageId: message.id, status: "pending" };
+    state.plans[message.id] = {
+      ...input, label, members, week, messageId: message.id, status: "pending",
+      raidNames: [...new Set(raids.map(raid => raid.name))]
+    };
     save(state);
     try {
       await message.react("✅");
@@ -315,6 +338,22 @@ function handlePlanReaction(reaction, user, now) {
   });
 }
 
+function refreshConfirmedTimes(client, guildId, now) {
+  return serialized(async () => {
+    now ||= new Date();
+    const state = readState();
+    const week = getCurrentRaidWeekDate(now);
+    if (!Object.values(state.plans).some(plan =>
+      plan.guildId === guildId && plan.week === week && plan.status === "confirmed"
+    )) return;
+    const channel = await client.channels.fetch(raidPlansChannelId);
+    if (!channel?.isTextBased() || channel.guildId !== guildId) {
+      throw new Error("Invalid plans channel or guild");
+    }
+    await publishSummary(channel, state, week);
+  });
+}
+
 function checkPlans(client, now) {
   return serialized(async () => {
     now ||= new Date();
@@ -357,6 +396,7 @@ module.exports = {
   getPlanColors,
   getUnplanColors,
   removePlannedRaids,
+  refreshConfirmedTimes,
   resolveMembers,
   summaryPages,
   handlePlanReaction,

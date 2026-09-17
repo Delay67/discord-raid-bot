@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { completeRaids, getColorSuggestions } = require("../services/raidStore");
+const { refreshConfirmedTimes } = require("../services/raidPlans");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -57,12 +58,15 @@ module.exports = {
         content: `All ${result.matchedCount} matching ${target} were already complete.`,
         ephemeral: true
       });
-      return;
+    } else {
+      await interaction.reply({
+        content: `Marked ${result.completedCount} of ${result.matchedCount} matching ${target} complete.`,
+        ephemeral: true
+      });
     }
-
-    await interaction.reply({
-      content: `Marked ${result.completedCount} of ${result.matchedCount} matching ${target} complete.`,
-      ephemeral: true
+    // The raid update already succeeded; the scheduler retries display failures.
+    await refreshConfirmedTimes(interaction.client, interaction.guildId).catch(error => {
+      console.error("Could not refresh Confirmed Times after /complete:", error);
     });
   }
 };

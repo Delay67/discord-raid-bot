@@ -1,7 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const dataDirectory = path.join(__dirname, "..", "..", "data");
+const dataDirectory = process.env.RAID_BOT_DATA_DIRECTORY || path.join(__dirname, "..", "..", "data");
 const raidsPath = path.join(dataDirectory, "raids.json");
 
 function ensureStore() {
