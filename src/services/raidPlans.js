@@ -66,6 +66,24 @@ function getPlanColors(query = "", raid, now = new Date()) {
     .filter(color => color.toLowerCase().includes(query.trim().toLowerCase())).sort().slice(0, 25);
 }
 
+function ownedConfirmedPlans(state, { guildId, creatorId }, week) {
+  if (!guildId || !creatorId) return [];
+  return Object.values(state.plans).filter(plan =>
+    plan.guildId === guildId && plan.creatorId === creatorId &&
+    plan.week === week && plan.status === "confirmed"
+  );
+}
+
+function getUnplanColors(query = "", owner, now = new Date()) {
+  const colors = new Map();
+  for (const plan of ownedConfirmedPlans(readState(), owner, getCurrentRaidWeekDate(now))) {
+    const color = plan.color.trim();
+    const key = color.toLowerCase();
+    if (!colors.has(key) && key.includes(query.trim().toLowerCase())) colors.set(key, color);
+  }
+  return [...colors.values()].sort((left, right) => left.localeCompare(right)).slice(0, 25);
+}
+
 function resolveMembers(raids) {
   const ids = parseDiscordIdMap();
   for (const [name, id] of parseDiscordIdMap(process.env.RAID_PLAN_DISCORD_IDS)) ids.set(name, id);
@@ -83,9 +101,9 @@ function resolveMembers(raids) {
 }
 
 function summaryPages(state, week) {
-  const header = `**Planned Times — week of ${week}**\n`;
+  const header = `**Confirmed Times — week of ${week}**\n\n`;
   const entries = Object.values(state.plans).filter(plan => plan.week === week && plan.status === "confirmed")
-    .map(plan => `**${escapeMarkdown(plan.label)}**\n${escapeMarkdown(plan.description)}\n${plan.members.map(id => `<@${id}>`).join(" ")}\n`);
+    .map(plan => `**${escapeMarkdown(plan.label)}:** ${escapeMarkdown(plan.description)}\n${plan.members.map(id => `<@${id}>`).join(" ")}\n`);
   const pages = [header];
   for (const entry of entries) {
     if ((pages[pages.length - 1] + entry + "\n").length > 2000) pages.push(header);
@@ -135,7 +153,9 @@ async function deleteMessage(channel, id) {
 }
 
 async function settle(channel, state, plan, now = new Date()) {
-  if (plan.status === "confirmed") await publishSummary(channel, state, getCurrentRaidWeekDate(now));
+  if (plan.status === "confirmed" || plan.status === "unplanned") {
+    await publishSummary(channel, state, getCurrentRaidWeekDate(now));
+  }
   if (plan.status === "rejected" && !plan.notified) {
     const payload = {
       content: `<@${plan.creatorId}> Your plan for **${escapeMarkdown(plan.label)}** failed: <@${plan.rejectedBy}> reacted ❌.\n${escapeMarkdown(plan.description)}`,
@@ -220,7 +240,7 @@ function createPlan(client, input, now) {
     const state = readState();
     const week = getCurrentRaidWeekDate(now);
     const label = `${raids[0].color} — ${[...new Set(raids.map(raid => raid.name))].join(" & ")}`;
-    const content = `**Pending Plan — ${escapeMarkdown(label)}**\n${escapeMarkdown(input.description)}\n${members.map(id => `<@${id}>`).join(" ")}\nProposed by <@${input.creatorId}>. Each run member: ✅ to confirm, ❌ to reject.\nCreator only: ${overrideEmojiMention} to force this plan into Planned Times without waiting for checkmarks.`;
+    const content = `**Pending Plan — ${escapeMarkdown(label)}**\n${escapeMarkdown(input.description)}\n${members.map(id => `<@${id}>`).join(" ")}\nProposed by <@${input.creatorId}>. Each run member: ✅ to confirm, ❌ to reject.\nCreator only: ${overrideEmojiMention} to force this plan into Confirmed Times without waiting for checkmarks.`;
     if (content.length > 2000) throw planError("This plan is too long for Discord. Please shorten the description.");
     await publishSummary(channel, state, week);
     const message = await channel.send({ content, allowedMentions: { parse: [], users: members } });
@@ -237,6 +257,39 @@ function createPlan(client, input, now) {
       throw error;
     }
     return message;
+  });
+}
+
+function removePlannedRaids(client, input, now) {
+  return serialized(async () => {
+    now ||= new Date();
+    const state = readState();
+    const week = getCurrentRaidWeekDate(now);
+    const color = input.color.trim().toLowerCase();
+    const plans = ownedConfirmedPlans(state, input, week)
+      .filter(plan => plan.color.trim().toLowerCase() === color);
+    if (!plans.length) {
+      throw planError("You have no confirmed plans for that color this week. Only the original creator can remove a plan.");
+    }
+    const channel = await client.channels.fetch(raidPlansChannelId);
+    if (!channel?.isTextBased() || channel.guildId !== input.guildId) {
+      throw new Error("Invalid plans channel or guild");
+    }
+    // Persist removal before editing Discord so retries cannot restore the plan.
+    for (const plan of plans) {
+      plan.status = "unplanned";
+      plan.unplannedBy = input.creatorId;
+      plan.unplannedAt = now.toISOString();
+      plan.settled = false;
+    }
+    save(state);
+    try {
+      for (const plan of plans) await settle(channel, state, plan, now);
+    } catch (error) {
+      error.userMessage = "Your plan removal was saved, but I couldn't update the planning messages yet. I'll retry automatically.";
+      throw error;
+    }
+    return { removedCount: plans.length };
   });
 }
 
@@ -302,6 +355,8 @@ function startPlanScheduler(client) {
 module.exports = {
   createPlan,
   getPlanColors,
+  getUnplanColors,
+  removePlannedRaids,
   resolveMembers,
   summaryPages,
   handlePlanReaction,

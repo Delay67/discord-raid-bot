@@ -150,6 +150,15 @@ function create(fake, extra = {}, at = now) {
   }, at);
 }
 
+function unplan(fake, extra = {}, at = now) {
+  return service.removePlannedRaids(fake.client, {
+    guildId,
+    creatorId: ids.creator,
+    color: "Red",
+    ...extra
+  }, at);
+}
+
 async function confirm(message, at = now) {
   for (const id of state().plans[message.id].members) {
     await react(message, "✅", id, at);
@@ -216,7 +225,7 @@ test("a same-color plan pings the union of both rosters once and permits a free-
   assert.equal(plan.status, "pending");
   assert.equal(plan.week, "2026-07-22");
   const summary = fake.messages.get(state().summary.messageIds[0]);
-  assert.match(summary.content, /Planned Times/);
+  assert.match(summary.content, /Confirmed Times/);
   assert.match(summary.content, /No confirmed plans yet/);
 });
 
@@ -557,6 +566,200 @@ test("weekly reset deletes summary overflow pages while keeping the original mai
   assert.equal(fake.messages.size, 1);
 });
 
+test("unplan color suggestions include only the creator's current confirmed plans in their guild", () => {
+  const base = {
+    creatorId: ids.creator,
+    guildId,
+    week: "2026-07-22",
+    status: "confirmed",
+    color: "Red"
+  };
+  writeJson("raid-plans.json", {
+    summary: { messageIds: [] },
+    plans: {
+      red: { ...base },
+      duplicate: { ...base, color: " red " },
+      blue: { ...base, color: "Blue" },
+      otherCreator: { ...base, creatorId: ids.bob, color: "OtherCreator" },
+      otherGuild: { ...base, guildId: "100000000000000099", color: "OtherGuild" },
+      previousWeek: { ...base, week: "2026-07-15", color: "PreviousWeek" },
+      pending: { ...base, status: "pending", color: "Pending" },
+      rejected: { ...base, status: "rejected", color: "Rejected" },
+      removed: { ...base, status: "unplanned", color: "Removed" }
+    }
+  });
+  const original = state();
+  const owner = { guildId, creatorId: ids.creator };
+  assert.deepEqual(service.getUnplanColors("", owner, now), ["Blue", "Red"]);
+  assert.deepEqual(service.getUnplanColors(" RE ", owner, now), ["Red"]);
+  assert.deepEqual(service.getUnplanColors("Green", owner, now), []);
+  assert.deepEqual(service.getUnplanColors("", { guildId, creatorId: ids.bob }, now), ["OtherCreator"]);
+  assert.deepEqual(service.getUnplanColors("", { guildId, creatorId: ids.outsider }, now), []);
+  assert.deepEqual(service.getUnplanColors("", owner, new Date("2026-07-29T08:00:00Z")), []);
+  assert.deepEqual(state(), original, "autocomplete must not mutate persisted plans");
+});
+
+test("unplan removes all owned confirmed plans of the exact color while preserving other plans", async () => {
+  const fake = discord();
+  const approved = await create(fake, { description: "owned normal plan" });
+  await confirm(approved);
+  const forced = await create(fake, { color: " rEd ", description: "owned forced plan" });
+  await react(forced, overrideEmojiId, ids.creator);
+  const anotherCreator = await create(fake, { creatorId: ids.bob, description: "another creator's red plan" });
+  await confirm(anotherCreator);
+  const blue = await create(fake, { color: "Blue", description: "owned blue plan" });
+  await confirm(blue);
+  const pending = await create(fake, { description: "pending red plan" });
+  const original = state();
+  original.plans.old = { ...original.plans[approved.id], messageId: "old", week: "2026-07-15" };
+  original.plans.otherGuild = {
+    ...original.plans[approved.id],
+    messageId: "otherGuild",
+    guildId: "100000000000000099",
+    description: "another guild's plan"
+  };
+  original.plans.similarColor = {
+    ...original.plans[approved.id],
+    messageId: "similarColor",
+    color: "Redder",
+    description: "a different color's plan"
+  };
+  writeJson("raid-plans.json", original);
+  const removedAt = new Date("2026-07-28T12:01:00Z");
+  const sentCount = fake.sent.length;
+  const result = await unplan(fake, { color: " RED " }, removedAt);
+  assert.deepEqual(result, { removedCount: 2 });
+  for (const message of [approved, forced]) {
+    const removed = state().plans[message.id];
+    assert.equal(removed.status, "unplanned");
+    assert.equal(removed.unplannedBy, ids.creator);
+    assert.equal(removed.unplannedAt, removedAt.toISOString());
+  }
+  for (const id of [anotherCreator.id, blue.id, pending.id, "old", "otherGuild", "similarColor"]) {
+    assert.deepEqual(state().plans[id], original.plans[id]);
+  }
+  const summary = fake.messages.get(state().summary.messageIds[0]);
+  assert.doesNotMatch(summary.content, /owned normal plan|owned forced plan|pending red plan/);
+  assert.match(summary.content, /another creator's red plan/);
+  assert.match(summary.content, /owned blue plan/);
+  assert.deepEqual(summary.payload.allowedMentions, { parse: [] });
+  assert.equal(fake.sent.length, sentCount);
+  assert.ok(fake.messages.has(pending.id));
+});
+
+test("unplan refuses other members, outsiders, guilds, and unmatched colors without changing or posting anything", async () => {
+  const fake = discord();
+  const message = await create(fake);
+  await confirm(message);
+  const original = state();
+  const summary = fake.messages.get(original.summary.messageIds[0]);
+  const editCount = summary.edits.length;
+  const sentCount = fake.sent.length;
+  const scenarios = [
+    { creatorId: ids.alice },
+    { creatorId: ids.outsider },
+    { guildId: "100000000000000099" },
+    { color: "Blue" },
+    { color: "Re" }
+  ];
+  for (const extra of scenarios) {
+    await assert.rejects(unplan(fake, extra), error => {
+      assert.equal(typeof error.userMessage, "string");
+      assert.ok(error.userMessage.length > 0);
+      return true;
+    });
+    assert.deepEqual(state(), original);
+    assert.equal(fake.sent.length, sentCount);
+    assert.equal(summary.edits.length, editCount);
+  }
+});
+
+test("unplan shrinks summary overflow and preserves the main message when the last plan is removed", async () => {
+  const fake = discord();
+  const red = await create(fake, { description: "r".repeat(1000) });
+  await confirm(red);
+  const blue = await create(fake, { color: "Blue", description: "b".repeat(1000) });
+  await confirm(blue);
+  const [mainId, overflowId] = state().summary.messageIds;
+  assert.equal(state().summary.messageIds.length, 2);
+  assert.ok(fake.messages.has(overflowId));
+  assert.deepEqual(await unplan(fake), { removedCount: 1 });
+  assert.deepEqual(state().summary.messageIds, [mainId]);
+  assert.equal(fake.messages.has(overflowId), false);
+  const summary = fake.messages.get(mainId);
+  assert.ok(summary.content.includes("b".repeat(1000)));
+  assert.equal(summary.content.includes("r".repeat(1000)), false);
+  assert.deepEqual(await unplan(fake, { color: "Blue" }), { removedCount: 1 });
+  assert.deepEqual(state().summary.messageIds, [mainId]);
+  assert.match(summary.content, /No confirmed plans yet/);
+  assert.equal(fake.messages.size, 1);
+});
+
+test("removed plans stay removed across restart, replayed reactions, and repeated removal requests", async () => {
+  const fake = discord();
+  const message = await create(fake);
+  await react(message, overrideEmojiId, ids.creator);
+  await unplan(fake);
+  const removed = state().plans[message.id];
+  const sentCount = fake.sent.length;
+  delete require.cache[require.resolve("../src/services/raidPlans")];
+  service = require("../src/services/raidPlans");
+  await service.checkPlans(fake.client, now);
+  await react(message, overrideEmojiId, ids.creator);
+  await react(message, "✅", ids.alice);
+  await assert.rejects(unplan(fake), error => Boolean(error.userMessage));
+  assert.deepEqual(state().plans[message.id], removed);
+  assert.equal(fake.sent.length, sentCount);
+  assert.match(fake.messages.get(state().summary.messageIds[0]).content, /No confirmed plans yet/);
+  assert.deepEqual(service.getUnplanColors("", { guildId, creatorId: ids.creator }, now), []);
+});
+
+test("unplan persists before a failed summary update and recovery cleans a confirmed but unsettled proposal", async () => {
+  const fake = discord();
+  const message = await create(fake);
+  const summaryId = state().summary.messageIds[0];
+  const summary = fake.messages.get(summaryId);
+  const deleteMessage = fake.channel.messages.delete.bind(fake.channel.messages);
+  let failNextDelete = true;
+  fake.channel.messages.delete = async id => {
+    if (failNextDelete) {
+      failNextDelete = false;
+      throw new Error("Temporary message deletion failure");
+    }
+    return deleteMessage(id);
+  };
+  await assert.rejects(confirm(message), /Temporary message deletion failure/);
+  assert.equal(state().plans[message.id].status, "confirmed");
+  assert.notEqual(state().plans[message.id].settled, true);
+  assert.ok(fake.messages.has(message.id));
+  assert.match(summary.content, /after thursday kazeros/);
+  const edit = summary.edit.bind(summary);
+  let failNextEdit = true;
+  summary.edit = async payload => {
+    if (failNextEdit) {
+      failNextEdit = false;
+      throw new Error("Temporary unplan summary failure");
+    }
+    return edit(payload);
+  };
+  await assert.rejects(unplan(fake), /Temporary unplan summary failure/);
+  assert.equal(state().plans[message.id].status, "unplanned");
+  assert.equal(state().plans[message.id].unplannedBy, ids.creator);
+  assert.equal(state().plans[message.id].unplannedAt, now.toISOString());
+  assert.ok(fake.messages.has(message.id));
+  delete require.cache[require.resolve("../src/services/raidPlans")];
+  service = require("../src/services/raidPlans");
+  await service.checkPlans(fake.client, now);
+  assert.equal(state().plans[message.id].status, "unplanned");
+  assert.equal(state().plans[message.id].settled, true);
+  assert.equal(fake.messages.has(message.id), false);
+  assert.deepEqual(state().summary.messageIds, [summaryId]);
+  assert.match(summary.content, /No confirmed plans yet/);
+  assert.deepEqual(fake.deleted, [message.id]);
+  await service.checkPlans(fake.client, now);
+  assert.deepEqual(fake.deleted, [message.id]);
+});
+
 test("summaries paginate confirmed plans within Discord's limit and omit other weeks and statuses", () => {
   const week = "2026-07-22";
   const plans = Object.fromEntries(Array.from({ length: 8 }, (_, index) => [String(index), {
@@ -571,7 +774,7 @@ test("summaries paginate confirmed plans within Discord's limit and omit other w
   const pages = service.summaryPages({ plans }, week);
   assert.ok(pages.length > 1);
   assert.ok(pages.every(page => page.length <= 2000));
-  assert.ok(pages.every(page => page.includes("Planned Times")));
+  assert.ok(pages.every(page => page.includes("Confirmed Times")));
   const combined = pages.join("\n");
   for (let index = 0; index < 8; index++) {
     assert.equal(combined.split(`Time-${index}:`).length - 1, 1);

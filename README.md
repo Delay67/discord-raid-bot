@@ -42,6 +42,7 @@ BOT_TIME_ZONE=Europe/Amsterdam
 - `/schedule-set image:schedule.png` — Post and pin a raid schedule
 - `/schedule` — Show the current schedule
 - `/plan color:Red description:after Thursday Kazeros` — Propose a time for this week's Serca and Cathedral runs of that color; add `raid:Serca` or `raid:Cathedral` to select one
+- `/unplan color:Red` — Remove this week's confirmed plans of that color that you originally created
 
 **Fun & Stats:**
 - `/redpanda` — Send a random red panda image
@@ -71,18 +72,25 @@ The bot pings each unique member and adds ✅, ❌, and
 original pending plan count for ✅ and ❌; other users' votes are ignored.
 Normally everyone, including the creator if they are in the run, must confirm.
 Once all members currently have ✅ selected, the bot adds the run and description
-to **Planned Times** and deletes the pending message. Any member's ❌ rejects the
+to **Confirmed Times** and deletes the pending message. Any member's ❌ rejects the
 plan, deletes its message, and posts a channel notice mentioning the creator and
 identifying the member who rejected it.
 
 The original plan creator can react with `:juststop:` to immediately add a pending
-plan to **Planned Times** without waiting for checkmarks, even if the creator is
+plan to **Confirmed Times** without waiting for checkmarks, even if the creator is
 not part of the run. Other users' `:juststop:` reactions are ignored. The override
 uses the exact emoji ID and also works after bot downtime; it cannot restore a
 plan that was already rejected or expired. The bot must have access to this emoji
 to add the third reaction.
 
-The same **Planned Times** message is cleared every Wednesday at 10:00 Amsterdam
+Use `/unplan color:Red` to remove confirmed plans you originally created from
+**Confirmed Times**, including plans confirmed with the override. Color autocomplete
+shows only your confirmed plans for the current week in this server. If you created
+multiple confirmed plans for the same color, this removes all of those plans.
+Other people's plans and pending proposals are left alone. `/unplan` works in any
+server channel and replies privately.
+
+The same **Confirmed Times** message is cleared every Wednesday at 10:00 Amsterdam
 time, and previous-week pending plans expire. The bot creates the message on
 startup if needed; it catches up after downtime and saves plan state in
 `data/raid-plans.json`. Long summaries use additional messages, which are removed
@@ -138,7 +146,7 @@ python scripts/active/import_raids_from_image.py path/to/schedule.png
 
 ## Configuration Notes
 
-- Most commands only work in `DISCORD_CHANNEL_ID`; `/plan` works in any server channel
+- Most commands only work in `DISCORD_CHANNEL_ID`; `/plan` and `/unplan` work in any server channel
 - Requires `Manage Server` permission for admin commands
 - Bot replies are auto-deleted after `CLEANUP_DELAY_MS` (default: 5 minutes)
 - For mention replies to work, enable `Message Content Intent` in Discord Developer Portal
