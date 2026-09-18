@@ -22,7 +22,7 @@ module.exports = {
         "`/schedule`",
         "Shows the current raid schedule image.",
         "",
-        "`/plan color:Red description:after Thursday Kazeros`",
+        "`/plan color:Red day:Friday description:after Kazeros`",
         "Proposes a time. On Monday/Tuesday, choose this or the upcoming reset privately. Members confirm with checkmarks; the creator can force confirmation with :juststop:.",
         "",
         "`/unplan color:Red`",

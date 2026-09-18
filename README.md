@@ -41,7 +41,7 @@ BOT_TIME_ZONE=Europe/Amsterdam
 **Scheduling:**
 - `/schedule-set image:schedule.png` — Post and pin a raid schedule
 - `/schedule` — Show the current schedule
-- `/plan color:Red description:after Thursday Kazeros` — Propose a time for Serca and Cathedral runs of that color; add `raid:Serca` or `raid:Cathedral` to select one
+- `/plan color:Red day:Friday description:18:00` — Choose a required weekday and propose a time for Serca and Cathedral runs of that color; add `raid:Serca` or `raid:Cathedral` to select one
 - `/unplan color:Red` — Remove this reset's confirmed plans of that color that you originally created; use `week:next` for upcoming plans
 
 **Fun & Stats:**
@@ -64,8 +64,11 @@ per-image reaction count in `data/redpanda-favorites.json`.
 `/plan` works in any channel in the server and posts a **Pending Plan** in
 `RAID_PLANS_CHANNEL_ID` (default: `1550172613668503682`). Color autocomplete uses
 the available Serca/Cathedral rosters, excluding unassigned `Unknown` colors.
-The description is free text, for example `18:00 on Saturday` or
-`after Thursday Kazeros` (up to 1,000 characters).
+The `day` option is required: choose one of the seven weekdays. The description
+is free text, for example `18:00` or `after Kazeros` (up to 1,000 characters).
+Pending messages show the chosen day. Within each **Confirmed Times** week,
+entries appear under weekday headings such as **Friday:**, in Wednesday-to-Tuesday
+reset order. Existing plans without a saved weekday remain under **Day not set:**.
 
 On Mondays and Tuesdays (Amsterdam time), submitting `/plan` first asks privately
 whether the plan is for **This reset** or **Upcoming reset**, with the week dates

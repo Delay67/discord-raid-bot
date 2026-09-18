@@ -17,7 +17,7 @@ function interaction(choice = 0, expires = false) {
   const updates = [];
   const value = {
     id: "interaction-id", user: { id: "creator" }, guildId: "guild", client: {},
-    options: { getString: key => ({ color: "Red", description: "after kazeros", raid: null })[key] },
+    options: { getString: key => ({ color: "Red", day: "Friday", description: "after kazeros", raid: null })[key] },
     async deferReply(payload) { assert.equal(payload.ephemeral, true); },
     async editReply(payload) {
       edits.push(payload);
@@ -46,6 +46,7 @@ test("Monday/Tuesday privately choose this or upcoming reset before publishing t
         assert.equal(fake.updates.length, 1, "the button must be acknowledged before publication");
         assert.equal(input.week, choice ? "2026-07-29" : "2026-07-22");
         assert.equal(input.creatorId, "creator");
+        assert.equal(input.day, "Friday");
         assert.equal(input.description, "after kazeros");
         return { url: "https://discord.com/plan" };
       });
@@ -67,6 +68,15 @@ test("other weekdays create the current reset's pending plan without a reset pro
   assert.equal(fake.edits.length, 1);
   assert.equal(fake.updates.length, 0);
   assert.match(fake.edits[0].content, /Pending plan posted/);
+});
+
+test("plan registration requires a weekday chosen from all seven days", () => {
+  const command = loadCommand(async () => {});
+  const day = command.data.toJSON().options.find(option => option.name === "day");
+  assert.equal(day.required, true);
+  assert.deepEqual(day.choices.map(choice => choice.value), [
+    "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Monday", "Tuesday"
+  ]);
 });
 
 test("expired reset selection clears buttons and never publishes a plan", async () => {

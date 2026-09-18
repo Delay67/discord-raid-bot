@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require("discord.js");
 const { createPlan, getPlanColors } = require("../services/raidPlans");
-const { getPlanningWeekDate, shouldChoosePlanWeek, visiblePlanWeeks } = require("../services/planWeeks");
+const { getPlanningWeekDate, shouldChoosePlanWeek, visiblePlanWeeks, planWeekdays } = require("../services/planWeeks");
 
 async function chooseWeek(interaction, now) {
   if (!shouldChoosePlanWeek(now)) return getPlanningWeekDate(now);
@@ -44,6 +44,12 @@ module.exports = {
       .setAutocomplete(true)
     )
     .addStringOption((option) => option
+      .setName("day")
+      .setDescription("Day of the week for this run")
+      .setRequired(true)
+      .addChoices(...planWeekdays.map(day => ({ name: day, value: day })))
+    )
+    .addStringOption((option) => option
       .setName("description")
       .setDescription("Any time or description, e.g. after Thursday Kazeros")
       .setRequired(true)
@@ -75,6 +81,7 @@ module.exports = {
         guildId: interaction.guildId,
         creatorId: interaction.user.id,
         color: interaction.options.getString("color", true),
+        day: interaction.options.getString("day", true),
         description: interaction.options.getString("description", true),
         raid: interaction.options.getString("raid"),
         week

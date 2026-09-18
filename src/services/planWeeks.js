@@ -1,4 +1,5 @@
 const { timeZone } = require("./raidPeriodStore");
+const planWeekdays = ["Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Monday", "Tuesday"];
 
 function localParts(now) {
   return Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
@@ -34,4 +35,4 @@ function visiblePlanWeeks(now = new Date()) {
   return [current, addDays(current, 7)];
 }
 
-module.exports = { addDays, getPlanningWeekDate, shouldChoosePlanWeek, visiblePlanWeeks };
+module.exports = { addDays, getPlanningWeekDate, shouldChoosePlanWeek, visiblePlanWeeks, planWeekdays };

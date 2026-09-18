@@ -9,7 +9,7 @@ const {
   runRaidWeekRollover
 } = require("./raidPeriodStore");
 const { parseDiscordIdMap } = require("./kazerosReminderScheduler");
-const { addDays, getPlanningWeekDate, shouldChoosePlanWeek, visiblePlanWeeks } = require("./planWeeks");
+const { addDays, getPlanningWeekDate, shouldChoosePlanWeek, visiblePlanWeeks, planWeekdays } = require("./planWeeks");
 const dataDirectory = process.env.RAID_BOT_DATA_DIRECTORY || path.join(__dirname, "../../data");
 const storePath = path.join(dataDirectory, "raid-plans.json");
 const overrideEmojiId = "1503113067309961400";
@@ -121,7 +121,8 @@ function isPlanComplete(plan, raids) {
 }
 
 function pendingPlanContent(plan) {
-  return `**Pending Plan — ${escapeMarkdown(plan.label)}**\nWeek of ${plan.week}\n${escapeMarkdown(plan.description)}\n${plan.members.map(id => `<@${id}>`).join(" ")}\nProposed by <@${plan.creatorId}>.`;
+  const day = planWeekdays.includes(plan.day) ? `${plan.day} · ` : "";
+  return `**Pending Plan — ${escapeMarkdown(plan.label)}**\n${day}Week of ${plan.week}\n${escapeMarkdown(plan.description)}\n${plan.members.map(id => `<@${id}>`).join(" ")}\nProposed by <@${plan.creatorId}>.`;
 }
 
 function summaryPages(state, week, raids = readRaidsForPeriod("current"), raidWeek = week) {
@@ -130,23 +131,31 @@ function summaryPages(state, week, raids = readRaidsForPeriod("current"), raidWe
     const plans = Object.values(state.plans).filter(plan => plan.week === sectionWeek && plan.status === "confirmed");
     if (sectionWeek !== week && !plans.length) continue;
     const header = `**Confirmed Times — week of ${sectionWeek}**\n\n`;
+    const days = [...planWeekdays, "Day not set"];
     const entries = plans.map(plan => {
       const details = `**${escapeMarkdown(plan.label)}:** ${escapeMarkdown(plan.description)}`;
       const members = plan.members.map(id => `<@${id}>`).join(" ");
-      return plan.week === raidWeek && isPlanComplete(plan, raids)
+      const text = plan.week === raidWeek && isPlanComplete(plan, raids)
         ? `~~${details}~~\n~~${members}~~\n`
         : `${details}\n${members}\n`;
-    });
-    if (!entries.length) entries.push("No confirmed plans yet.\n");
-    const last = pages.length - 1;
-    if (last < 0 || (pages[last] + header + entries[0] + "\n").length > 2000) {
-      pages.push(header);
-    } else {
-      pages[last] += header;
+      return { text: `${text}\n`, day: planWeekdays.includes(plan.day) ? plan.day : "Day not set" };
+    }).sort((left, right) => days.indexOf(left.day) - days.indexOf(right.day));
+    if (!entries.length) {
+      const empty = `${header}No confirmed plans yet.\n\n`;
+      if (!pages.length || (pages[pages.length - 1] + empty).length > 2000) pages.push(empty);
+      else pages[pages.length - 1] += empty;
+      continue;
     }
+    let previousDay = null;
     for (const entry of entries) {
-      if ((pages[pages.length - 1] + entry + "\n").length > 2000) pages.push(header);
-      pages[pages.length - 1] += `${entry}\n`;
+      const dayHeading = `**${entry.day}:**\n`;
+      const prefix = (previousDay === null ? header : "") + (entry.day !== previousDay ? dayHeading : "");
+      if (!pages.length || (pages[pages.length - 1] + prefix + entry.text).length > 2000) {
+        pages.push(header + dayHeading + entry.text);
+      } else {
+        pages[pages.length - 1] += prefix + entry.text;
+      }
+      previousDay = entry.day;
     }
   }
   return pages;
@@ -289,6 +298,7 @@ async function inspectPlan(channel, state, plan, now = new Date(), overrideBy = 
 function createPlan(client, input, now) {
   return serialized(async () => {
     now ||= new Date();
+    if (!planWeekdays.includes(input.day)) throw planError("Please choose a day of the week for the plan.");
     if (!input.description.trim()) throw planError("Please enter a time or description for the plan.");
     const week = input.week || getPlanningWeekDate(now);
     if (!visiblePlanWeeks(now).includes(week)) {

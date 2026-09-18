@@ -153,6 +153,7 @@ function create(fake, extra = {}, at = now) {
     guildId,
     creatorId: ids.creator,
     color: "Red",
+    day: "Friday",
     description: "after thursday kazeros",
     ...extra
   }, at);
@@ -232,6 +233,8 @@ test("a same-color plan pings the union of both rosters once and permits a free-
     name: "juststop"
   });
   assert.equal(plan.status, "pending");
+  assert.equal(plan.day, "Friday");
+  assert.match(message.content, /Friday · Week of/);
   assert.equal(plan.week, "2026-07-22");
   const summary = fake.messages.get(state().summary.messageIds[0]);
   assert.match(summary.content, /Confirmed Times/);
@@ -1052,6 +1055,52 @@ test("complete and uncomplete commands immediately refresh Confirmed Times, incl
   await uncomplete.execute(interaction);
   assert.match(replies.at(-1).content, /Marked 2 of 2 matching Red raids TODO/);
   assert.doesNotMatch(summary.content, /~~/);
+});
+
+test("creating a plan requires a valid weekday before publishing anything", async () => {
+  const fake = discord();
+  for (const day of [undefined, "", "Tomorrow", "Funday"]) {
+    await assert.rejects(create(fake, { day }), /choose a day of the week/);
+  }
+  assert.equal(fake.sent.length, 0);
+});
+
+test("confirmed plans group by weekday within each reset, keeping legacy entries visible", () => {
+  const week = "2026-07-22";
+  const base = { week, status: "confirmed", label: "Red — Serca", color: "Red", members: [ids.alice] };
+  const plans = {
+    friday1: { ...base, day: "Friday", description: "Friday first" },
+    monday: { ...base, day: "Monday", description: "Monday run" },
+    wednesday: { ...base, day: "Wednesday", description: "Wednesday run" },
+    friday2: { ...base, day: "Friday", description: "Friday second" },
+    legacy: { ...base, description: "Saved before weekdays were required" },
+    upcoming: { ...base, week: "2026-07-29", day: "Friday", description: "Upcoming Friday" }
+  };
+  const text = service.summaryPages({ plans }, week).join("\n");
+  const [current, next] = text.split("**Confirmed Times — week of 2026-07-29**");
+  assert.ok(current.indexOf("**Wednesday:**") < current.indexOf("**Friday:**"));
+  assert.ok(current.indexOf("**Friday:**") < current.indexOf("**Monday:**"));
+  assert.equal(current.split("**Friday:**").length, 2, "one heading for both Friday runs");
+  assert.ok(current.indexOf("Friday first") < current.indexOf("Friday second"));
+  assert.ok(current.indexOf("Friday second") < current.indexOf("**Monday:**"));
+  assert.match(current, /\*\*Day not set:\*\*\n\*\*Red — Serca:\*\* Saved before weekdays were required/);
+  assert.doesNotMatch(current, /Upcoming Friday/);
+  assert.match(next, /\*\*Friday:\*\*\n\*\*Red — Serca:\*\* Upcoming Friday/);
+});
+
+test("overflow repeats the week and day heading without orphaning either heading", () => {
+  const week = "2026-07-22";
+  const plans = Object.fromEntries([0, 1, 2].map(index => [index, {
+    week, day: "Friday", status: "confirmed", color: "Red", label: "Red — Serca",
+    description: `Run-${index} ${"x".repeat(1000)}`, members: [ids.alice]
+  }]));
+  const pages = service.summaryPages({ plans }, week);
+  assert.equal(pages.length, 3);
+  for (const page of pages) {
+    assert.ok(page.length <= 2000);
+    assert.ok(page.startsWith(`**Confirmed Times — week of ${week}**\n\n**Friday:**\n`));
+    assert.match(page, /Run-\d/);
+  }
 });
 
 test("summaries paginate confirmed plans within Discord's limit and omit other weeks and statuses", () => {
