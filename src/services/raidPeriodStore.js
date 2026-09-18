@@ -77,8 +77,12 @@ function getNextRaidWeekDate(now = new Date()) {
 }
 
 function readPreparedRaids() {
-  const prepared = readJson(preparedPath, null);
+  const prepared = readPreparedRaidWeek();
   return prepared?.raids || null;
+}
+
+function readPreparedRaidWeek() {
+  return readJson(preparedPath, null);
 }
 
 function writePreparedRaids(raids, details = {}, now = new Date()) {
@@ -195,6 +199,7 @@ module.exports = {
   getCurrentRaidWeekDate,
   getNextRaidWeekDate,
   readPreparedRaids,
+  readPreparedRaidWeek,
   readCurrentKazerosReminders,
   readRaidsForPeriod,
   runRaidWeekRollover,

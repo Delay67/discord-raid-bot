@@ -41,8 +41,8 @@ BOT_TIME_ZONE=Europe/Amsterdam
 **Scheduling:**
 - `/schedule-set image:schedule.png` — Post and pin a raid schedule
 - `/schedule` — Show the current schedule
-- `/plan color:Red description:after Thursday Kazeros` — Propose a time for this week's Serca and Cathedral runs of that color; add `raid:Serca` or `raid:Cathedral` to select one
-- `/unplan color:Red` — Remove this week's confirmed plans of that color that you originally created
+- `/plan color:Red description:after Thursday Kazeros` — Propose a time for Serca and Cathedral runs of that color; add `raid:Serca` or `raid:Cathedral` to select one
+- `/unplan color:Red` — Remove this reset's confirmed plans of that color that you originally created; use `week:next` for upcoming plans
 
 **Fun & Stats:**
 - `/redpanda` — Send a random red panda image
@@ -63,9 +63,21 @@ per-image reaction count in `data/redpanda-favorites.json`.
 
 `/plan` works in any channel in the server and posts a **Pending Plan** in
 `RAID_PLANS_CHANNEL_ID` (default: `1550172613668503682`). Color autocomplete uses
-the current week's Serca/Cathedral roster, excluding unassigned `Unknown` colors.
+the available Serca/Cathedral rosters, excluding unassigned `Unknown` colors.
 The description is free text, for example `18:00 on Saturday` or
 `after Thursday Kazeros` (up to 1,000 characters).
+
+On Mondays and Tuesdays (Amsterdam time), submitting `/plan` first asks privately
+whether the plan is for **This reset** or **Upcoming reset**, with the week dates
+shown on the buttons. Choose within 14 minutes; the public pending message is
+posted only after selection. The selected reset still requires the usual member
+confirmations or creator override. Other days default to this reset.
+
+Upcoming plans use the prepared roster for that week when available, otherwise
+the current roster. On Monday/Tuesday autocomplete includes both rosters; the
+selected color must exist in the reset you choose. Pending messages show their
+week and end after `Proposed by @creator.`; reaction instructions stay in the
+pinned guide.
 
 The bot pings each unique member and adds ✅, ❌, and
 `<:juststop:1503113067309961400>` reactions. Only the run members listed in the
@@ -86,23 +98,29 @@ to add the third reaction.
 
 Use `/unplan color:Red` to remove confirmed plans you originally created from
 **Confirmed Times**, including plans confirmed with the override. Color autocomplete
-shows only your confirmed plans for the current week in this server. If you created
+shows only your confirmed plans for the selected reset in this server. If you created
 multiple confirmed plans for the same color, this removes all of those plans.
 Other people's plans and pending proposals are left alone. `/unplan` works in any
-server channel and replies privately.
+server channel and replies privately. It defaults to this reset; use
+`/unplan color:Red week:next` to remove upcoming plans of that color instead.
 
 `/complete color:Red` crosses out matching entries in **Confirmed Times**, keeping
 them visible as completed. With `raid:Serca` or `raid:Cathedral`, a combined plan
 is crossed out only once all raids it covers are complete. `/uncomplete` removes
 the strikethrough when a covered raid returns to TODO. These updates also survive
-restarts and recreation of the summary message.
+restarts and recreation of the summary message. Completion applies only to the
+roster's current week, so finishing this week's runs cannot cross out next week's
+plans.
 
-The same **Confirmed Times** message is cleared every Wednesday at 10:00 Amsterdam
-time, and previous-week pending plans expire. The bot creates the message on
+**Confirmed Times** groups current and upcoming plans under separate **week of**
+headings, using Wednesday dates. Every **Tuesday at 23:59 Amsterdam time**, the
+old week's section is cleared and its pending proposals expire. Upcoming confirmed
+and pending plans are kept and become the current reset. The bot creates the message on
 startup if needed; it catches up after downtime and saves plan state in
-`data/raid-plans.json`. Long summaries use additional messages, which are removed
-at the weekly reset. Existing schedule images and Kazeros reminders continue to
-use `PLANNED_TIMES_CHANNEL_ID`.
+`data/raid-plans.json`. Long summaries use additional messages; unused overflow
+messages are removed after the wipe. The planning wipe does not change the roster
+rollover, which remains Wednesday at 10:00. Existing schedule images and Kazeros
+reminders continue to use `PLANNED_TIMES_CHANNEL_ID`.
 
 Configure roster names and Discord user IDs privately on the bot host:
 

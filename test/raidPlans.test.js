@@ -202,12 +202,13 @@ test.after(() => {
   fs.rmSync(testDataDirectory, { recursive: true, force: true });
 });
 
-test("color suggestions use this week's Serca and Cathedral runs with optional raid filtering", () => {
-  assert.deepEqual(service.getPlanColors("", undefined, now), ["Blue", "Purple", "Red"]);
+test("Monday and Tuesday color suggestions include current and prepared runs with raid filtering", () => {
+  assert.deepEqual(service.getPlanColors("", undefined, now), ["Blue", "NextWeekOnly", "Purple", "Red"]);
   assert.deepEqual(service.getPlanColors(" RE ", undefined, now), ["Red"]);
-  assert.deepEqual(service.getPlanColors("", "sErCa", now), ["Blue", "Red"]);
+  assert.deepEqual(service.getPlanColors("", "sErCa", now), ["Blue", "NextWeekOnly", "Red"]);
   assert.deepEqual(service.getPlanColors("", "Cathedral", now), ["Purple", "Red"]);
-  assert.deepEqual(service.getPlanColors("NextWeekOnly", undefined, now), []);
+  assert.deepEqual(service.getPlanColors("NextWeekOnly", undefined, now), ["NextWeekOnly"]);
+  assert.deepEqual(service.getPlanColors("NextWeekOnly", undefined, new Date("2026-07-26T12:00:00Z")), []);
 });
 
 test("a same-color plan pings the union of both rosters once and permits a free-form description", async () => {
@@ -525,7 +526,7 @@ test("creator overrides cannot revive rejected, expired, or stale pending plans"
   await react(rejected, overrideEmojiId, ids.creator);
   assert.equal(state().plans[rejected.id].status, "rejected");
   const expired = await create(fake);
-  const reset = new Date("2026-07-29T08:00:00Z");
+  const reset = new Date("2026-07-28T21:59:00Z");
   await service.checkPlans(fake.client, reset);
   assert.equal(state().plans[expired.id].status, "expired");
   await react(expired, overrideEmojiId, ids.creator, reset);
@@ -576,17 +577,17 @@ test("reconciliation includes super reactions when approving or rejecting a plan
   assert.equal(state().plans[rejected.id].rejectedBy, ids.bob);
 });
 
-test("Wednesday at 10:00 Amsterdam clears the same summary and expires old pending plans", async () => {
+test("Tuesday at 23:59 Amsterdam clears the same summary and expires old pending plans", async () => {
   const fake = discord();
   const approved = await create(fake, { description: "last week's confirmed time" });
   await confirm(approved);
   const pending = await create(fake, { description: "last week's pending time" });
   const summaryId = state().summary.messageIds[0];
   const summary = fake.messages.get(summaryId);
-  await service.checkPlans(fake.client, new Date("2026-07-29T07:59:59Z"));
+  await service.checkPlans(fake.client, new Date("2026-07-28T21:58:59Z"));
   assert.match(summary.content, /last week's confirmed time/);
   assert.ok(fake.messages.has(pending.id));
-  const reset = new Date("2026-07-29T08:00:00Z");
+  const reset = new Date("2026-07-28T21:59:00Z");
   await service.checkPlans(fake.client, reset);
   assert.deepEqual(state().summary.messageIds, [summaryId]);
   assert.equal(state().summary.week, "2026-07-29");
@@ -604,6 +605,126 @@ test("Wednesday at 10:00 Amsterdam clears the same summary and expires old pendi
   assert.match(summary.content, /this week's new time/);
   assert.deepEqual(state().summary.messageIds, [summaryId]);
   assert.equal(fake.sent.length, sentCount, "Thursday must not publish or clear a daily summary");
+});
+
+test("pending messages end at the proposer and older instruction text is removed without repinging", async () => {
+  const fake = discord();
+  const message = await create(fake);
+  assert.ok(message.content.endsWith(`Proposed by <@${ids.creator}>.`));
+  message.content += " Each run member: ✅ to confirm, ❌ to reject.\nCreator only: juststop.";
+  await service.checkPlans(fake.client, now);
+  assert.ok(message.content.endsWith(`Proposed by <@${ids.creator}>.`));
+  assert.deepEqual(message.edits.at(-1).allowedMentions, { parse: [] });
+  assert.deepEqual([...message.reactions.cache.keys()], ["✅", "❌", overrideEmojiId]);
+});
+
+test("upcoming plans use prepared members and keep their confirmed and pending plans through Tuesday's wipe", async () => {
+  const fake = discord();
+  const current = await create(fake, { description: "old confirmed time" });
+  await confirm(current);
+  const oldPending = await create(fake, { description: "old pending time" });
+  const next = await create(fake, { color: "NextWeekOnly", week: "2026-07-29", description: "upcoming confirmed time" });
+  const nextPending = await create(fake, { color: "NextWeekOnly", week: "2026-07-29", description: "upcoming pending time" });
+  assert.deepEqual(state().plans[next.id].members, [ids.dave]);
+  assert.match(next.content, /Week of 2026-07-29/);
+  await confirm(next);
+  const summaryId = state().summary.messageIds[0];
+  const summary = fake.messages.get(summaryId);
+  assert.ok(summary.content.indexOf("week of 2026-07-22") < summary.content.indexOf("old confirmed time"));
+  assert.ok(summary.content.indexOf("week of 2026-07-29") < summary.content.indexOf("upcoming confirmed time"));
+  assert.equal(state().plans[nextPending.id].status, "pending");
+  await service.checkPlans(fake.client, new Date("2026-07-28T21:58:59Z"));
+  assert.match(summary.content, /old confirmed time/);
+  delete require.cache[require.resolve("../src/services/raidPlans")];
+  service = require("../src/services/raidPlans");
+  const wipe = new Date("2026-07-28T21:59:00Z");
+  await service.checkPlans(fake.client, wipe);
+  assert.deepEqual(state().summary.messageIds, [summaryId]);
+  assert.match(summary.content, /week of 2026-07-29/);
+  assert.match(summary.content, /upcoming confirmed time/);
+  assert.doesNotMatch(summary.content, /2026-07-22|old confirmed time/);
+  assert.equal(state().plans[oldPending.id].status, "expired");
+  assert.equal(fake.messages.has(oldPending.id), false);
+  assert.equal(state().plans[nextPending.id].status, "pending");
+  assert.equal(fake.messages.has(nextPending.id), true);
+  await confirm(nextPending, new Date("2026-07-28T22:01:00Z"));
+  await service.checkPlans(fake.client, new Date("2026-07-29T08:00:00Z"));
+  assert.match(summary.content, /upcoming confirmed time/);
+  assert.match(summary.content, /upcoming pending time/);
+});
+
+test("upcoming plans fall back to the current roster and never inherit last reset's completion", async () => {
+  fs.unlinkSync(path.join(testDataDirectory, "raids-prepared.json"));
+  const fake = discord();
+  const current = await create(fake, { description: "current done" });
+  await confirm(current);
+  completeRaids({ color: "Red", completedBy: ids.alice });
+  const next = await create(fake, { week: "2026-07-29", description: "upcoming not done" });
+  await react(next, overrideEmojiId, ids.creator);
+  assert.deepEqual(state().plans[next.id].members, state().plans[current.id].members);
+  const summary = fake.messages.get(state().summary.messageIds[0]);
+  assert.match(summary.content, /~~\*\*Red — Serca & Cathedral:\*\* current done~~/);
+  assert.match(summary.content, /\n\*\*Red — Serca & Cathedral:\*\* upcoming not done\n/);
+  await service.checkPlans(fake.client, new Date("2026-07-28T21:59:00Z"));
+  assert.doesNotMatch(summary.content, /~~|current done/);
+  await service.checkPlans(fake.client, new Date("2026-07-29T07:59:59Z"));
+  assert.doesNotMatch(summary.content, /~~/);
+  require("../src/services/raidPeriodStore").runRaidWeekRollover(new Date("2026-07-29T08:00:00Z"));
+  await service.checkPlans(fake.client, new Date("2026-07-29T08:00:00Z"));
+  assert.doesNotMatch(summary.content, /~~/);
+  completeRaids({ color: "Red", completedBy: ids.alice });
+  await service.refreshConfirmedTimes(fake.client, guildId, new Date("2026-07-29T08:01:00Z"));
+  assert.match(summary.content, /~~\*\*Red — Serca & Cathedral:\*\* upcoming not done~~/);
+});
+
+test("reset selection validates the target date and the target roster before posting", async () => {
+  const fake = discord();
+  await assert.rejects(create(fake, { week: "2026-07-29", color: "Red" }), /No Serca or Cathedral runs match/);
+  await assert.rejects(create(fake, { week: "2026-07-22", color: "NextWeekOnly" }), /No Serca or Cathedral runs match/);
+  await assert.rejects(create(fake, { week: "2026-07-15" }), /reset has already ended/);
+  await assert.rejects(create(fake, { week: "2026-08-05" }), /reset has already ended/);
+  await assert.rejects(create(fake, { week: "2026-07-22" }, new Date("2026-07-28T21:59:00Z")), /reset has already ended/);
+  assert.equal(fake.sent.length, 0);
+  const currentAfterWipe = await create(fake, { color: "NextWeekOnly" }, new Date("2026-07-28T21:59:00Z"));
+  assert.equal(state().plans[currentAfterWipe.id].week, "2026-07-29");
+  assert.deepEqual(state().plans[currentAfterWipe.id].members, [ids.dave]);
+});
+
+test("unplan can target upcoming plans without touching the same color in the current reset", async () => {
+  fs.unlinkSync(path.join(testDataDirectory, "raids-prepared.json"));
+  const fake = discord();
+  const current = await create(fake, { description: "keep current plan" });
+  const next = await create(fake, { week: "2026-07-29", description: "remove upcoming plan" });
+  await confirm(current);
+  await confirm(next);
+  assert.deepEqual(service.getUnplanColors("", { guildId, creatorId: ids.creator, week: "next" }, now), ["Red"]);
+  assert.deepEqual(await unplan(fake, { week: "next" }), { removedCount: 1 });
+  assert.equal(state().plans[next.id].status, "unplanned");
+  assert.equal(state().plans[current.id].status, "confirmed");
+  const summary = fake.messages.get(state().summary.messageIds[0]);
+  assert.match(summary.content, /keep current plan/);
+  assert.doesNotMatch(summary.content, /remove upcoming plan|week of 2026-07-29/);
+});
+
+test("long upcoming sections survive the wipe with all entries and valid pagination", async () => {
+  const fake = discord();
+  const old = await create(fake, { description: "old-" + "o".repeat(950) });
+  await confirm(old);
+  for (const prefix of ["future-first-", "future-second-"]) {
+    const next = await create(fake, { color: "NextWeekOnly", week: "2026-07-29", description: prefix + "f".repeat(950) });
+    await confirm(next);
+  }
+  const mainId = state().summary.messageIds[0];
+  assert.equal(state().summary.messageIds.length, 3);
+  await service.checkPlans(fake.client, new Date("2026-07-28T21:59:00Z"));
+  assert.equal(state().summary.messageIds[0], mainId);
+  assert.equal(state().summary.messageIds.length, 2);
+  const pages = state().summary.messageIds.map(id => fake.messages.get(id).content);
+  assert.ok(pages.every(page => page.length <= 2000));
+  const content = pages.join("\n");
+  assert.doesNotMatch(content, /old-|week of 2026-07-22/);
+  assert.equal(content.split("future-first-").length, 2);
+  assert.equal(content.split("future-second-").length, 2);
 });
 
 test("weekly reset deletes summary overflow pages while keeping the original main message", async () => {
@@ -907,6 +1028,7 @@ test("complete and uncomplete commands immediately refresh Confirmed Times, incl
   await confirm(message);
   const saved = state();
   saved.plans[message.id].week = require("../src/services/raidPeriodStore").getCurrentRaidWeekDate();
+  writeJson("raid-rollover.json", { lastRolloverDate: saved.plans[message.id].week });
   writeJson("raid-plans.json", saved);
   const summary = fake.messages.get(saved.summary.messageIds[0]);
   const replies = [];
