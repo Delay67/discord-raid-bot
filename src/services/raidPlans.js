@@ -121,7 +121,7 @@ function isPlanComplete(plan, raids) {
 }
 
 function pendingPlanContent(plan) {
-  const day = planWeekdays.includes(plan.day) ? `${plan.day} · ` : "";
+  const day = planWeekdays.includes(plan.day) ? `__**${plan.day}**__ · ` : "";
   return `**Pending Plan — ${escapeMarkdown(plan.label)}**\n${day}Week of ${plan.week}\n${escapeMarkdown(plan.description)}\n${plan.members.map(id => `<@${id}>`).join(" ")}\nProposed by <@${plan.creatorId}>.`;
 }
 

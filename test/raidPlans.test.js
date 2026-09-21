@@ -234,7 +234,7 @@ test("a same-color plan pings the union of both rosters once and permits a free-
   });
   assert.equal(plan.status, "pending");
   assert.equal(plan.day, "Friday");
-  assert.match(message.content, /Friday · Week of/);
+  assert.match(message.content, /__\*\*Friday\*\*__ · Week of/);
   assert.equal(plan.week, "2026-07-22");
   const summary = fake.messages.get(state().summary.messageIds[0]);
   assert.match(summary.content, /Confirmed Times/);
