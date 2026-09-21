@@ -42,6 +42,7 @@ COLOR_POOL = [
     "Blue",
     "Indigo",
     "Magenta",
+    "Rose",
     "Brown",
     "Gray",
     "Brick",

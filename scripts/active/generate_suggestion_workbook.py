@@ -25,6 +25,7 @@ COLOR_HEX = {
     "Blue": "4285F4",
     "Indigo": "4B0082",
     "Magenta": "FF00FF",
+    "Rose": "FFA9CF",
     "Brown": "7F6000",
     "Brick": "85200C",
     "Gray": "999999",

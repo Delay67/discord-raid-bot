@@ -10,6 +10,7 @@ const colorOrder = [
   "Blue",
   "Indigo",
   "Magenta",
+  "Rose",
   "Brown",
   "Gray",
   "Brick"
