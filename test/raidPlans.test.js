@@ -153,7 +153,7 @@ function create(fake, extra = {}, at = now) {
     guildId,
     creatorId: ids.creator,
     color: "Red",
-    day: "Friday",
+    day: "Tuesday",
     description: "after thursday kazeros",
     ...extra
   }, at);
@@ -216,6 +216,7 @@ test("a same-color plan pings the union of both rosters once and permits a free-
   const fake = discord();
   const message = await create(fake, {
     color: " rEd ",
+    day: "Friday",
     description: "18:00 on saturday\nor after **thursday** kazeros @everyone"
   });
   const plan = state().plans[message.id];
@@ -666,7 +667,7 @@ test("upcoming plans fall back to the current roster and never inherit last rese
   await react(next, overrideEmojiId, ids.creator);
   assert.deepEqual(state().plans[next.id].members, state().plans[current.id].members);
   const summary = fake.messages.get(state().summary.messageIds[0]);
-  assert.match(summary.content, /~~\*\*Red — Serca & Cathedral:\*\* current done~~/);
+  assert.doesNotMatch(summary.content, /\*\*Red — Serca & Cathedral:\*\* current done/);
   assert.match(summary.content, /\n\*\*Red — Serca & Cathedral:\*\* upcoming not done\n/);
   await service.checkPlans(fake.client, new Date("2026-07-28T21:59:00Z"));
   assert.doesNotMatch(summary.content, /~~|current done/);
@@ -677,7 +678,7 @@ test("upcoming plans fall back to the current roster and never inherit last rese
   assert.doesNotMatch(summary.content, /~~/);
   completeRaids({ color: "Red", completedBy: ids.alice });
   await service.refreshConfirmedTimes(fake.client, guildId, new Date("2026-07-29T08:01:00Z"));
-  assert.match(summary.content, /~~\*\*Red — Serca & Cathedral:\*\* upcoming not done~~/);
+  assert.doesNotMatch(summary.content, /\*\*Red — Serca & Cathedral:\*\* upcoming not done/);
 });
 
 test("reset selection validates the target date and the target roster before posting", async () => {
@@ -940,7 +941,7 @@ test("unplan persists before a failed summary update and recovery cleans a confi
   assert.deepEqual(fake.deleted, [message.id]);
 });
 
-test("completed color plans are crossed out, survive summary recreation, and uncomplete restores them", async () => {
+test("completed color plans are hidden after recreation and uncomplete restores unexpired plans", async () => {
   const fake = discord();
   const red = await create(fake, { color: " rEd ", description: "red time" });
   const blue = await create(fake, { color: "Blue", description: "blue time" });
@@ -950,8 +951,8 @@ test("completed color plans are crossed out, survive summary recreation, and unc
   completeRaids({ color: "RED", completedBy: ids.alice });
   await service.refreshConfirmedTimes(fake.client, guildId, now);
   const summary = fake.messages.get(originalSummaryId);
-  assert.match(summary.content, /~~\*\*Red — Serca & Cathedral:\*\* red time~~/);
-  assert.ok(summary.content.includes(`~~<@${ids.alice}> <@${ids.bob}> <@${ids.cara}>~~`));
+  assert.doesNotMatch(summary.content, /\*\*Red — Serca & Cathedral:\*\* red time/);
+  assert.doesNotMatch(summary.content, /red time/);
   assert.match(summary.content, /\n\*\*Blue — Serca:\*\* blue time\n/);
   assert.deepEqual(summary.payload.allowedMentions, { parse: [] });
   assert.equal(state().plans[red.id].status, "confirmed");
@@ -960,14 +961,14 @@ test("completed color plans are crossed out, survive summary recreation, and unc
   service = require("../src/services/raidPlans");
   await service.checkPlans(fake.client, now);
   const replacement = fake.messages.get(state().summary.messageIds[0]);
-  assert.match(replacement.content, /~~\*\*Red — Serca & Cathedral:\*\* red time~~/);
+  assert.doesNotMatch(replacement.content, /\*\*Red — Serca & Cathedral:\*\* red time/);
   uncompleteRaids({ color: "Red", uncompletedBy: ids.alice });
   await service.refreshConfirmedTimes(fake.client, guildId, now);
   assert.doesNotMatch(replacement.content, /~~/);
   assert.match(replacement.content, /\*\*Red — Serca & Cathedral:\*\* red time/);
 });
 
-test("raid-specific completion crosses out only fully completed plans, including legacy saved plans", async () => {
+test("raid-specific completion hides only fully completed plans, including legacy saved plans", async () => {
   const fake = discord();
   const combined = await create(fake, { description: "both raids" });
   const serca = await create(fake, { raid: "Serca", description: "serca only" });
@@ -981,17 +982,17 @@ test("raid-specific completion crosses out only fully completed plans, including
   const summary = fake.messages.get(state().summary.messageIds[0]);
   completeRaids({ color: "Red", raidName: "Serca", completedBy: ids.alice });
   await service.refreshConfirmedTimes(fake.client, guildId, now);
-  assert.match(summary.content, /~~\*\*Red — Serca:\*\* serca only~~/);
+  assert.doesNotMatch(summary.content, /\*\*Red — Serca:\*\* serca only/);
   assert.match(summary.content, /\n\*\*Red — Serca & Cathedral:\*\* both raids\n/);
   assert.match(summary.content, /\n\*\*Red — Cathedral:\*\* cathedral only\n/);
   completeRaids({ color: "Red", raidName: "Cathedral", completedBy: ids.bob });
   await service.refreshConfirmedTimes(fake.client, guildId, now);
-  assert.match(summary.content, /~~\*\*Red — Serca & Cathedral:\*\* both raids~~/);
-  assert.match(summary.content, /~~\*\*Red — Cathedral:\*\* cathedral only~~/);
+  assert.doesNotMatch(summary.content, /\*\*Red — Serca & Cathedral:\*\* both raids/);
+  assert.doesNotMatch(summary.content, /\*\*Red — Cathedral:\*\* cathedral only/);
   uncompleteRaids({ color: "Red", raidName: "Serca", uncompletedBy: ids.bob });
   await service.refreshConfirmedTimes(fake.client, guildId, now);
   assert.match(summary.content, /\n\*\*Red — Serca & Cathedral:\*\* both raids\n/);
-  assert.match(summary.content, /~~\*\*Red — Cathedral:\*\* cathedral only~~/);
+  assert.doesNotMatch(summary.content, /\*\*Red — Cathedral:\*\* cathedral only/);
 });
 
 test("completion requires every matching run and never treats missing roster data as completed", async () => {
@@ -1022,7 +1023,7 @@ test("completion display retries after Discord failures without losing raid comp
   assert.ok(readRaids().filter(raid => raid.color === "Red").every(raid => raid.status === "DONE"));
   summary.edit = edit;
   await service.checkPlans(fake.client, now);
-  assert.match(summary.content, /~~\*\*Red — Serca & Cathedral:/);
+  assert.doesNotMatch(summary.content, /\*\*Red — Serca & Cathedral:/);
 });
 
 test("complete and uncomplete commands immediately refresh Confirmed Times, including repeated completion", async () => {
@@ -1047,7 +1048,7 @@ test("complete and uncomplete commands immediately refresh Confirmed Times, incl
   await complete.execute(interaction);
   assert.match(replies.at(-1).content, /Marked 2 of 2 matching Red raids complete/);
   assert.equal(replies.at(-1).ephemeral, true);
-  assert.match(summary.content, /~~\*\*Red — Serca & Cathedral:/);
+  assert.doesNotMatch(summary.content, /\*\*Red — Serca & Cathedral:/);
   const editCount = summary.edits.length;
   await complete.execute(interaction);
   assert.match(replies.at(-1).content, /already complete/);
@@ -1076,7 +1077,7 @@ test("confirmed plans group by weekday within each reset, keeping legacy entries
     legacy: { ...base, description: "Saved before weekdays were required" },
     upcoming: { ...base, week: "2026-07-29", day: "Friday", description: "Upcoming Friday" }
   };
-  const text = service.summaryPages({ plans }, week).join("\n");
+  const text = service.summaryPages({ plans }, week, [], week, new Date(`${week}T12:00:00Z`)).join("\n");
   const [current, next] = text.split("**Confirmed Times — week of 2026-07-29**");
   assert.ok(current.indexOf("**Wednesday:**") < current.indexOf("**Friday:**"));
   assert.ok(current.indexOf("**Friday:**") < current.indexOf("**Monday:**"));
@@ -1094,7 +1095,7 @@ test("overflow repeats the week and day heading without orphaning either heading
     week, day: "Friday", status: "confirmed", color: "Red", label: "Red — Serca",
     description: `Run-${index} ${"x".repeat(1000)}`, members: [ids.alice]
   }]));
-  const pages = service.summaryPages({ plans }, week);
+  const pages = service.summaryPages({ plans }, week, [], week, new Date(`${week}T12:00:00Z`));
   assert.equal(pages.length, 3);
   for (const page of pages) {
     assert.ok(page.length <= 2000);
@@ -1114,7 +1115,7 @@ test("summaries paginate confirmed plans within Discord's limit and omit other w
   }]));
   plans.pending = { ...plans[0], status: "pending", description: "pending description" };
   plans.old = { ...plans[0], week: "2026-07-15", description: "old description" };
-  const pages = service.summaryPages({ plans }, week);
+  const pages = service.summaryPages({ plans }, week, [], week, new Date(`${week}T12:00:00Z`));
   assert.ok(pages.length > 1);
   assert.ok(pages.every(page => page.length <= 2000));
   assert.ok(pages.every(page => page.includes("Confirmed Times")));
@@ -1134,9 +1135,25 @@ test("summary pagination includes separator newlines in the 2,000-character limi
     description: "a".repeat(length),
     members: ["123456789012345678"]
   }]));
-  const pages = service.summaryPages({ plans }, week);
+  const pages = service.summaryPages({ plans }, week, [], week, new Date(`${week}T12:00:00Z`));
   assert.equal(pages.length, 2);
   assert.ok(pages.every(page => page.length <= 2000));
+});
+
+test("scheduler removes expired entries at 01:00 and preserves upcoming plans", async () => {
+  const fake = discord();
+  writeJson("raids-prepared.json", { targetDate: "2026-07-29", raids: readRaids() });
+  const current = await create(fake, { day: "Monday", description: "expiring run" });
+  const next = await create(fake, { week: "2026-07-29", day: "Monday", description: "upcoming run" });
+  const before = new Date("2026-07-27T22:59:59Z");
+  await confirm(current, before);
+  await confirm(next, before);
+  const summary = fake.messages.get(state().summary.messageIds[0]);
+  assert.match(summary.content, /expiring run/);
+  await service.checkPlans(fake.client, new Date("2026-07-27T23:00:00Z"));
+  assert.doesNotMatch(summary.content, /expiring run/);
+  assert.match(summary.content, /upcoming run/);
+  assert.equal(service.withPlanStatuses([{ color: "Red", name: "Serca" }], { guildId }, now)[0].status, "TODO");
 });
 
 test("display statuses match confirmed plans by guild, week, color and raid without changing saved raids", () => {

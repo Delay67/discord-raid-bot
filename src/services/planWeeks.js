@@ -35,4 +35,13 @@ function visiblePlanWeeks(now = new Date()) {
   return [current, addDays(current, 7)];
 }
 
-module.exports = { addDays, getPlanningWeekDate, shouldChoosePlanWeek, visiblePlanWeeks, planWeekdays };
+function isPlanExpired(plan, now = new Date()) {
+  const dayIndex = planWeekdays.indexOf(plan.day);
+  if (dayIndex === -1) return false;
+  const expiryDate = addDays(plan.week, dayIndex + 1);
+  const parts = localParts(now);
+  const date = `${parts.year}-${parts.month}-${parts.day}`;
+  return date > expiryDate || (date === expiryDate && Number(parts.hour) >= 1);
+}
+
+module.exports = { addDays, getPlanningWeekDate, shouldChoosePlanWeek, visiblePlanWeeks, planWeekdays, isPlanExpired };

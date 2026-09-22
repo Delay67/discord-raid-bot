@@ -9,7 +9,7 @@ const {
   runRaidWeekRollover
 } = require("./raidPeriodStore");
 const { parseDiscordIdMap } = require("./kazerosReminderScheduler");
-const { addDays, getPlanningWeekDate, shouldChoosePlanWeek, visiblePlanWeeks, planWeekdays } = require("./planWeeks");
+const { addDays, getPlanningWeekDate, shouldChoosePlanWeek, visiblePlanWeeks, planWeekdays, isPlanExpired } = require("./planWeeks");
 const dataDirectory = process.env.RAID_BOT_DATA_DIRECTORY || path.join(__dirname, "../../data");
 const storePath = path.join(dataDirectory, "raid-plans.json");
 const overrideEmojiId = "1503113067309961400";
@@ -118,7 +118,7 @@ function withPlanStatuses(raids, { guildId, period = "current" }, now = new Date
   const key = (color, name) => `${String(color).trim().toLowerCase()}|${String(name).trim().toLowerCase()}`;
   const confirmed = new Set();
   for (const plan of Object.values(readState().plans)) {
-    if (!guildId || plan.guildId !== guildId || plan.week !== week || plan.status !== "confirmed") continue;
+    if (!guildId || plan.guildId !== guildId || plan.week !== week || plan.status !== "confirmed" || isPlanExpired(plan, now)) continue;
     for (const name of planRaidNames(plan)) confirmed.add(key(plan.color, name));
   }
   return raids.map(raid => ({
@@ -145,19 +145,20 @@ function pendingPlanContent(plan) {
   return `**Pending Plan — ${escapeMarkdown(plan.label)}**\n${day}Week of ${plan.week}\n${escapeMarkdown(plan.description)}\n${plan.members.map(id => `<@${id}>`).join(" ")}\nProposed by <@${plan.creatorId}>.`;
 }
 
-function summaryPages(state, week, raids = readRaidsForPeriod("current"), raidWeek = week) {
+function summaryPages(state, week, raids = readRaidsForPeriod("current"), raidWeek = week, now = new Date()) {
   const pages = [];
   for (const sectionWeek of [week, addDays(week, 7)]) {
-    const plans = Object.values(state.plans).filter(plan => plan.week === sectionWeek && plan.status === "confirmed");
+    const plans = Object.values(state.plans).filter(plan =>
+      plan.week === sectionWeek && plan.status === "confirmed" && !isPlanExpired(plan, now) &&
+      !(plan.week === raidWeek && isPlanComplete(plan, raids))
+    );
     if (sectionWeek !== week && !plans.length) continue;
     const header = `**Confirmed Times — week of ${sectionWeek}**\n\n`;
     const days = [...planWeekdays, "Day not set"];
     const entries = plans.map(plan => {
       const details = `**${escapeMarkdown(plan.label)}:** ${escapeMarkdown(plan.description)}`;
       const members = plan.members.map(id => `<@${id}>`).join(" ");
-      const text = plan.week === raidWeek && isPlanComplete(plan, raids)
-        ? `~~${details}~~\n~~${members}~~\n`
-        : `${details}\n${members}\n`;
+      const text = `${details}\n${members}\n`;
       return { text: `${text}\n`, day: planWeekdays.includes(plan.day) ? plan.day : "Day not set" };
     }).sort((left, right) => days.indexOf(left.day) - days.indexOf(right.day));
     if (!entries.length) {
@@ -185,7 +186,7 @@ async function publishSummary(channel, state, week, now = new Date()) {
   // Completion must reflect the roster's reset too, even if this timer fires first.
   runRaidWeekRollover(now);
   const record = state.summary;
-  const pages = summaryPages(state, week, readRaidsForPeriod("current"), getCurrentRaidWeekDate(now));
+  const pages = summaryPages(state, week, readRaidsForPeriod("current"), getCurrentRaidWeekDate(now), now);
   for (let i = 0; i < pages.length; i++) {
     const payload = { content: pages[i], allowedMentions: { parse: [] } };
     let message;
