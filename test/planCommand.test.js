@@ -17,7 +17,10 @@ function interaction(choice = 0, expires = false) {
   const updates = [];
   const value = {
     id: "interaction-id", user: { id: "creator" }, guildId: "guild", client: {},
-    options: { getString: key => ({ color: "Red", day: "Friday", description: "after kazeros", raid: null })[key] },
+    options: { getString: key => {
+      assert.notEqual(key, "raid", "plans always include all raids for the color");
+      return ({ color: "Red", day: "Friday", description: "after kazeros" })[key];
+    } },
     async deferReply(payload) { assert.equal(payload.ephemeral, true); },
     async editReply(payload) {
       edits.push(payload);
@@ -48,6 +51,7 @@ test("Monday/Tuesday privately choose this or upcoming reset before publishing t
         assert.equal(input.creatorId, "creator");
         assert.equal(input.day, "Friday");
         assert.equal(input.description, "after kazeros");
+        assert.equal(input.raid, undefined);
         return { url: "https://discord.com/plan" };
       });
       await command.execute(fake.value, new Date(`${day}T12:00:00Z`));
@@ -72,6 +76,7 @@ test("other weekdays create the current reset's pending plan without a reset pro
 
 test("plan registration requires a weekday chosen from all seven days", () => {
   const command = loadCommand(async () => {});
+  assert.deepEqual(command.data.toJSON().options.map(option => option.name), ["color", "day", "description"]);
   const day = command.data.toJSON().options.find(option => option.name === "day");
   assert.equal(day.required, true);
   assert.deepEqual(day.choices.map(choice => choice.value), [

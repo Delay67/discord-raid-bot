@@ -54,21 +54,10 @@ module.exports = {
       .setDescription("Any time or description, e.g. after Thursday Kazeros")
       .setRequired(true)
       .setMaxLength(1000)
-    )
-    .addStringOption((option) => option
-      .setName("raid")
-      .setDescription("Leave empty for both raids of this color")
-      .addChoices(
-        { name: "Serca", value: "Serca" },
-        { name: "Cathedral", value: "Cathedral" }
-      )
     ),
 
   async autocomplete(interaction) {
-    const colors = getPlanColors(
-      interaction.options.getFocused(),
-      interaction.options.getString("raid")
-    );
+    const colors = getPlanColors(interaction.options.getFocused());
     await interaction.respond(colors.map((color) => ({ name: color, value: color })));
   },
 
@@ -83,7 +72,6 @@ module.exports = {
         color: interaction.options.getString("color", true),
         day: interaction.options.getString("day", true),
         description: interaction.options.getString("description", true),
-        raid: interaction.options.getString("raid"),
         week
       });
       await interaction.editReply({ content: `Pending plan posted for the week of ${week}: ${message.url}`, components: [] });
