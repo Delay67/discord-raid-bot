@@ -106,11 +106,31 @@ function resolveMembers(raids) {
   return [...members];
 }
 
+function planRaidNames(plan) {
+  return plan.raidNames || (plan.raid ? [plan.raid] :
+    String(plan.label || "").split(" — ").slice(1).join(" — ").split(" & "));
+}
+
+// Display-only status: never persist PLANNED into the raid roster.
+function withPlanStatuses(raids, { guildId, period = "current" }, now = new Date()) {
+  const week = period === "current" ? getCurrentRaidWeekDate(now) :
+    period === "next" ? readPreparedRaidWeek()?.targetDate : period;
+  const key = (color, name) => `${String(color).trim().toLowerCase()}|${String(name).trim().toLowerCase()}`;
+  const confirmed = new Set();
+  for (const plan of Object.values(readState().plans)) {
+    if (!guildId || plan.guildId !== guildId || plan.week !== week || plan.status !== "confirmed") continue;
+    for (const name of planRaidNames(plan)) confirmed.add(key(plan.color, name));
+  }
+  return raids.map(raid => ({
+    ...raid,
+    status: raid.status === "DONE" ? "DONE" : confirmed.has(key(raid.color, raid.name)) ? "PLANNED" : "TODO"
+  }));
+}
+
 function isPlanComplete(plan, raids) {
   const color = String(plan.color || "").trim().toLowerCase();
   // Older saved plans only have their raid names in the display label.
-  const names = plan.raidNames || (plan.raid ? [plan.raid] :
-    String(plan.label || "").split(" — ").slice(1).join(" — ").split(" & "));
+  const names = planRaidNames(plan);
   return names.length > 0 && names.every(name => {
     const matches = raids.filter(raid =>
       raid.color.trim().toLowerCase() === color &&
@@ -443,6 +463,7 @@ function startPlanScheduler(client) {
 }
 
 module.exports = {
+  withPlanStatuses,
   createPlan,
   getPlanColors,
   getUnplanColors,

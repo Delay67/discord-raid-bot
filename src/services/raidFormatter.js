@@ -17,7 +17,7 @@ const colorOrder = [
 ];
 
 const raidOrder = ["Serca", "Cathedral"];
-const statusOrder = ["TODO", "DONE"];
+const statusOrder = ["TODO", "PLANNED", "DONE"];
 
 function getOrderIndex(order, value) {
   const index = order.findIndex((item) => item.toLowerCase() === value.toLowerCase());

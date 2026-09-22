@@ -1138,3 +1138,36 @@ test("summary pagination includes separator newlines in the 2,000-character limi
   assert.equal(pages.length, 2);
   assert.ok(pages.every(page => page.length <= 2000));
 });
+
+test("display statuses match confirmed plans by guild, week, color and raid without changing saved raids", () => {
+  const base = { guildId, week: "2026-07-22", status: "confirmed", color: "Red", raidNames: ["Serca"] };
+  writeJson("raids-prepared.json", { targetDate: "2026-07-29", raids: [] });
+  writeJson("raid-plans.json", { plans: {
+    current: base,
+    next: { ...base, week: "2026-07-29", raidNames: ["Cathedral"] },
+    pending: { ...base, color: "Blue", status: "pending" },
+    removed: { ...base, color: "Green", status: "unplanned" },
+    rejected: { ...base, color: "Gray", status: "rejected" },
+    otherGuild: { ...base, color: "Gold", guildId: "other" },
+    old: { ...base, color: "Orange", week: "2026-07-15" },
+    legacy: { ...base, color: "Rose", raidNames: undefined, label: "Rose \u2014 Serca & Cathedral" }
+  } });
+  const raids = [
+    { color: " red ", name: "serca" },
+    { color: "Red", name: "Cathedral" },
+    { color: "Red", name: "Serca", status: "DONE" },
+    ...["Blue", "Green", "Gray", "Gold", "Orange", "Rose"].map(color => ({ color, name: "Serca", status: "TODO" }))
+  ];
+  const original = JSON.stringify(raids);
+  const statuses = (period, at = now) => service.withPlanStatuses(raids, { guildId, period }, at).map(raid => raid.status);
+  assert.deepEqual(statuses("current"), ["PLANNED", "TODO", "DONE", "TODO", "TODO", "TODO", "TODO", "TODO", "PLANNED"]);
+  assert.deepEqual(statuses("next").slice(0, 3), ["TODO", "PLANNED", "DONE"]);
+  assert.equal(statuses("2026-07-15")[7], "PLANNED");
+  // Planning resets before the raid roster does: current still refers to the old roster at 09:00 Wednesday.
+  assert.equal(statuses("current", new Date("2026-07-29T07:00:00Z"))[0], "PLANNED");
+  assert.equal(statuses("current", new Date("2026-07-29T08:00:00Z"))[1], "PLANNED");
+  assert.equal(JSON.stringify(raids), original);
+  const { buildRaidResultsEmbed } = require("../src/services/raidEmbeds");
+  const embed = buildRaidResultsEmbed({ title: "Raids", results: service.withPlanStatuses(raids, { guildId }, now), getLine: raid => `${raid.color} ${raid.name}` });
+  assert.deepEqual(embed.toJSON().fields.map(field => field.name), ["TODO", "PLANNED", "DONE"]);
+});

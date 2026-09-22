@@ -1,3 +1,4 @@
+const { withPlanStatuses } = require("../services/raidPlans");
 const {
   PermissionFlagsBits,
   SlashCommandBuilder
@@ -13,6 +14,7 @@ module.exports = {
 
   async execute(interaction) {
     const render = (raids, period) => {
+      raids = withPlanStatuses(raids, { guildId: interaction.guildId, period });
       const suffix = period === "current"
         ? "Current Week"
         : period === "next" ? "Next Week" : period;
@@ -26,7 +28,7 @@ module.exports = {
         const supportCount = raid.members.filter(
           (member) => member.role === "Support"
         ).length;
-        return `${index + 1}. ${raid.color} ${raid.name} ${raid.difficulty} - ${dpsCount} DPS, ${supportCount} Support`;
+        return `${index + 1}. [${raid.status}] ${raid.color} ${raid.name} ${raid.difficulty} - ${dpsCount} DPS, ${supportCount} Support`;
       });
       return { content: `**${suffix}**\n${lines.join("\n")}` };
     };

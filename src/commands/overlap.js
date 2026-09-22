@@ -1,3 +1,4 @@
+const { withPlanStatuses } = require("../services/raidPlans");
 const { EmbedBuilder, SlashCommandBuilder } = require("discord.js");
 const {
   getPlayerSuggestions,
@@ -32,14 +33,17 @@ function getOverlapResults(playerName, raids) {
         overlaps.set(member.lookupName, {
           count: 0,
           name: member.name,
-          todoCount: 0
+          todoCount: 0,
+          plannedCount: 0
         });
       }
 
       const overlap = overlaps.get(member.lookupName);
       overlap.count += 1;
 
-      if ((raid.status || "TODO") !== "DONE") {
+      if (raid.status === "PLANNED") {
+        overlap.plannedCount += 1;
+      } else if ((raid.status || "TODO") !== "DONE") {
         overlap.todoCount += 1;
       }
     }
@@ -59,7 +63,8 @@ function getOverlapResults(playerName, raids) {
 
 function formatOverlap(overlap, index) {
   const todoText = overlap.todoCount > 0 ? `, ${overlap.todoCount} TODO` : "";
-  return `${index + 1}. ${overlap.name} - ${overlap.count} raid(s)${todoText}`;
+  const plannedText = overlap.plannedCount > 0 ? `, ${overlap.plannedCount} PLANNED` : "";
+  return `${index + 1}. ${overlap.name} - ${overlap.count} raid(s)${todoText}${plannedText}`;
 }
 
 module.exports = {
@@ -87,6 +92,7 @@ module.exports = {
   async execute(interaction) {
     const name = interaction.options.getString("name", true);
     const render = (raids, period) => {
+      raids = withPlanStatuses(raids, { guildId: interaction.guildId, period });
       const results = getOverlapResults(name, raids);
       const suffix = period === "current" ? "Current Week" : period === "next" ? "Next Week" : period;
       if (results.matchedRaids === 0) {

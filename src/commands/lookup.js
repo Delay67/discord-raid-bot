@@ -1,3 +1,4 @@
+const { withPlanStatuses } = require("../services/raidPlans");
 const { SlashCommandBuilder } = require("discord.js");
 const { buildRaidResultsEmbed } = require("../services/raidEmbeds");
 const { getPlayerSuggestions, lookupRaids } = require("../services/raidStore");
@@ -63,6 +64,7 @@ module.exports = {
   async execute(interaction) {
     const name = interaction.options.getString("name", true);
     const render = (raids, period) => {
+      raids = withPlanStatuses(raids, { guildId: interaction.guildId, period });
       const results = lookupRaids(name, raids);
       const suffix = period === "current" ? "Current Week" : period === "next" ? "Next Week" : period;
       if (results.length === 0) {

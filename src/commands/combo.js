@@ -1,3 +1,4 @@
+const { withPlanStatuses } = require("../services/raidPlans");
 const { SlashCommandBuilder } = require("discord.js");
 const { buildRaidResultsEmbed } = require("../services/raidEmbeds");
 const {
@@ -92,6 +93,7 @@ module.exports = {
     const withNames = parseNames(interaction.options.getString("with", true));
     const allNames = [name, ...withNames];
     const render = (raids, period) => {
+      raids = withPlanStatuses(raids, { guildId: interaction.guildId, period });
       const results = findComboRaids(allNames, raids);
       const suffix = period === "current" ? "Current Week" : period === "next" ? "Next Week" : period;
       if (results.length === 0) {
