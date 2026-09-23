@@ -182,6 +182,14 @@ function summaryPages(state, week, raids = readRaidsForPeriod("current"), raidWe
   return pages;
 }
 
+function getMyTimes({ guildId, userId }, now = new Date()) {
+  runRaidWeekRollover(now);
+  const plans = Object.fromEntries(Object.entries(readState().plans).filter(([, plan]) =>
+    guildId && userId && plan.guildId === guildId && plan.members.includes(userId)
+  ));
+  return summaryPages({ plans }, getPlanningWeekDate(now), readRaidsForPeriod("current"), getCurrentRaidWeekDate(now), now);
+}
+
 async function publishSummary(channel, state, week, now = new Date()) {
   // Completion must reflect the roster's reset too, even if this timer fires first.
   runRaidWeekRollover(now);
@@ -464,6 +472,7 @@ function startPlanScheduler(client) {
 }
 
 module.exports = {
+  getMyTimes,
   withPlanStatuses,
   createPlan,
   getPlanColors,

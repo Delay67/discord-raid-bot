@@ -1156,6 +1156,32 @@ test("scheduler removes expired entries at 01:00 and preserves upcoming plans", 
   assert.equal(service.withPlanStatuses([{ color: "Red", name: "Serca" }], { guildId }, now)[0].status, "TODO");
 });
 
+test("mytimes includes only the member's active confirmed runs in this guild and visible weeks", () => {
+  const base = { guildId, members: [ids.alice], creatorId: ids.bob, week: "2026-07-22", day: "Tuesday", status: "confirmed", color: "Red", label: "Red", raidNames: ["Serca"] };
+  const variants = {
+    mine: {}, next: { week: "2026-07-29" },
+    otherMember: { members: [ids.bob], creatorId: ids.alice },
+    otherGuild: { guildId: "other" }, pending: { status: "pending" },
+    rejected: { status: "rejected" }, removed: { status: "unplanned" },
+    expired: { day: "Monday" }, old: { week: "2026-07-15" },
+    future: { week: "2026-08-05" }, completed: { color: "Blue", raidNames: ["Serca"] }
+  };
+  writeJson("raids.json", [{ name: "Serca", color: "Blue", status: "DONE" }]);
+  writeJson("raid-plans.json", { plans: Object.fromEntries(Object.entries(variants).map(([name, extra]) =>
+    [name, { ...base, ...extra, description: `entry-${name}!` }]
+  )) });
+  const original = state();
+  const text = service.getMyTimes({ guildId, userId: ids.alice }, now).join("\n");
+  assert.match(text, /entry-mine!/);
+  assert.match(text, /entry-next!/);
+  for (const name of Object.keys(variants).filter(name => !["mine", "next"].includes(name))) {
+    assert.ok(!text.includes(`entry-${name}!`), name);
+  }
+  assert.match(text, /\*\*Tuesday:\*\*/);
+  assert.match(service.getMyTimes({ guildId, userId: ids.outsider }, now).join(""), /No confirmed plans yet/);
+  assert.deepEqual(state(), original);
+});
+
 test("display statuses match confirmed plans by guild, week, color and raid without changing saved raids", () => {
   const base = { guildId, week: "2026-07-22", status: "confirmed", color: "Red", raidNames: ["Serca"] };
   writeJson("raids-prepared.json", { targetDate: "2026-07-29", raids: [] });
