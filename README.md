@@ -55,6 +55,7 @@ Favorite reaction data records each reacting user's ID, display label, and
 per-image reaction count in `data/redpanda-favorites.json`.
 
 **AI & Admin:**
+- `/checkpings` — Privately check saved Kazeros reminders for the current and upcoming raid weeks (Manage Server required; works in any server channel). Shows reminder times, members, missing Discord ID mappings, and whether a next-week import is prepared. Reads saved data without changing raid completion statuses; listed schedules do not confirm delivery.
 - `@bot message` — Ask the bot a question (uses Groq LLM)
 - `@bot image` — Analyze up to 2 images with your question (up to 20 MiB each)
 - `/llm mode:enable|disable|status` — Control AI responses (admin only)
