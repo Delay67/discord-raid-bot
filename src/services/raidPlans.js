@@ -2,6 +2,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { escapeMarkdown, ReactionType, RESTJSONErrorCodes } = require("discord.js");
 const { raidPlansChannelId } = require("../config");
+const { completeRaids } = require("./raidStore");
 const {
   getCurrentRaidWeekDate,
   readPreparedRaidWeek,
@@ -193,6 +194,17 @@ function getMyTimes({ guildId, userId }, now = new Date()) {
 async function publishSummary(channel, state, week, now = new Date()) {
   // Completion must reflect the roster's reset too, even if this timer fires first.
   runRaidWeekRollover(now);
+  const raidWeek = getCurrentRaidWeekDate(now);
+  for (const plan of Object.values(state.plans)) {
+    if (plan.guildId !== channel.guildId || plan.week !== raidWeek ||
+        plan.status !== "confirmed" || plan.expiryCompletedAt || !isPlanExpired(plan, now)) continue;
+    for (const name of planRaidNames(plan).filter(name => name.trim())) {
+      completeRaids({ color: plan.color, raidName: name, completedBy: "plan-expiry" });
+    }
+    // Record this once so a later manual /uncomplete remains effective.
+    plan.expiryCompletedAt = now.toISOString();
+    save(state);
+  }
   const record = state.summary;
   const pages = summaryPages(state, week, readRaidsForPeriod("current"), getCurrentRaidWeekDate(now), now);
   for (let i = 0; i < pages.length; i++) {

@@ -1153,7 +1153,30 @@ test("scheduler removes expired entries at 01:00 and preserves upcoming plans", 
   await service.checkPlans(fake.client, new Date("2026-07-27T23:00:00Z"));
   assert.doesNotMatch(summary.content, /expiring run/);
   assert.match(summary.content, /upcoming run/);
-  assert.equal(service.withPlanStatuses([{ color: "Red", name: "Serca" }], { guildId }, now)[0].status, "TODO");
+  const completed = readRaids().filter(raid => raid.color === "Red");
+  assert.ok(completed.every(raid => raid.status === "DONE" && raid.completedBy === "plan-expiry"));
+  assert.equal(service.withPlanStatuses(completed, { guildId }, now)[0].status, "DONE");
+  assert.ok(readRaids().filter(raid => raid.color === "Blue").every(raid => raid.status !== "DONE"));
+  assert.equal(state().plans[next.id].expiryCompletedAt, undefined);
+  uncompleteRaids({ color: "Red", uncompletedBy: ids.alice });
+  await service.checkPlans(fake.client, now);
+  assert.ok(readRaids().filter(raid => raid.color === "Red").every(raid => raid.status === "TODO"));
+});
+
+test("expiry completion only affects confirmed raids in the matching roster week and guild", async () => {
+  const fake = discord();
+  const message = await create(fake, { raid: "Serca", day: "Monday" });
+  await confirm(message, new Date("2026-07-27T22:59:59Z"));
+  const saved = state();
+  const base = saved.plans[message.id];
+  saved.plans.old = { ...base, color: "Blue", week: "2026-07-15" };
+  saved.plans.pending = { ...base, color: "Blue", status: "pending", settled: true };
+  saved.plans.otherGuild = { ...base, color: "Purple", guildId: "other" };
+  writeJson("raid-plans.json", saved);
+  await service.checkPlans(fake.client, now);
+  const raids = readRaids();
+  assert.equal(raids.find(raid => raid.color === "Red" && raid.name === "Serca").status, "DONE");
+  assert.ok(raids.filter(raid => !(raid.color === "Red" && raid.name === "Serca")).every(raid => raid.status !== "DONE"));
 });
 
 test("mytimes includes only the member's active confirmed runs in this guild and visible weeks", () => {
