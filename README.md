@@ -31,7 +31,6 @@ BOT_TIME_ZONE=Europe/Amsterdam
 - `/raid-clear` — Clear all raids
 - `/raids-upload file:workbook.xlsx` — Replace current raids or prepare next week's raids
 - `/complete color:Orange raid:Serca` — Mark a raid as done
-- `/raid-suggest options:3 search:3 variety:3` — Generate alternative raid group layouts
 
 **Lookups:**
 - `/lookup name:Ghonty` — Show a player's raids (matched by name prefix)
@@ -144,7 +143,6 @@ installing this update.
 
 - **Raid tracking:** Track raids by color, type, and difficulty
 - **Player lookup:** Find raids by player name (matches prefix before hyphen)
-- **Auto-suggestions:** Generate alternative team layouts with optimization
 - **Schedule management:** Upload Excel workbooks or images to manage raids
 - **Activity stats:** Track message counts and red panda sends by server/time period
 - **AI chat:** Ask Groq about raids or analyze images
