@@ -158,6 +158,9 @@ installing this update.
 
 ## Importing Raids
 
+To generate Serca/Cathedral group combinations locally from `staticsheet.xlsx`,
+see the [group optimizer guide](scripts/GROUP_OPTIMIZER.md).
+
 **From Excel (recommended):**
 ```bash
 python -m pip install -r scripts/active/requirements.txt
