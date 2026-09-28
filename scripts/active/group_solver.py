@@ -10,6 +10,7 @@ from ortools.sat.python import cp_model
 
 from group_roster import RAIDS, LIMITS, assignment_cost, cluster_cost, eligible_difficulties, is_required
 from group_validation import score_solution, validate_solution
+from group_bounds import add_capacity_cuts, cluster_upper, derive_capacity_bounds
 
 
 @dataclass(frozen=True)
@@ -31,7 +32,9 @@ def template_matches(group, template):
     )
 
 
-def build_model(roster, rules, requested_runs=None):
+def build_model(roster, rules, requested_runs=None, min_jan_runs=0, *, capacity_bounds=None):
+    if type(min_jan_runs) is not int or min_jan_runs < 0:
+        raise ValueError("min_jan_runs must be a nonnegative integer")
     model = cp_model.CpModel()
     pools = defaultdict(list)
     assignments = {}
@@ -67,6 +70,7 @@ def build_model(roster, rules, requested_runs=None):
         raise ValueError(f"Requested {requested_runs} runs is outside the coverage bounds {min_runs}..{max_runs}; mandatory characters cannot be dropped")
     if max_runs < min_runs:
         raise ValueError("Not enough eligible characters to form 3- or 4-player runs")
+    bounds = capacity_bounds if capacity_bounds is not None else derive_capacity_bounds(roster, rules)
 
     templates, counts = [], []
     pool_runs = defaultdict(list)
@@ -78,7 +82,7 @@ def build_model(roster, rules, requested_runs=None):
             for raid, difficulty in LIMITS:
                 for support in players + ((None,) if size == 3 else ()):
                     keys = [(p, raid, difficulty, "Support" if p == support else "DPS") for p in players]
-                    upper = min(len(pools[key]) for key in keys)
+                    upper = min(min(len(pools[key]) for key in keys), bounds[raid, (difficulty,)].max_runs)
                     if not upper:
                         continue
                     template = Template(raid, difficulty, players, support, upper)
@@ -96,6 +100,9 @@ def build_model(roster, rules, requested_runs=None):
         model.add(sum(counts) == requested_runs)
     else:
         model.add(sum(counts) >= min_runs)
+    if min_jan_runs:
+        model.add(sum(count for template, count in zip(templates, counts)
+                      if "jan" in template.players) >= min_jan_runs)
 
     # Predefined rows consume separate runs even when their patterns overlap.
     required_templates = defaultdict(list)
@@ -112,11 +119,9 @@ def build_model(roster, rules, requested_runs=None):
     for t, matches in required_templates.items():
         model.add(sum(matches) <= counts[t])
 
-    player_capacity = Counter()
-    for character in roster.characters:
-        player_capacity[character.player] += sum(bool(eligible_difficulties(character, raid, rules)) for raid in RAIDS)
+    add_capacity_cuts(model, templates, counts, assignments, roster, bounds, rules)
     for index, (players, variables) in enumerate(cluster_runs.items()):
-        upper = min(max_runs, min(player_capacity[p] for p in players))
+        upper = min(max_runs, cluster_upper(bounds, players))
         total = model.new_int_var(0, upper, f"cluster_count_{index}")
         model.add(total == sum(variables))
         penalties = [cluster_cost(n, rules) for n in range(upper + 1)]
@@ -157,17 +162,20 @@ def extract_runs(roster, templates, counts, assignments, solver, seed):
     return runs
 
 
-def solve_roster(roster, rules, solutions=3, time_limit=60, seed=1, workers=8, requested_runs=None, progress=None):
+def solve_roster(roster, rules, solutions=3, time_limit=60, seed=1, workers=8, requested_runs=None, progress=None, min_jan_runs=0):
     if solutions < 1 or not math.isfinite(time_limit) or time_limit <= 0 or workers < 1:
         raise ValueError("solutions, time_limit and workers must be positive")
-    model, templates, counts, assignments = build_model(roster, rules, requested_runs)
+    bounds = derive_capacity_bounds(roster, rules)
+    model, templates, counts, assignments = build_model(roster, rules, requested_runs, min_jan_runs,
+                                                       capacity_bounds=bounds)
     # Alternative layouts must differ even after ignoring role assignments.
     layout_groups = defaultdict(list)
     for template, count in zip(templates, counts):
         layout_groups[template.raid, template.difficulty, template.players].append((template, count))
     layout_counts = []
-    for index, entries in enumerate(layout_groups.values()):
-        count = model.new_int_var(0, sum(t.upper for t, _ in entries), f"layout_count_{index}")
+    for index, ((raid, difficulty, players), entries) in enumerate(layout_groups.items()):
+        upper = min(sum(t.upper for t, _ in entries), bounds[raid, (difficulty,)].player_set_upper(players))
+        count = model.new_int_var(0, upper, f"layout_count_{index}")
         model.add(count == sum(variable for _, variable in entries))
         layout_counts.append(count)
     error = model.validate()
@@ -189,7 +197,7 @@ def solve_roster(roster, rules, solutions=3, time_limit=60, seed=1, workers=8, r
         if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
             break
         runs = extract_runs(roster, templates, counts, assignments, solver, seed + index)
-        validation = validate_solution(roster, runs, rules, requested_runs)
+        validation = validate_solution(roster, runs, rules, requested_runs, min_jan_runs)
         score = score_solution(roster, runs, rules)
         if score["totalPenalty"] != round(solver.objective_value):
             raise RuntimeError("Independent score does not match the solver objective")
@@ -209,5 +217,6 @@ def solve_roster(roster, rules, solutions=3, time_limit=60, seed=1, workers=8, r
             model.add_hint(variable, solver.value(variable))
     results.sort(key=lambda result: result["score"]["totalPenalty"])
     return {"solutions": results, "attempts": attempts, "requestedSolutions": solutions,
+            "capacityBounds": [bound.summary() for bound in bounds.values()],
             "termination": "requested_count_reached" if len(results) == solutions else (
                 "no_more_layouts" if results and attempts[-1]["status"] == "INFEASIBLE" else attempts[-1]["status"].lower())}

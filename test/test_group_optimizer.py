@@ -98,7 +98,10 @@ class EligibilityTests(unittest.TestCase):
         rules = Rules()
         self.assertEqual(cluster_cost(3, rules), cluster_cost(4, rules))
         self.assertLess(cluster_cost(3, rules), cluster_cost(2, rules))
-        self.assertEqual(cluster_cost(2, rules), cluster_cost(5, rules))
+        self.assertEqual(cluster_cost(2, rules), 35)
+        self.assertEqual(cluster_cost(5, rules), 25)
+        self.assertLess(cluster_cost(3, rules), cluster_cost(5, rules))
+        self.assertLess(cluster_cost(5, rules), cluster_cost(2, rules))
         self.assertLess(cluster_cost(5, rules), cluster_cost(1, rules))
         self.assertLessEqual(cluster_cost(1, rules), cluster_cost(6, rules))
         self.assertLess(cluster_cost(6, rules), cluster_cost(7, rules))
@@ -161,6 +164,35 @@ class SolverTests(unittest.TestCase):
         self.assertEqual(len(set(result["validation"]["predefinedRunNumbers"].values())), 2)
         impossible = roster(characters[::2], [group, group])
         self.assertEqual(solve(impossible)["termination"], "infeasible")
+
+    def test_jan_minimum_is_hard_and_counts_both_raid_families(self):
+        value = roster([char(p, role, raids=("Serca", "Cathedral"), required=p != "jan")
+                        for p, role in [("a", "DPS"), ("b", "DPS"), ("nonna", "Support"), ("jan", "DPS")]])
+        rules = Rules(optional_use=10000)
+        baseline = solve(value, rules=rules)["solutions"][0]
+        self.assertEqual(baseline["validation"]["janRuns"], 0)
+        result = solve(value, rules=rules, min_jan_runs=2)["solutions"][0]
+        self.assertEqual(result["validation"]["janRuns"], 2)
+        self.assertEqual(result["validation"]["minJanRuns"], 2)
+        self.assertEqual({r["raid"] for r in result["runs"]}, {"Serca", "Cathedral"})
+        self.assertTrue(all({"Jan", "Nonna"}.issubset({m["player"] for m in r["members"]}) for r in result["runs"]))
+
+    def test_jan_minimum_never_relaxes_other_hard_rules(self):
+        value = roster([char("a"), char("b"), char("nonna", "Support"), char("jan", required=False)])
+        self.assertEqual(solve(value, min_jan_runs=2)["termination"], "infeasible")
+        value.characters[2] = replace(value.characters[2], player="d")
+        self.assertEqual(solve(roster(value.characters), min_jan_runs=1)["termination"], "infeasible")
+
+    def test_jan_minimum_when_jan_is_absent(self):
+        value = roster([char("a"), char("b"), char("c", "Support")])
+        self.assertEqual(solve(value, min_jan_runs=0)["solutions"][0]["validation"]["janRuns"], 0)
+        self.assertEqual(solve(value, min_jan_runs=1)["termination"], "infeasible")
+
+    def test_jan_minimum_rejects_negative_and_noninteger_values(self):
+        value = roster([char("a"), char("b"), char("c", "Support")])
+        for minimum in (-1, 1.5, True):
+            with self.subTest(minimum=minimum), self.assertRaisesRegex(ValueError, "nonnegative integer"):
+                solve(value, min_jan_runs=minimum)
 
     def test_predefined_role_is_hard(self):
         group = Predefined("Serca", "Nightmare", (("a", "Support"), ("b", "DPS"), ("c", "DPS"), (None, "DPS")))
@@ -237,6 +269,7 @@ class SolverTests(unittest.TestCase):
         self.assertEqual(solution["runs"][0]["color"], solution["runs"][1]["color"])
         result.update(workbook="test.xlsx", warnings=[])
         self.assertIn("All hard constraints independently validated", markdown_report(result))
+        self.assertIn("Jan participation: 0 runs (minimum required: 0)", markdown_report(result))
 
 
 class ValidatorTests(unittest.TestCase):
@@ -248,6 +281,10 @@ class ValidatorTests(unittest.TestCase):
     def test_rejects_reused_character(self):
         with self.assertRaisesRegex(ValueError, "multiple Serca"):
             validate_solution(self.roster, self.runs * 2, Rules())
+
+    def test_rejects_unmet_jan_minimum(self):
+        with self.assertRaisesRegex(ValueError, "Jan must appear in at least 1 runs; found 0"):
+            validate_solution(self.roster, self.runs, Rules(), min_jan_runs=1)
 
     def test_rejects_missing_mandatory_character(self):
         self.runs[0]["members"].pop()

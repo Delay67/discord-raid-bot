@@ -25,6 +25,7 @@ class Rules:
     missing_dps: int = 1000
     missing_support: int = 1100
     cluster_good: int = 35
+    cluster_five: int = 25
     cluster_bad: int = 120
     cluster_excess: int = 40
     downgrade: int = 20
@@ -41,7 +42,7 @@ class Rules:
             if name not in {"maybe_adapt", "character_optional"}:
                 if type(value) is not int or value < 0:
                     raise ValueError(f"{name} must be a nonnegative integer")
-        if self.missing_support < self.missing_dps or self.cluster_bad < self.cluster_good:
+        if self.missing_support < self.missing_dps or self.cluster_bad < max(self.cluster_good, self.cluster_five):
             raise ValueError("Weights must preserve missing-support and bad-cluster preference order")
 
 
@@ -232,6 +233,8 @@ def assignment_cost(character, raid, difficulty, rules):
 def cluster_cost(count, rules):
     if count in (0, 3, 4):
         return 0
-    if count in (2, 5):
+    if count == 2:
         return rules.cluster_good
+    if count == 5:
+        return rules.cluster_five
     return rules.cluster_bad + max(0, count - 6) * rules.cluster_excess

@@ -36,9 +36,10 @@ def match_predefined(roster, runs):
     return {group + 1: run + 1 for run, group in owners.items()}
 
 
-def validate_solution(roster, runs, rules, requested_runs=None):
+def validate_solution(roster, runs, rules, requested_runs=None, min_jan_runs=0):
     characters = {c.id: c for c in roster.characters}
     seen = Counter()
+    jan_runs = 0
     if requested_runs is not None and len(runs) != requested_runs:
         raise ValueError(f"Expected {requested_runs} runs, got {len(runs)}")
     for index, run in enumerate(runs, 1):
@@ -70,6 +71,9 @@ def validate_solution(roster, runs, rules, requested_runs=None):
             raise ValueError(f"Run {index}: exceeds 3 DPS / 1 Support capacity")
         if "jan" in players and "nonna" not in players:
             raise ValueError(f"Run {index}: Jan requires Nonna")
+        jan_runs += "jan" in players
+    if jan_runs < min_jan_runs:
+        raise ValueError(f"Jan must appear in at least {min_jan_runs} runs; found {jan_runs}")
     missing = [f"{c.id} / {raid}" for c in roster.characters for raid in RAIDS
                if raid in c.raids and is_required(c, raid, rules) and seen[c.id, raid] != 1]
     if missing:
@@ -77,7 +81,7 @@ def validate_solution(roster, runs, rules, requested_runs=None):
     matches = match_predefined(roster, runs)
     return {"valid": True, "mandatoryParticipations": sum(
         1 for c in roster.characters for raid in RAIDS if raid in c.raids and is_required(c, raid, rules)
-    ), "predefinedRunNumbers": matches}
+    ), "predefinedRunNumbers": matches, "janRuns": jan_runs, "minJanRuns": min_jan_runs}
 
 
 def score_solution(roster, runs, rules):

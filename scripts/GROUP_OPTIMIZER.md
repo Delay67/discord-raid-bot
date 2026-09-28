@@ -33,6 +33,20 @@ each layout. Without it, the optimizer chooses the number needed to cover the
 mandatory entries and improve the preferences. A requested count never permits
 dropping mandatory characters. Impossible counts fail or return INFEASIBLE.
 
+Use `--min-jan-runs N` to require Jan in at least N runs **per solution**, counting
+Serca and Cathedral together:
+
+```sh
+python scripts/active/optimize_groups.py --solutions 3 --min-jan-runs 4
+```
+
+This is a hard minimum, not a target or maximum; Jan may appear in more runs.
+Omitting it (or using `0`) imposes no minimum. The value must be a nonnegative
+integer. Nonna must still be present in every Jan run, and all character, role,
+eligibility, and uniqueness rules still apply. If the minimum cannot be met, the
+solver reports infeasibility instead of reducing it. The reports include both
+the requested minimum and Jan's actual run count.
+
 `--time-limit` is seconds **per solution**, excluding workbook loading/model
 construction. The total search may take approximately `solutions × time-limit`.
 `--workers` defaults to 8. Use `--workers 1 --seed 42` to reduce nondeterminism;
@@ -124,6 +138,7 @@ Override settings/weights with `--rules path/to/rules.json`. For example:
   "missing_dps": 1000,
   "missing_support": 1100,
   "cluster_good": 35,
+  "cluster_five": 25,
   "cluster_bad": 120,
   "cluster_excess": 40,
   "downgrade": 20,
@@ -146,7 +161,8 @@ away for a better score. Defaults:
 | Three-player run missing DPS | 1000 |
 | Three-player run missing Support | 1100 |
 | Cluster with 3 or 4 runs | 0 |
-| Cluster with 2 or 5 runs | 35 |
+| Cluster with 2 runs | 35 |
+| Cluster with 5 runs | 25 |
 | Singleton cluster | 120 |
 | Cluster with 6+ runs | 120 + 40 per run above 6 |
 | Each allowed Serca Nightmare → Hard downgrade | 20 |
@@ -169,6 +185,50 @@ difficulty/role per raid. Equalities connect those choices to the required playe
 pools in the selected templates. This is exact for the implemented rules:
 characters in the same player/difficulty/role pool are interchangeable. It avoids
 enumerating every four-character combination.
+
+### Proven capacity bounds
+
+The model automatically derives necessary bounds for each difficulty and for
+each raid family. No additional flag is needed. JSON results include these in
+`capacityBounds`, with minimum/maximum run counts, a lower bound on vacancy
+penalties, and whether the relaxed capacity conditions are feasible. Passing
+these conditions does not by itself guarantee that a complete layout exists.
+
+The bounds use only consequences of the hard rules:
+
+- Each run has 3–4 characters, 2–3 DPS, and at most one Support.
+- Each player can supply at most one character per run.
+- Mandatory participation and distinct predefined rows impose minimum counts.
+  When those requirements overlap, their counts are not added twice.
+- An adaptable Serca character is counted once in the raid-wide capacity. It is
+  mandatory in a specific difficulty only if it has no alternative difficulty.
+- Optional characters contribute to possible capacity, not mandatory coverage.
+- FLEX contributes to both possible role capacities, but only once to the
+  distinct-character capacity.
+- Repeated player combinations cannot consume more eligible characters or
+  support capacity than those players actually have. Cluster bounds combine the
+  per-difficulty limits with the once-per-raid character limit.
+
+For a band of difficulties with `R` runs, `D` assigned DPS and `S` assigned
+Supports, the vacancy counts are exactly `3R - D` and `R - S`. The preprocessing
+step minimizes their weighted penalty over a relaxed set of feasible aggregate
+counts. That relaxation includes every actual layout, so its minimum is a safe
+lower bound. Counts are constrained by mandatory coverage, possible roles and
+seats, and each player's maximum of `R` appearances.
+
+The model adds those bounds plus redundant role/seat balance equations. It does
+not fix a preferred run count, cap cluster sizes heuristically, or remove valid
+layouts. Bounds for overlapping bands must **not** be added together: a raid-wide
+bound and its difficulty-specific bounds cover some of the same runs.
+
+For the workbook used during development, these conditions prove that Cathedral
+2 needs exactly three runs and at least 3,200 vacancy-penalty points with the
+default weights. These are derived values, not hard-coded roster assumptions.
+
+Small-roster tests enumerate concrete character layouts, check that every valid
+layout survives the bounds, and compare the solver's optimal score against the
+exhaustive optimum. Tighter bounds can change search order; faster searches and
+better time-limited scores are not guaranteed on every instance or random seed.
 
 Adding future rules about interactions between specific characters, classes, or
 strengths may require extending the model beyond these interchangeable pools.

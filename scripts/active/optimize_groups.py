@@ -52,6 +52,8 @@ def markdown_report(result):
                       f"{solution['status']} · penalty {score['totalPenalty']} · "
                       f"{score['fullRuns']} full runs · {score['partialRuns']} partial runs", "",
                       f"Cluster sizes: {', '.join(map(str, score['clusterSizes']))}", "",
+                      f"Jan participation: {solution['validation']['janRuns']} runs "
+                      f"(minimum required: {solution['validation']['minJanRuns']}).", "",
                       "All hard constraints independently validated.", "",
                       "| Cluster | Players | Runs |", "|---|---|---|"])
         for cluster in solution["clusters"]:
@@ -83,6 +85,8 @@ def main():
     parser.add_argument("workbook", nargs="?", type=Path, default=DEFAULT_WORKBOOK)
     parser.add_argument("--solutions", type=int, default=3, help="Number of distinct layouts to search for (default: 3)")
     parser.add_argument("--runs", type=int, help="Exact total run count across both raids; otherwise chosen by the solver")
+    parser.add_argument("--min-jan-runs", type=int, default=0,
+                        help="Minimum runs containing Jan across Serca and Cathedral combined, per solution (default: 0)")
     parser.add_argument("--time-limit", type=float, default=60, help="Maximum solver seconds per solution (default: 60)")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--workers", type=int, default=8, help="Use 1 for reproducible search with a fixed seed")
@@ -102,11 +106,12 @@ def main():
         print(f"Read {len(roster.players)} players, {len(roster.characters)} characters, "
               f"{len(roster.predefined)} predefined groups.", file=sys.stderr, flush=True)
         result = solve_roster(roster, rules, args.solutions, args.time_limit, args.seed, args.workers, args.runs,
-                              progress=lambda message: print(message, file=sys.stderr, flush=True))
+                              progress=lambda message: print(message, file=sys.stderr, flush=True),
+                              min_jan_runs=args.min_jan_runs)
         result.update(workbook=str(args.workbook.resolve()), workbookSha256=workbook_hash,
                       rules=asdict(rules), warnings=roster.warnings,
                       search={"seed": args.seed, "workers": args.workers, "secondsPerSolution": args.time_limit,
-                              "requestedRuns": args.runs})
+                              "requestedRuns": args.runs, "minJanRuns": args.min_jan_runs})
         decorate_clusters(result)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
