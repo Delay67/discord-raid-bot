@@ -154,7 +154,8 @@ installing this update.
 - **Kazeros reminders:** The first timed entry under each day on the `Kazeros`
   workbook sheet pings its named player columns and any names in `Extras` 30
   minutes before the start time. Discord IDs are configured privately through
-  `KAZEROS_DISCORD_IDS`.
+  `KAZEROS_DISCORD_IDS`. Saved reminders repeat across weekly rollovers until an
+  import replaces the reminder schedule (including an explicitly empty schedule).
 
 ## Importing Raids
 

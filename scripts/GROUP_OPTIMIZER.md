@@ -28,6 +28,22 @@ also records the workbook SHA-256, active rules, solver settings, solve status,
 and objective bound. The input workbook and the bot's saved raids are not changed.
 
 `--solutions` is the desired number of complete alternative layouts.
+By default, each sample must change at least **25% of run-weighted player
+pairings** compared with every other returned sample, and every returned score
+must be within **100 penalty points** of the best one found. These limits are
+adjustable:
+
+```sh
+python scripts/active/optimize_groups.py --solutions 3 --diversity-percent 25 --max-score-gap 100
+```
+
+Use `--max-score-gap 0` for equal-score samples. If the first search proves an
+optimum, this requests different optimal samples. If it only finds a feasible
+score, the solver continues seeking improvements without claiming optimality.
+`--diversity-percent 0` disables the pairing threshold, but still requires distinct
+player/raid/difficulty layouts. Both settings use integers; diversity is 0–100
+and the score gap must be nonnegative.
+
 `--runs N` optionally imposes an exact total number of runs across both raids in
 each layout. Without it, the optimizer chooses the number needed to cover the
 mandatory entries and improve the preferences. A requested count never permits
@@ -47,15 +63,37 @@ eligibility, and uniqueness rules still apply. If the minimum cannot be met, the
 solver reports infeasibility instead of reducing it. The reports include both
 the requested minimum and Jan's actual run count.
 
-`--time-limit` is seconds **per solution**, excluding workbook loading/model
-construction. The total search may take approximately `solutions × time-limit`.
+`--time-limit` is the maximum seconds **per search attempt**, excluding workbook
+loading/model construction. Total solver time is budgeted at
+`solutions × time-limit` (with small solver shutdown overruns possible). If a
+better score disqualifies earlier samples or an attempt times out without a
+solution, replacement/retry attempts use the remaining budget, up to three times
+the requested sample count in total. A timeout prints `UNKNOWN`, explains that
+infeasibility has not been proven, and reports the remaining retry budget.
 `--workers` defaults to 8. Use `--workers 1 --seed 42` to reduce nondeterminism;
 wall-clock cutoffs can still change results between runs/machines.
 
 Exit codes: `0` means the requested number was generated, `1` means invalid input
 or an execution error, and `2` means fewer layouts were found. In the last case,
-the report distinguishes proven infeasibility/exhausted alternatives from a
-search timeout. A timeout is never reported as proof that the rules are impossible.
+the report distinguishes proven infeasibility, exhausted comparable alternatives,
+and search/budget limits. `no_more_comparable_samples` means no additional sample
+meets the quality/diversity constraints relative to the retained samples; it does
+not mean the workbook's hard rules are infeasible or that a larger collection
+with a different first sample could not exist. Limits are never silently relaxed.
+
+Reuse saved solutions without repeating the first optimization:
+
+```sh
+python scripts/active/optimize_groups.py --resume data/group-solutions.json --solutions 3 --min-jan-runs 3 --max-score-gap 200 --time-limit 240
+```
+
+`--resume` requires the exact same workbook contents and scoring rules. Saved
+runs are independently validated against the current hard constraints and their
+scores recomputed. Existing compatible samples count toward `--solutions`;
+incompatible diversity/score candidates are not returned. Saved optimality claims
+are not treated as new proofs, so resumed samples are labeled `FEASIBLE` with
+`source: "saved solution"`. The resume file can also be the output path: it is read
+before the new report is written.
 
 ## Workbook input
 
@@ -239,16 +277,56 @@ validator checks each concrete run, all mandatory coverage, and a one-to-one
 matching of predefined groups to runs. It recomputes the score and requires exact
 agreement with the solver's objective before any solution is exported.
 
-For each subsequent alternative, a constraint excludes the previous entire
-multiset of player/raid/difficulty combinations. Reordering runs, changing
-colors, swapping roles, or shuffling characters within those same combinations
-does not count as a new layout. The optimizer may return fewer alternatives when layouts are
-exhausted or the next search times out. Results are sorted by penalty.
+### Comparable, varied samples
+
+The first search minimizes the normal penalty and retains up to 100 distinct
+intermediate layouts. After it finishes, any intermediate layouts meeting the
+final score and diversity limits can become samples immediately. This avoids
+throwing away useful alternatives discovered on the way to the optimum.
+
+Further searches enforce a score ceiling and minimum diversity from **every**
+retained sample. They stop at the first qualifying solution, rather than spending
+time proving the best second or third score. Retries change the random seed and
+alternate partial character-choice hints with unhinted search. The previous group
+layout itself is not hinted because it violates the new diversity constraints.
+There is no random distortion of the score and no relaxation of raid hard rules.
+
+Pairing diversity measures how often each unordered pair of players shares a
+run, counting across both raids. A four-player run contributes six pairings; a
+three-player run contributes three. For example, Delay/Marcel sharing four runs
+counts four times. Let `overlap` be the sum of the smaller shared-run count for
+each pair across two samples. Diversity is:
+
+```text
+100 × (1 - overlap / min(total pairings in sample A, total pairings in sample B))
+```
+
+This requires the specified percentage to change in both samples. Keeping all
+the original relationships and adding extra runs does not create diversity.
+Character, role, difficulty, color, and run-order changes alone do not count.
+For perspective, swapping two players between two runs in a layout of eight
+full runs changes only 12.5% of pairings and fails the 25% default. The threshold
+is relative to roster size, so smaller layouts can differ substantially with
+fewer player moves. This metric compares player relationships, not exact
+four-player cluster membership; it is deliberately stricter than merely finding
+a different layout.
+
+An exact player/raid/difficulty-layout exclusion also prevents duplicate layouts
+when the pairing threshold is set to zero. If a newly found score improves enough
+that earlier samples exceed the configured gap, those samples are retired and
+their diversity restrictions are removed before searching for replacements.
+Every returned sample must satisfy the gap relative to the **best returned score**.
+The script can return fewer samples when the limits cannot be met or the search
+budget is exhausted. Results are sorted by penalty.
+
+JSON `sampling` metadata and the Markdown report show the quality/diversity
+settings, each sample's score gap, and pairwise measured differences. The final
+collection is independently checked for both limits before export.
 
 `OPTIMAL` means the solver proved the best score for the layouts still allowed
 in that search. `FEASIBLE` means every hard rule holds, but optimality was not
-proven. Later searches exclude earlier layouts, so their optimality flags are
-explicitly labeled `optimalForRemainingLayouts`.
+proven. Later searches also include diversity and quality constraints, so their
+optimality flags are explicitly labeled `optimalForRemainingLayouts`.
 
 ## Tests
 

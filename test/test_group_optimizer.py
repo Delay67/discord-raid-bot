@@ -246,13 +246,13 @@ class SolverTests(unittest.TestCase):
     def test_reports_exhausted_layouts_honestly(self):
         result = solve(roster([char("a"), char("b"), char("c", "Support")]), solutions=2)
         self.assertEqual(len(result["solutions"]), 1)
-        self.assertEqual(result["termination"], "no_more_layouts")
+        self.assertEqual(result["termination"], "no_more_comparable_samples")
 
     def test_role_swaps_alone_are_not_new_layouts(self):
         value = roster([char("a"), char("b"), char("c", "Flex"), char("d", "Flex")])
         result = solve(value, solutions=2)
         self.assertEqual(len(result["solutions"]), 1)
-        self.assertEqual(result["termination"], "no_more_layouts")
+        self.assertEqual(result["termination"], "no_more_comparable_samples")
 
     def test_timeout_is_not_reported_as_infeasible(self):
         value = roster([char("a"), char("b"), char("c", "Support")])

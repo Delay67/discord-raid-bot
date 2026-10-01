@@ -44,6 +44,21 @@ def markdown_report(result):
              "Lower penalty is better. FEASIBLE means valid, but optimality was not proven within the time limit.", ""]
     for warning in result["warnings"]:
         lines.extend([f"- {warning}", ""])
+    sampling = result["sampling"]
+    lines.extend([f"Sample quality: at most {sampling['maxScoreGap']} penalty points above the best returned score. "
+                  f"Minimum player-pairing difference: {sampling['diversityPercent']}% between every pair of samples.", ""])
+    if sampling["comparisons"]:
+        lines.extend(["| Samples | Changed player pairings |", "|---|---:|"])
+        for comparison in sampling["comparisons"]:
+            a, b = comparison["solutions"]
+            lines.append(f"| {a} and {b} | {comparison['changedPairingsPercent']}% |")
+        lines.append("")
+    if result["termination"] == "no_more_comparable_samples":
+        lines.extend(["No additional sample satisfies the quality and diversity limits relative to the retained samples. "
+                      "The limits were not relaxed.", ""])
+    elif len(result["solutions"]) < result["requestedSolutions"] and result["termination"] in ("unknown", "sampling_budget_reached"):
+        lines.extend(["The search budget ended before enough qualifying variations were found. "
+                      "This does not prove that further variations are impossible. The limits were not relaxed.", ""])
     if not result["solutions"]:
         lines.extend(["No valid solution was found. INFEASIBLE means the constraints conflict; UNKNOWN means the search ran out of time without a solution.", ""])
     for index, solution in enumerate(result["solutions"], 1):
@@ -51,6 +66,7 @@ def markdown_report(result):
         lines.extend([f"## Solution {index}", "",
                       f"{solution['status']} · penalty {score['totalPenalty']} · "
                       f"{score['fullRuns']} full runs · {score['partialRuns']} partial runs", "",
+                      f"Penalty above best sample: {solution['scoreGapFromBest']}", "",
                       f"Cluster sizes: {', '.join(map(str, score['clusterSizes']))}", "",
                       f"Jan participation: {solution['validation']['janRuns']} runs "
                       f"(minimum required: {solution['validation']['minJanRuns']}).", "",
@@ -84,13 +100,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("workbook", nargs="?", type=Path, default=DEFAULT_WORKBOOK)
     parser.add_argument("--solutions", type=int, default=3, help="Number of distinct layouts to search for (default: 3)")
+    parser.add_argument("--diversity-percent", type=int, default=25,
+                        help="Minimum changed player pairings between every pair of samples, 0-100 (default: 25)")
+    parser.add_argument("--max-score-gap", type=int, default=100,
+                        help="Maximum penalty points above the best returned sample (default: 100)")
     parser.add_argument("--runs", type=int, help="Exact total run count across both raids; otherwise chosen by the solver")
     parser.add_argument("--min-jan-runs", type=int, default=0,
                         help="Minimum runs containing Jan across Serca and Cathedral combined, per solution (default: 0)")
-    parser.add_argument("--time-limit", type=float, default=60, help="Maximum solver seconds per solution (default: 60)")
+    parser.add_argument("--time-limit", type=float, default=60, help="Maximum seconds per search; total solver budget is solutions times this limit (default: 60)")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--workers", type=int, default=8, help="Use 1 for reproducible search with a fixed seed")
     parser.add_argument("--rules", type=Path, help="JSON overrides for Rules settings and soft penalty weights")
+    parser.add_argument("--resume", type=Path,
+                        help="Reuse solutions from an earlier JSON result for the same workbook and rules")
     parser.add_argument("--output", type=Path, default=DEFAULT_WORKBOOK.parent / "group-solutions.json",
                         help="JSON result path; a Markdown report is written beside it")
     args = parser.parse_args()
@@ -103,15 +125,28 @@ def main():
         rules = Rules(**overrides)
         workbook_hash = hashlib.sha256(args.workbook.read_bytes()).hexdigest()
         roster = load_roster(args.workbook)
+        initial_solutions = None
+        if args.resume:
+            saved = json.loads(args.resume.read_text(encoding="utf-8"))
+            if not isinstance(saved, dict) or saved.get("workbookSha256") != workbook_hash or saved.get("rules") != asdict(rules):
+                raise ValueError("--resume requires a result from the same workbook contents and rules")
+            initial_solutions = saved.get("solutions")
+            if not isinstance(initial_solutions, list) or not initial_solutions:
+                raise ValueError("--resume result contains no saved solutions")
+            if any(not isinstance(s, dict) or not isinstance(s.get("runs"), list) for s in initial_solutions):
+                raise ValueError("--resume result contains malformed solutions")
         print(f"Read {len(roster.players)} players, {len(roster.characters)} characters, "
               f"{len(roster.predefined)} predefined groups.", file=sys.stderr, flush=True)
         result = solve_roster(roster, rules, args.solutions, args.time_limit, args.seed, args.workers, args.runs,
                               progress=lambda message: print(message, file=sys.stderr, flush=True),
-                              min_jan_runs=args.min_jan_runs)
+                              min_jan_runs=args.min_jan_runs, diversity_percent=args.diversity_percent,
+                              max_score_gap=args.max_score_gap, initial_solutions=initial_solutions)
         result.update(workbook=str(args.workbook.resolve()), workbookSha256=workbook_hash,
                       rules=asdict(rules), warnings=roster.warnings,
-                      search={"seed": args.seed, "workers": args.workers, "secondsPerSolution": args.time_limit,
-                              "requestedRuns": args.runs, "minJanRuns": args.min_jan_runs})
+                      search={"seed": args.seed, "workers": args.workers, "secondsPerAttempt": args.time_limit,
+                              "solverBudgetSeconds": args.solutions * args.time_limit,
+                              "requestedRuns": args.runs, "minJanRuns": args.min_jan_runs,
+                              "diversityPercent": args.diversity_percent, "maxScoreGap": args.max_score_gap})
         decorate_clusters(result)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

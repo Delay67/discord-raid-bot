@@ -179,7 +179,11 @@ function runRaidWeekRollover(now = new Date()) {
     prepared?.targetDate <= weekDate && Array.isArray(prepared?.raids);
   const nextRaids = resetToTodo(usePrepared ? prepared.raids : currentRaids, "weekly-rollover");
   writeJson(raidsPath, nextRaids);
-  writeCurrentKazerosReminders(usePrepared ? prepared.kazerosReminders : []);
+  // Reminders repeat weekly unless an import explicitly replaces the schedule.
+  // An empty array is an intentional replacement; a missing field is not.
+  if (usePrepared && Array.isArray(prepared.kazerosReminders)) {
+    writeCurrentKazerosReminders(prepared.kazerosReminders);
+  }
   if (usePrepared) {
     clearPreparedRaids();
   }
