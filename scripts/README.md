@@ -1,6 +1,6 @@
 # Scripts
 
-- `active/` contains repeatable operational tools used for bot deployment, raid imports and suggestions, schedule rendering, media preparation, and reports.
+- `active/` contains repeatable operational tools used for bot deployment, raid imports, schedule rendering, media preparation, and reports.
 - `one-time/` contains migrations, historical backfills, and bulk acquisition utilities that are normally run once or only during recovery/setup.
 
 Install the Python dependencies for the active tools with:
@@ -11,56 +11,38 @@ python -m pip install -r scripts/active/requirements.txt
 
 The npm commands in the project root remain the preferred entry points for command registration and stats maintenance.
 
-Generate raid optimizer groups and preview images from `data/staticsheet.xlsx`
-with:
+Generate local Serca/Cathedral group layouts from `data/staticsheet.xlsx`:
 
 ```sh
-python scripts/active/generate_static_raid_suggestions.py
+python scripts/active/optimize_groups.py --solutions 3 --time-limit 60
 ```
 
-By default this imports the `Serca+Cath` sheet, refreshes `data/raids.json`,
-runs the optimizer, and writes:
+See [the optimizer guide](GROUP_OPTIMIZER.md) for the workbook schema, hard rules,
+soft scoring, configurable interpretations, output format, and solver options.
 
-- `data/raid-suggestions-serca-cath.xlsx`
-- `data/raid-suggestions-serca-cath-report.txt`
-- `data/raid-suggestions-serca-cath-option-1.png`
-- `data/raid-suggestions-serca-cath-option-2.png`
-- `data/raid-suggestions-serca-cath-option-3.png`
-
-If the tab name changes, pass it explicitly:
+Read the `Setup` tab from `data/staticsheet.xlsx` as JSON:
 
 ```sh
-python scripts/active/generate_static_raid_suggestions.py --sheet "Temporary"
+python scripts/active/parse_static_setup.py
 ```
 
-That will write matching filenames such as
-`data/raid-suggestions-temporary-option-1.png`.
+An explicit workbook path can also be passed as the first argument. The default
+path is resolved relative to the project, regardless of the working directory.
+This reads the workbook without updating it or the saved raids.
 
-For a longer/harder search, increase `--iterations`:
+The parser locates the `Required Members`, `Optional Members`, and
+`Predefined Groups` headers. JSON contains `requiredMembers` and `optionalMembers`
+name lists, plus `predefinedGroups`. Each group keeps its full `raid` label and
+an ordered `slots` list with `role` and `name`. `SUP` becomes `Support`; blank
+slots have a `null` name. Empty rows are skipped. Setup values must be plain text;
+formulas, Excel errors, missing headers, and groups without a raid label are
+reported as errors.
+
+Run the setup parser tests with:
 
 ```sh
-python scripts/active/generate_static_raid_suggestions.py --iterations 250000
+python -m unittest discover -s test -p "test_static_setup.py"
 ```
-
-By default, the generator uses `--lock-mode colored-nightmare`, which locks
-colored Serca Nightmare groups but still lets Hard and Cathedral groups move.
-Other lock modes are available:
-
-```sh
-python scripts/active/generate_static_raid_suggestions.py --lock-mode none
-python scripts/active/generate_static_raid_suggestions.py --lock-mode all-colored
-```
-
-In the raid sheet, role cells are read by fill color:
-
-- green = DPS
-- purple = Support
-- yellow = Flex
-
-Flex characters can be used by the optimizer to satisfy either a DPS or Support
-slot. Four-member raid groups should be fillable as three DPS plus one Support.
-Three-member raid groups are allowed, but the optimizer heavily penalizes them
-and increases that penalty for each additional three-member group.
 
 Preview or run the LLM-interaction history backfill with:
 

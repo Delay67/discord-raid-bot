@@ -31,7 +31,6 @@ BOT_TIME_ZONE=Europe/Amsterdam
 - `/raid-clear` — Clear all raids
 - `/raids-upload file:workbook.xlsx` — Replace current raids or prepare next week's raids
 - `/complete color:Orange raid:Serca` — Mark a raid as done
-- `/raid-suggest options:3 search:3 variety:3` — Generate alternative raid group layouts
 
 **Lookups:**
 - `/lookup name:Ghonty` — Show a player's raids (matched by name prefix)
@@ -144,7 +143,6 @@ installing this update.
 
 - **Raid tracking:** Track raids by color, type, and difficulty
 - **Player lookup:** Find raids by player name (matches prefix before hyphen)
-- **Auto-suggestions:** Generate alternative team layouts with optimization
 - **Schedule management:** Upload Excel workbooks or images to manage raids
 - **Activity stats:** Track message counts and red panda sends by server/time period
 - **AI chat:** Ask Groq about raids or analyze images
@@ -156,9 +154,13 @@ installing this update.
 - **Kazeros reminders:** The first timed entry under each day on the `Kazeros`
   workbook sheet pings its named player columns and any names in `Extras` 30
   minutes before the start time. Discord IDs are configured privately through
-  `KAZEROS_DISCORD_IDS`.
+  `KAZEROS_DISCORD_IDS`. Saved reminders repeat across weekly rollovers until an
+  import replaces the reminder schedule (including an explicitly empty schedule).
 
 ## Importing Raids
+
+To generate Serca/Cathedral group combinations locally from `staticsheet.xlsx`,
+see the [group optimizer guide](scripts/GROUP_OPTIMIZER.md).
 
 **From Excel (recommended):**
 ```bash

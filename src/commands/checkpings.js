@@ -24,9 +24,11 @@ function getPingReport(now = new Date()) {
   const nextWeek = getNextRaidWeekDate(now);
   const current = readCurrentKazerosReminders();
   const prepared = readPreparedRaidWeek();
-  const upcoming = prepared?.targetDate === nextWeek && Array.isArray(prepared.raids)
-    ? prepared.kazerosReminders || []
-    : [];
+  const validPreparation = prepared?.targetDate === nextWeek && Array.isArray(prepared.raids);
+  const replacesReminders = validPreparation && Array.isArray(prepared.kazerosReminders);
+  const upcoming = replacesReminders
+    ? prepared.kazerosReminders
+    : !prepared || validPreparation ? current : [];
   const lines = [
     "**Kazeros reminder check**",
     `Times: ${timeZone}. Delivery channel: <#${plannedTimesChannelId}>.`,
@@ -38,11 +40,13 @@ function getPingReport(now = new Date()) {
     `**Upcoming week — ${nextWeek} (${upcoming.length} reminders)**`
   ];
   if (!prepared) {
-    lines.push("No prepared import saved. No reminders are prepared for next week.");
+    lines.push("No prepared import saved. Current reminders carry forward to next week.", ...formatReminders(upcoming));
   } else if (prepared.targetDate !== nextWeek || !Array.isArray(prepared.raids)) {
     lines.push(`Warning: the saved preparation is not valid for the upcoming week (target: ${prepared.targetDate || "missing"}).`);
   } else {
-    lines.push("Prepared import saved; activates Wednesday at 10:00 Amsterdam time.", ...formatReminders(upcoming));
+    lines.push("Prepared import saved; activates Wednesday at 10:00 Amsterdam time.");
+    if (!replacesReminders) lines.push("The import has no replacement reminder schedule. Current reminders carry forward to next week.");
+    lines.push(...formatReminders(upcoming));
   }
 
   const ids = parseDiscordIdMap();

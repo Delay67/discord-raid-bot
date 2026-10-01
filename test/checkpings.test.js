@@ -48,11 +48,26 @@ test("does not label a stale preparation as upcoming", () => {
 });
 
 test("distinguishes a prepared roster with no reminders", () => {
-  write("raids-prepared.json", { targetDate: "2026-09-23", raids: [] });
+  write("kazeros-reminders.json", [reminder]);
+  write("raids-prepared.json", { targetDate: "2026-09-23", raids: [], kazerosReminders: [] });
   const report = command.getPingReport(monday).join("\n");
   assert.match(report, /Prepared import saved/);
   assert.match(report, /Upcoming week — 2026-09-23 \(0 reminders\)/);
 });
+
+for (const prepared of [false, true]) {
+  test(`reports carried-forward reminders ${prepared ? "when a prepared import omits the schedule" : "without a prepared import"}`, () => {
+    write("kazeros-reminders.json", [reminder]);
+    if (prepared) write("raids-prepared.json", { targetDate: "2026-09-23", raids: [] });
+    const before = fs.readdirSync(directory).map((name) => [name, fs.readFileSync(path.join(directory, name), "utf8")]);
+
+    const report = command.getPingReport(monday).join("\n");
+    assert.match(report, /Upcoming week.*2026-09-23 \(1 reminders\)/);
+    assert.match(report, /Current reminders carry forward to next week/);
+    assert.equal(report.split("Wednesday 19:30").length - 1, 2);
+    for (const [name, contents] of before) assert.equal(fs.readFileSync(path.join(directory, name), "utf8"), contents);
+  });
+}
 
 test("large reports fit private Discord messages", () => {
   write("kazeros-reminders.json", Array.from({ length: 80 }, () => reminder));

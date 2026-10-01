@@ -11,11 +11,19 @@ const {
   getAvailablePeriods,
   getCurrentRaidWeekDate,
   getNextRaidWeekDate,
+  readCurrentKazerosReminders,
   readRaidsForPeriod,
   runRaidWeekRollover,
+  writeCurrentKazerosReminders,
   writePreparedRaids
 } = require("../src/services/raidPeriodStore");
 const { getNextResetDate } = require("../src/services/weeklyRaidReset");
+
+test.beforeEach(() => {
+  for (const name of fs.readdirSync(testDataDirectory)) {
+    fs.rmSync(path.join(testDataDirectory, name), { recursive: true, force: true });
+  }
+});
 
 test.after(() => {
   fs.rmSync(testDataDirectory, { recursive: true, force: true });
@@ -59,3 +67,45 @@ test("archives current raids and promotes prepared raids at rollover", () => {
     ["current", "2026-04-01"]
   );
 });
+
+const savedReminders = [{ weekday: "Wednesday", startTime: "20:00", raid: "Finale HM", members: ["Delay"] }];
+const firstWednesday = new Date("2026-09-23T08:00:00Z");
+const nextWednesday = new Date("2026-09-30T08:00:00Z");
+
+test("saved reminders survive repeated weekly rollovers without a prepared import", () => {
+  writeCurrentKazerosReminders(savedReminders);
+  runRaidWeekRollover(firstWednesday);
+
+  for (const now of [nextWednesday, new Date("2026-10-07T08:00:00Z")]) {
+    assert.equal(runRaidWeekRollover(now).importedPrepared, false);
+    assert.deepEqual(readCurrentKazerosReminders(), savedReminders);
+    assert.equal(runRaidWeekRollover(now).alreadyRan, true);
+    assert.deepEqual(readCurrentKazerosReminders(), savedReminders);
+  }
+});
+
+test("a future prepared import does not replace saved reminders early", () => {
+  writeCurrentKazerosReminders(savedReminders);
+  runRaidWeekRollover(firstWednesday);
+  writePreparedRaids([], { kazerosReminders: [] }, nextWednesday);
+
+  assert.equal(runRaidWeekRollover(nextWednesday).importedPrepared, false);
+  assert.deepEqual(readCurrentKazerosReminders(), savedReminders);
+  assert.deepEqual(readRaidsForPeriod("next"), []);
+});
+
+for (const [description, details, expected] of [
+  ["replaces reminders with the prepared schedule", { kazerosReminders: [{ ...savedReminders[0], startTime: "21:00" }] }, [{ ...savedReminders[0], startTime: "21:00" }]],
+  ["clears reminders when the prepared schedule is explicitly empty", { kazerosReminders: [] }, []],
+  ["preserves reminders when the prepared import has no reminder schedule", {}, savedReminders]
+]) {
+  test(`rollover ${description}`, () => {
+    writeCurrentKazerosReminders(savedReminders);
+    runRaidWeekRollover(firstWednesday);
+    writePreparedRaids([], details, firstWednesday);
+
+    assert.equal(runRaidWeekRollover(nextWednesday).importedPrepared, true);
+    assert.deepEqual(readCurrentKazerosReminders(), expected);
+    assert.equal(readRaidsForPeriod("next"), null);
+  });
+}
