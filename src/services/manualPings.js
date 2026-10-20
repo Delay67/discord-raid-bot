@@ -24,7 +24,8 @@ function getPings(week, now = new Date()) {
 }
 function editPing(action, week, reminder, now = new Date()) {
   const date = getWeek(week, now);
-  const matches = (entry) => entry.weekday === reminder.weekday && entry.startTime === reminder.startTime && entry.raid.toLowerCase() === reminder.raid.toLowerCase();
+  const matches = (entry) => entry.weekday === reminder.weekday && (action === "remove" ||
+    (entry.startTime === reminder.startTime && entry.raid.toLowerCase() === reminder.raid.toLowerCase()));
   const existing = getPings(week, now);
   const reminders = existing.filter((entry) => !matches(entry));
   if (action === "remove" && reminders.length === existing.length) return false;

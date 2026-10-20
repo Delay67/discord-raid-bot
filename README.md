@@ -197,7 +197,7 @@ Use `--guild-id SERVER_ID` to restrict the results to one Discord server. Run
 Manual reminders (Manage Server required; any server channel):
 
 - `/setping week:current day:Friday time:20:00 raid:Finale HM members:Delay,Jan` adds or replaces the reminder matching day, start time and raid name. Use `week:next` for the upcoming reset. Times use Europe/Amsterdam; delivery is 30 minutes before start.
-- `/removeping week:next day:Friday time:20:00 raid:Finale HM` removes that reminder for the selected week.
+- `/removeping week:next day:Friday` removes all reminders on that day for the selected week. Only week and day are required.
 - `/checkpings` shows the effective schedules. The first manual edit saves a separate schedule for that week; later imports do not overwrite it, and it expires after that week. Current-week edits do not change next week. Members use the existing `KAZEROS_DISCORD_IDS` name mappings. Previously delivered reminders with the same day, time and raid are not resent.
 
 After updating, run `npm run commands:register` and restart the bot to enable the new commands.

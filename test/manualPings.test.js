@@ -66,3 +66,32 @@ test("commands require Manage Server, private replies, and valid inputs", async 
   assert.match(responses[2].content, /saved/);
   assert.ok(responses.every(value => value.ephemeral && value.allowedMentions.parse.length === 0));
 });
+
+for (const week of ["current", "next"]) {
+  test("removeping clears all raids on a day in " + week + " week only", async () => {
+    const otherRaid = { ...base, startTime: "22:00", raid: "Another raid" };
+    const otherDay = { ...base, weekday: "Saturday" };
+    const reminders = [base, otherRaid, otherDay];
+    store.writeCurrentKazerosReminders(reminders);
+    const command = require("../src/commands/removeping");
+    const options = command.data.toJSON().options;
+    assert.deepEqual(options.map(o => [o.name, o.required]), [["week", true], ["day", true]]);
+    // Fail if the command attempts to read any absent raid or time option.
+    const replies = [];
+    const interaction = {
+      guildId: "guild", memberPermissions: { has: () => true },
+      options: { getString: key => { assert.ok(["week", "day"].includes(key)); return key === "week" ? week : "Friday"; } },
+      reply: async value => replies.push(value)
+    };
+    // Use real time for the command's week selection.
+    await command.execute(interaction);
+    assert.deepEqual(getPings(week), [otherDay]);
+    assert.deepEqual(getPings(week === "current" ? "next" : "current"), reminders);
+    assert.deepEqual(store.readCurrentKazerosReminders(), reminders);
+    assert.match(replies[0].content, /All reminders removed/);
+    assert.equal(replies[0].ephemeral, true);
+    assert.deepEqual(replies[0].allowedMentions, { parse: [] });
+    await command.execute(interaction);
+    assert.match(replies[1].content, /No reminders found/);
+  });
+}
