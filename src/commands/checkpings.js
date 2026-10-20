@@ -9,6 +9,8 @@ const {
 } = require("../services/raidPeriodStore");
 const { parseDiscordIdMap } = require("../services/kazerosReminderScheduler");
 
+const { getManualPings, getPings } = require("../services/manualPings");
+
 function formatReminders(reminders) {
   if (!reminders.length) return ["No Kazeros reminders saved."];
   return reminders.map((reminder) => {
@@ -22,30 +24,34 @@ function formatReminders(reminders) {
 function getPingReport(now = new Date()) {
   const currentWeek = getCurrentRaidWeekDate(now);
   const nextWeek = getNextRaidWeekDate(now);
-  const current = readCurrentKazerosReminders();
+  const current = getPings("current", now);
+  const manualNext = getManualPings("next", now);
   const prepared = readPreparedRaidWeek();
   const validPreparation = prepared?.targetDate === nextWeek && Array.isArray(prepared.raids);
   const replacesReminders = validPreparation && Array.isArray(prepared.kazerosReminders);
-  const upcoming = replacesReminders
+  const upcoming = Array.isArray(manualNext) ? manualNext : replacesReminders
     ? prepared.kazerosReminders
-    : !prepared || validPreparation ? current : [];
+    : !prepared || validPreparation ? readCurrentKazerosReminders() : [];
   const lines = [
     "**Kazeros reminder check**",
     `Times: ${timeZone}. Delivery channel: <#${plannedTimesChannelId}>.`,
     "Saved schedules are shown below, including earlier days; this does not confirm delivery.",
     "",
     `**Current week — ${currentWeek} (${current.length} reminders)**`,
+    ...(Array.isArray(getManualPings("current", now)) ? ["Manual schedule saved for this current week only."] : []),
     ...formatReminders(current),
     "",
     `**Upcoming week — ${nextWeek} (${upcoming.length} reminders)**`
   ];
-  if (!prepared) {
-    lines.push("No prepared import saved. Current reminders carry forward to next week.", ...formatReminders(upcoming));
+  if (Array.isArray(manualNext)) {
+    lines.push("Manual schedule saved for this upcoming week only.", ...formatReminders(upcoming));
+  } else if (!prepared) {
+    lines.push("No prepared import saved. Imported reminders carry forward to next week; manual changes apply only to their selected week.", ...formatReminders(upcoming));
   } else if (prepared.targetDate !== nextWeek || !Array.isArray(prepared.raids)) {
     lines.push(`Warning: the saved preparation is not valid for the upcoming week (target: ${prepared.targetDate || "missing"}).`);
   } else {
     lines.push("Prepared import saved; activates Wednesday at 10:00 Amsterdam time.");
-    if (!replacesReminders) lines.push("The import has no replacement reminder schedule. Current reminders carry forward to next week.");
+    if (!replacesReminders) lines.push("The import has no replacement reminder schedule. Imported reminders carry forward to next week; manual changes apply only to their selected week.");
     lines.push(...formatReminders(upcoming));
   }
 

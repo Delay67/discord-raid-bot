@@ -63,7 +63,7 @@ for (const prepared of [false, true]) {
 
     const report = command.getPingReport(monday).join("\n");
     assert.match(report, /Upcoming week.*2026-09-23 \(1 reminders\)/);
-    assert.match(report, /Current reminders carry forward to next week/);
+    assert.match(report, /(?:Current|Imported) reminders carry forward to next week/);
     assert.equal(report.split("Wednesday 19:30").length - 1, 2);
     for (const [name, contents] of before) assert.equal(fs.readFileSync(path.join(directory, name), "utf8"), contents);
   });

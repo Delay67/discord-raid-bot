@@ -3,13 +3,13 @@ const path = require("node:path");
 const { plannedTimesChannelId } = require("../config");
 const {
   getCurrentRaidWeekDate,
-  readCurrentKazerosReminders,
   timeZone
 } = require("./raidPeriodStore");
 
 const dataDirectory =
   process.env.RAID_BOT_DATA_DIRECTORY || path.join(__dirname, "..", "..", "data");
 const sentPath = path.join(dataDirectory, "kazeros-reminders-sent.json");
+const { getPings } = require("./manualPings");
 const remindersInFlight = new Set();
 function readSent() {
   try {
@@ -107,7 +107,7 @@ async function checkKazerosReminders(client, now = new Date()) {
   const weekDate = getCurrentRaidWeekDate(now);
   const sent = readSent();
 
-  for (const reminder of readCurrentKazerosReminders()) {
+  for (const reminder of getPings("current", now)) {
     const key = `${weekDate}:${reminder.weekday}:${reminder.startTime}:${reminder.raid}`;
     if (sent[key] || remindersInFlight.has(key) || !isReminderDue(reminder, now)) continue;
 
