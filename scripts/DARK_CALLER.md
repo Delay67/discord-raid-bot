@@ -84,6 +84,14 @@ with no human members. Voice connection failures may require leave/join again.
 
 ## Gaming PC
 
+Double-click **Start Dark Caller.bat** in the project root. It installs `pynput`
+if needed, opens the SSH tunnel, and starts the mouse helper in the same console.
+Enter your Pi password if SSH asks, then paste the temporary `/dark join` token
+(not the Discord bot token). Press Ctrl+C to stop both processes. Close any old
+tunnel first, because the launcher needs local port 17812. Keep the launcher in
+the project folder so it can locate the scripts. The steps below are the manual
+alternative.
+
 Open CMD and keep this SSH tunnel running during the raid (enter your usual
 Pi password if prompted):
 
@@ -101,14 +109,14 @@ py -m pip install pynput
 py scripts\active\dark_hotkey.py
 ```
 
-Paste the token at the hidden prompt. Tap **left Ctrl+Alt+D** for next. Hold it
+Paste the token at the hidden prompt. Click the **middle mouse button** for next. Hold it
 for one second to reset. As in the supplied example, pressing starts a call
 immediately; holding then replaces it with the reset announcement. Keyboard
 auto-repeat does not generate extra calls. Rapid deliberate taps replace current
 audio rather than waiting for earlier announcements to finish.
 
-Edit `HOTKEY` and `HOLD_SECONDS` near the top of the helper to customize them.
-The helper observes keyboard input and sends control requests; it does not
+Edit `BUTTON` and `HOLD_SECONDS` near the top of the helper to customize them.
+The helper observes mouse button input and sends control requests; it does not
 send inputs to the game. Its operation with your game must be tested locally.
 Close the helper and tunnel windows when done, and use `/dark leave`.
 

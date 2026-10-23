@@ -6,11 +6,10 @@ import threading
 import time
 import urllib.request
 import urllib.error
-from pynput import keyboard
+from pynput import mouse
 
-# Change these keys together to choose another hotkey.
-# Tap calls immediately. Holding also resets after HOLD_SECONDS.
-HOTKEY = {keyboard.Key.ctrl_l, keyboard.Key.alt_l, keyboard.KeyCode.from_char('d')}
+# Press calls immediately. Holding also resets after HOLD_SECONDS.
+BUTTON = mouse.Button.middle
 HOLD_SECONDS = 1.0
 URL = 'http://127.0.0.1:17812/dark/'
 
@@ -36,7 +35,6 @@ def main():
             # Never retry: the Pi may already have consumed the turn.
 
     threading.Thread(target=send_loop, daemon=True).start()
-    pressed = set()
     active = False
     generation = 0
     lock = threading.Lock()
@@ -44,6 +42,7 @@ def main():
     def enqueue(action):
         try:
             actions.put_nowait(action)
+            print('Hotkey detected: sending ' + action, flush=True)
         except queue.Full:
             print('Too many pending actions; action ignored.')
 
@@ -53,34 +52,24 @@ def main():
             if active and generation == current:
                 enqueue('reset')
 
-    def on_press(key):
+    def on_click(x, y, button, pressed):
         nonlocal active, generation
-        if isinstance(key, keyboard.KeyCode) and key.char:
-            # Ctrl+D may be reported as ASCII control-D on Windows.
-            char = key.char.lower()
-            key = keyboard.KeyCode.from_char('d' if char == '\x04' else char)
+        if button != BUTTON:
+            return
         with lock:
-            pressed.add(key)
-            if HOTKEY <= pressed and not active:
+            if pressed and not active:
                 active = True
                 generation += 1
                 enqueue('next')
                 threading.Thread(target=hold_check, args=(generation,), daemon=True).start()
-
-    def on_release(key):
-        nonlocal active, generation
-        if isinstance(key, keyboard.KeyCode) and key.char:
-            char = key.char.lower()
-            key = keyboard.KeyCode.from_char('d' if char == '\x04' else char)
-        with lock:
-            pressed.discard(key)
-            if not HOTKEY <= pressed:
+            elif not pressed:
                 active = False
                 generation += 1
 
-    print('Listening: left Ctrl+Alt+D = next; hold 1 second = reset. Close this window to stop.')
-    with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
+    print('Listening: middle mouse click = next; hold 1 second = reset. Close this window to stop.', flush=True)
+    with mouse.Listener(on_click=on_click) as listener:
         listener.join()
+
 
 
 if __name__ == '__main__':
