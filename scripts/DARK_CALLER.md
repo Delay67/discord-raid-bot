@@ -3,8 +3,10 @@
 The existing bot plays cached speech into a normal Discord voice channel. A
 Windows helper sends next/reset actions through your existing SSH access.
 Names are configured per server in Discord and saved under `data/dark-caller/`.
-Keep that directory when deploying updates. The current implementation uses
-offline US English female espeak-ng speech (`en-us+f3`), not the natural online Aria voice in the example.
+Keep that directory when deploying updates. The default voice is US female
+`en-US-AriaNeural`, generated using Edge's online text-to-speech service through
+the third-party `edge-tts` package. Text, including player names, is sent to that
+service when generating clips. Cached clips play locally without a new request.
 Names are spoken as written; use phonetic spelling when needed.
 
 ## Pi setup
@@ -20,6 +22,9 @@ In the bot directory on the Pi, install the updated dependencies:
 npm ci
 sudo apt-get update
 sudo apt-get install espeak-ng ffmpeg
+sudo apt-get install python3-venv
+python3 -m venv .venv-dark
+.venv-dark/bin/python -m pip install -r scripts/active/requirements-dark-caller.txt
 ```
 
 Add this setting to the Pi's existing `.env`, then register commands and restart
@@ -27,16 +32,35 @@ the existing bot service using your usual process:
 
 ```env
 DARK_CALLER_ENABLED=true
-DARK_CALLER_VOICE=en-us+f3
+DARK_CALLER_VOICE=en-US-AriaNeural
+DARK_CALLER_PYTHON=/home/delay/discord-raid-bot/.venv-dark/bin/python
 ```
 
 ```sh
 npm run commands:register
 ```
 
-`DARK_CALLER_VOICE` is optional and defaults to `en-us+f3`. After changing it,
+`DARK_CALLER_VOICE` is optional and defaults to `en-US-AriaNeural`. After changing it,
 restart the bot and use `/dark join` again. Clips are cached per voice, so old
 recordings do not need to be deleted. The first join prepares the new clips.
+Set `DARK_CALLER_PYTHON` to your virtual environment's absolute Python path
+so the systemd service finds `edge-tts`. Adjust the path if your bot lives elsewhere.
+
+| Voice | DARK_CALLER_VOICE |
+| --- | --- |
+| British female | `en-GB-SoniaNeural` |
+| British female (alternative) | `en-GB-LibbyNeural` |
+| US male | `en-US-GuyNeural` |
+| US female | `en-US-AriaNeural` |
+| Australian female | `en-AU-NatashaNeural` |
+| Australian male | `en-AU-WilliamNeural` |
+| Irish male | `en-IE-ConnorNeural` |
+
+Online voice availability depends on the service. To list available voices:
+`.venv-dark/bin/python -m edge_tts --list-voices`.
+Generation requires internet access. If it fails, the command reports an error
+instead of silently using a different voice. For offline synthetic speech,
+set `DARK_CALLER_VOICE=en-us+f3` instead.
 
 The bot needs View Channel, Connect and Speak in the voice channel. Only
 members with Manage Server permission can use `/dark`. While connected, only

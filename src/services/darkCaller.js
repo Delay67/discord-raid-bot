@@ -16,18 +16,32 @@ function readPlayers(guildId) {
 }
 
 async function clip(text) {
-  const speechVoice = process.env.DARK_CALLER_VOICE || "en-us+f3";
+  const speechVoice = process.env.DARK_CALLER_VOICE || "en-US-AriaNeural";
+  const neural = speechVoice.endsWith("Neural");
   fs.mkdirSync(directory, { recursive: true });
-  const hash = crypto.createHash("sha256").update(JSON.stringify({ text, voice: speechVoice, speed: 190 })).digest("hex");
+  const hash = crypto.createHash("sha256").update(JSON.stringify({ text, voice: speechVoice, speed: neural ? "+15%" : 190 })).digest("hex");
   const file = path.join(directory, `${hash}.ogg`);
   if (fs.existsSync(file)) return file;
   const temporary = `${file}.${crypto.randomUUID()}`;
   try {
-    await run("espeak-ng", ["-v", speechVoice, "-s", "190", "-w", `${temporary}.wav`, "--", text], { timeout: 15000 });
-    await run("ffmpeg", ["-y", "-loglevel", "error", "-i", `${temporary}.wav`, "-c:a", "libopus", "-f", "ogg", temporary], { timeout: 15000 });
+    if (neural) {
+      try {
+        await run(process.env.DARK_CALLER_PYTHON || "python3", [
+          path.join(__dirname, "../../scripts/active/dark_speech.py"),
+          "--voice", speechVoice, "--output", `${temporary}.mp3`, "--text", text
+        ], { timeout: 30000 });
+      } catch (error) {
+        console.error("Neural speech generation:", error.message);
+        throw new Error("Could not generate neural speech. Check the Pi's internet connection and edge-tts installation (DARK_CALLER_PYTHON). See the bot log for details.");
+      }
+    } else {
+      await run("espeak-ng", ["-v", speechVoice, "-s", "190", "-w", `${temporary}.wav`, "--", text], { timeout: 15000 });
+    }
+    await run("ffmpeg", ["-y", "-loglevel", "error", "-i", `${temporary}.${neural ? "mp3" : "wav"}`, "-af", "silenceremove=start_periods=1:start_duration=0.02:start_threshold=-45dB", "-c:a", "libopus", "-f", "ogg", temporary], { timeout: 15000 });
     fs.renameSync(temporary, file);
   } finally {
     fs.rmSync(`${temporary}.wav`, { force: true });
+    fs.rmSync(`${temporary}.mp3`, { force: true });
     fs.rmSync(temporary, { force: true });
   }
   return file;
