@@ -25,6 +25,11 @@ BOT_TIME_ZONE=Europe/Amsterdam
 
 ## Commands
 
+For configurable voice dark calls controlled by a gaming-PC hotkey, see the
+[Pi dark caller setup](scripts/DARK_CALLER.md). Use `/dark players` to save names
+in throw order; `/dark join`, `/dark next`, `/dark reset`, `/dark status`, and
+`/dark leave` control the caller (Manage Server required).
+
 **Raid Management:**
 - `/raid-add color:Red raid:Serca difficulty:Nightmare dps:player-class,player2` — Add a raid
 - `/raid-list` — Show all raids

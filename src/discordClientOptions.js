@@ -9,6 +9,7 @@ const discordClientOptions = {
   },
   intents: [
     GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildEmojisAndStickers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMessageReactions,
