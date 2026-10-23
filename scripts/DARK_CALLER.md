@@ -4,7 +4,7 @@ The existing bot plays cached speech into a normal Discord voice channel. A
 Windows helper sends next/reset actions through your existing SSH access.
 Names are configured per server in Discord and saved under `data/dark-caller/`.
 Keep that directory when deploying updates. The current implementation uses
-offline English espeak-ng speech, not the natural online Aria voice in the example.
+offline US English female espeak-ng speech (`en-us+f3`), not the natural online Aria voice in the example.
 Names are spoken as written; use phonetic spelling when needed.
 
 ## Pi setup
@@ -27,11 +27,16 @@ the existing bot service using your usual process:
 
 ```env
 DARK_CALLER_ENABLED=true
+DARK_CALLER_VOICE=en-us+f3
 ```
 
 ```sh
 npm run commands:register
 ```
+
+`DARK_CALLER_VOICE` is optional and defaults to `en-us+f3`. After changing it,
+restart the bot and use `/dark join` again. Clips are cached per voice, so old
+recordings do not need to be deleted. The first join prepares the new clips.
 
 The bot needs View Channel, Connect and Speak in the voice channel. Only
 members with Manage Server permission can use `/dark`. While connected, only

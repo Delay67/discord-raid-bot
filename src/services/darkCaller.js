@@ -16,13 +16,14 @@ function readPlayers(guildId) {
 }
 
 async function clip(text) {
+  const speechVoice = process.env.DARK_CALLER_VOICE || "en-us+f3";
   fs.mkdirSync(directory, { recursive: true });
-  const hash = crypto.createHash("sha256").update(text).digest("hex");
+  const hash = crypto.createHash("sha256").update(JSON.stringify({ text, voice: speechVoice, speed: 190 })).digest("hex");
   const file = path.join(directory, `${hash}.ogg`);
   if (fs.existsSync(file)) return file;
   const temporary = `${file}.${crypto.randomUUID()}`;
   try {
-    await run("espeak-ng", ["-s", "190", "-w", `${temporary}.wav`, "--", text], { timeout: 15000 });
+    await run("espeak-ng", ["-v", speechVoice, "-s", "190", "-w", `${temporary}.wav`, "--", text], { timeout: 15000 });
     await run("ffmpeg", ["-y", "-loglevel", "error", "-i", `${temporary}.wav`, "-c:a", "libopus", "-f", "ogg", temporary], { timeout: 15000 });
     fs.renameSync(temporary, file);
   } finally {
