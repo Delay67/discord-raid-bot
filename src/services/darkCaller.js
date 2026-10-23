@@ -2,6 +2,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const http = require("node:http");
 const crypto = require("node:crypto");
+const { Readable } = require("node:stream");
 const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 const run = promisify(execFile);
@@ -19,7 +20,7 @@ async function clip(text) {
   const speechVoice = process.env.DARK_CALLER_VOICE || "en-US-AriaNeural";
   const neural = speechVoice.endsWith("Neural");
   fs.mkdirSync(directory, { recursive: true });
-  const hash = crypto.createHash("sha256").update(JSON.stringify({ text, voice: speechVoice, speed: neural ? "+15%" : 190 })).digest("hex");
+  const hash = crypto.createHash("sha256").update(JSON.stringify({ text, voice: speechVoice, speed: neural ? "+15%" : 190, audioRevision: 2 })).digest("hex");
   const file = path.join(directory, `${hash}.ogg`);
   if (fs.existsSync(file)) return file;
   const temporary = `${file}.${crypto.randomUUID()}`;
@@ -37,7 +38,7 @@ async function clip(text) {
     } else {
       await run("espeak-ng", ["-v", speechVoice, "-s", "190", "-w", `${temporary}.wav`, "--", text], { timeout: 15000 });
     }
-    await run("ffmpeg", ["-y", "-loglevel", "error", "-i", `${temporary}.${neural ? "mp3" : "wav"}`, "-af", "silenceremove=start_periods=1:start_duration=0.02:start_threshold=-45dB", "-c:a", "libopus", "-f", "ogg", temporary], { timeout: 15000 });
+    await run("ffmpeg", ["-y", "-loglevel", "error", "-i", `${temporary}.${neural ? "mp3" : "wav"}`, "-af", "silenceremove=start_periods=1:start_duration=0.005:start_threshold=-45dB:window=0.005", "-ar", "48000", "-c:a", "libopus", "-application", "voip", "-frame_duration", "20", "-f", "ogg", temporary], { timeout: 15000 });
     fs.renameSync(temporary, file);
   } finally {
     fs.rmSync(`${temporary}.wav`, { force: true });
@@ -50,7 +51,9 @@ async function clip(text) {
 async function prepare(players) {
   const texts = new Set(["Dark rotation reset", "No darks left"]);
   for (let i = 0; i < players.length * 3; i++) texts.add(nextCall(players, i).text);
-  for (const text of texts) await clip(text);
+  const clips = new Map();
+  for (const text of texts) clips.set(text, fs.readFileSync(await clip(text)));
+  return clips;
 }
 
 async function setPlayers(guildId, input) {
@@ -82,7 +85,7 @@ async function join(member) {
   if (!channel || channel.type !== 2) throw new Error("Join a normal voice channel first.");
   const players = readPlayers(guildId);
   if (!players.length) throw new Error("Set /dark players first.");
-  await prepare(players);
+  const clips = await prepare(players);
   const voice = require("@discordjs/voice");
   const connection = voice.joinVoiceChannel({ channelId: channel.id, guildId, adapterCreator: member.guild.voiceAdapterCreator, selfDeaf: true });
   try {
@@ -94,7 +97,7 @@ async function join(member) {
   const player = voice.createAudioPlayer();
   player.on("error", (error) => console.error("Dark caller audio:", error.message));
   connection.subscribe(player);
-  const session = { connection, player, players, used: 0, owner: member.id, token: crypto.randomBytes(32).toString("hex"), emptySince: null, busy: false };
+  const session = { connection, player, players, clips, used: 0, owner: member.id, token: crypto.randomBytes(32).toString("hex"), emptySince: null, busy: false };
   sessions.set(guildId, session);
   connection.on("stateChange", (_, state) => {
     if (state.status === voice.VoiceConnectionStatus.Destroyed && sessions.get(guildId) === session) {
@@ -120,9 +123,10 @@ async function action(guildId, kind) {
   session.busy = true;
   try {
     const result = kind === "reset" ? { text: "Dark rotation reset", used: 0 } : nextCall(session.players, session.used);
-    const file = await clip(result.text);
+    const audio = session.clips.get(result.text);
+    if (!audio) throw new Error("Call audio was not prepared. Leave and join the caller again.");
     const voice = require("@discordjs/voice");
-    session.player.play(voice.createAudioResource(file, { inputType: voice.StreamType.OggOpus }));
+    session.player.play(voice.createAudioResource(Readable.from([audio]), { inputType: voice.StreamType.OggOpus }));
     session.used = result.used;
     return result.text;
   } finally { session.busy = false; }
