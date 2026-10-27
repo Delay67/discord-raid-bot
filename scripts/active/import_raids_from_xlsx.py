@@ -19,7 +19,7 @@ except ImportError:
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RAIDS_PATH = ROOT / "data" / "raids.json"
 DEFAULT_SHEET_NAME = "Serca+Cath"
-REMINDER_SHEET_NAMES = {"kazeros", "belga"}
+REMINDER_SHEET_NAMES = {"kazeros", "belga", "scheduler"}
 WEEKDAYS = ("Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Monday", "Tuesday")
 
 EXACT_COLOR_NAMES = {

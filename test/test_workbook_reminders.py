@@ -51,6 +51,28 @@ class WorkbookReminderTests(unittest.TestCase):
         workbook.create_sheet("Belga")
         self.assertEqual(parse_kazeros_reminders(workbook), [])
 
+    def test_scheduler_with_offset_table_and_unrelated_roster(self):
+        workbook = Workbook()
+        self.add_schedule(workbook, "Scheduler", "Belga HM 3")
+        sheet = workbook["Scheduler"]
+        # The uploaded workbook has the timetable at O3, with Time in P3,
+        # alongside a separate roster on the left.
+        sheet.insert_cols(1, 14)
+        sheet.insert_rows(1, 2)
+        sheet["B3"] = "Count"
+        sheet["B4"] = "Name"
+        sheet["B5"] = "Belga Night 1"
+        sheet["C5"] = "Delay-Chloestrasza"
+        reminders = parse_kazeros_reminders(workbook)
+        self.assertEqual(len(reminders), 3)
+        self.assertEqual(
+            [(r["weekday"], r["startTime"], r["raid"]) for r in reminders],
+            [("Wednesday", "18:20", "Belga HM 3"),
+             ("Thursday", "18:20", "Belga HM 1"),
+             ("Sunday", "19:20", "Belga NM 2")],
+        )
+        self.assertEqual(reminders[0]["members"], ["Delay", "Marcel", "Jan", "Phil"])
+
 
 if __name__ == "__main__":
     unittest.main()
