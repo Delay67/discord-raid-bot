@@ -19,7 +19,7 @@ except ImportError:
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RAIDS_PATH = ROOT / "data" / "raids.json"
 DEFAULT_SHEET_NAME = "Serca+Cath"
-KAZEROS_SHEET_NAME = "Kazeros"
+REMINDER_SHEET_NAMES = {"kazeros", "belga"}
 WEEKDAYS = ("Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Monday", "Tuesday")
 
 EXACT_COLOR_NAMES = {
@@ -357,10 +357,17 @@ def parse_kazeros_time(value):
 
 
 def parse_kazeros_reminders(workbook):
-    if KAZEROS_SHEET_NAME not in workbook.sheetnames:
-        return []
+    # Keep the existing import payload/storage field for compatibility. Both
+    # raid sheets use the same layout and reminder delivery mechanism.
+    return [
+        reminder
+        for sheet in workbook.worksheets
+        if sheet.title.strip().lower() in REMINDER_SHEET_NAMES
+        for reminder in parse_sheet_reminders(sheet)
+    ]
 
-    sheet = workbook[KAZEROS_SHEET_NAME]
+
+def parse_sheet_reminders(sheet):
     header_row = None
     time_col = None
 

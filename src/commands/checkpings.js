@@ -12,7 +12,7 @@ const { parseDiscordIdMap } = require("../services/kazerosReminderScheduler");
 const { getManualPings, getPings } = require("../services/manualPings");
 
 function formatReminders(reminders) {
-  if (!reminders.length) return ["No Kazeros reminders saved."];
+  if (!reminders.length) return ["No raid reminders saved."];
   return reminders.map((reminder) => {
     const [hour, minute] = reminder.startTime.split(":").map(Number);
     const total = (hour * 60 + minute - 30 + 1440) % 1440;
@@ -33,7 +33,7 @@ function getPingReport(now = new Date()) {
     ? prepared.kazerosReminders
     : !prepared || validPreparation ? readCurrentKazerosReminders() : [];
   const lines = [
-    "**Kazeros reminder check**",
+    "**Raid reminder check (Kazeros / Belga)**",
     `Times: ${timeZone}. Delivery channel: <#${plannedTimesChannelId}>.`,
     "Saved schedules are shown below, including earlier days; this does not confirm delivery.",
     "",
@@ -86,7 +86,7 @@ module.exports = {
   skipCleanup: true,
   data: new SlashCommandBuilder()
     .setName("checkpings")
-    .setDescription("Admin: check saved Kazeros reminders for this week and next week.")
+    .setDescription("Admin: check saved Kazeros and Belga reminders for this week and next week.")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false),
   async execute(interaction) {
